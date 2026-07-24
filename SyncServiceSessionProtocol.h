@@ -25,7 +25,6 @@
 
 #import "SynchronizedNoteProtocol.h"
 
-@class SyncResponseFetcher;
 @class NotationPrefs;
 
 @protocol SyncServiceSession <NSObject>
@@ -79,7 +78,6 @@
 @protocol SyncServiceTask
 
 - (NSString*)statusText;
-- (SyncResponseFetcher*)currentFetcher;
 
 @end
 

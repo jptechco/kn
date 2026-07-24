@@ -27,8 +27,6 @@
 #import "NotationPrefs.h"
 #import "NSString_NV.h"
 #import "NSCollection_utils.h"
-#import "SyncResponseFetcher.h"
-#import "SimplenoteSession.h"
 #import "PassphrasePicker.h"
 #import "PassphraseChanger.h"
 
@@ -147,16 +145,8 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
 		[self updateRemoveKeychainItemStatus];
 		[confirmFileDeletionButton setState:[notationPrefs confirmFileDeletion]];
 		
-		[enabledSyncButton setState:[notationPrefs syncServiceIsEnabled:SimplenoteServiceName]];
-		NSString *username = [[notationPrefs syncAccountForServiceName:SimplenoteServiceName] objectForKey:@"username"];
-		NSString *password = [notationPrefs syncPasswordForServiceName:SimplenoteServiceName];
-		[syncAccountField setStringValue:username ? username : @""];
-		[syncPasswordField setStringValue:password ? password : @""];
-		
-		[syncingFrequency selectItemWithTag:[notationPrefs syncFrequencyInMinutesForServiceName:SimplenoteServiceName]];
-		
-		[self setSyncControlsState:[notationPrefs syncServiceIsEnabled:SimplenoteServiceName]];
-		
+		[self hideSynchronizationControls];
+
 		[secureTextEntryButton setState:[notationPrefs secureTextEntry]];
 		
 		[allowedTypesTable reloadData];
@@ -164,19 +154,41 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
     }
 }
 
-- (void)setSyncControlsState:(BOOL)syncState {
-	
-	if (syncState) {
-		[self startLoginVerifier];
-	} else {
-		[self cancelLoginVerifier];
+//Removes the whole "Synchronization" section of the Notes preferences pane. It is a tab in an
+//NSTabView (Synchronization | Storage | Security) in NotationPrefsView.nib, which cannot be edited
+//without Interface Builder, so the tab is located from one of its controls and removed at runtime.
+//Removing the tab item takes its labels and the "More Information…" button with it and selects an
+//adjacent tab. Falls back to hiding the individual controls if the tab structure isn't found.
+- (void)hideSynchronizationControls {
+	NSView *ancestor = enabledSyncButton;
+	NSTabView *tabView = nil;
+	while (ancestor) {
+		if ([ancestor isKindOfClass:[NSTabView class]]) { tabView = (NSTabView *)ancestor; break; }
+		ancestor = [ancestor superview];
 	}
-	[self setVerificationStatus:VERIFY_NOT_ATTEMPTED withString:@""];
-	[syncingFrequency setEnabled:syncState];
-	[syncAccountField setEnabled:syncState];
-	[syncPasswordField setEnabled:syncState];
-	[syncEncAlertView setHidden:!syncState || ![notationPrefs doesEncryption]];
-	[syncEncAlertField setHidden:!syncState || ![notationPrefs doesEncryption]];
+
+	if (tabView) {
+		NSTabViewItem *syncItem = nil;
+		NSUInteger i = 0;
+		for (i = 0; i < [[tabView tabViewItems] count]; i++) {
+			NSTabViewItem *item = [[tabView tabViewItems] objectAtIndex:i];
+			if ([enabledSyncButton isDescendantOf:[item view]]) { syncItem = item; break; }
+		}
+		if (syncItem) {
+			[tabView removeTabViewItem:syncItem];
+			return;
+		}
+	}
+
+	//fallback: the controls are at least made invisible even if the tab couldn't be removed
+	[enabledSyncButton setHidden:YES];
+	[syncAccountField setHidden:YES];
+	[syncPasswordField setHidden:YES];
+	[syncingFrequency setHidden:YES];
+	[verifyStatusImageView setHidden:YES];
+	[verifyStatusField setHidden:YES];
+	[syncEncAlertView setHidden:YES];
+	[syncEncAlertField setHidden:YES];
 }
 
 - (void)setEncryptionControlsState:(BOOL)encryptionState {
@@ -189,10 +201,6 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
 	
     [keyLengthField setEnabled:encryptionState];
     [keyLengthStepper setEnabled:encryptionState];
-	
-	BOOL syncState = [notationPrefs syncServiceIsEnabled:SimplenoteServiceName];
-	[syncEncAlertView setHidden:!syncState || !encryptionState];
-	[syncEncAlertField setHidden:!syncState || !encryptionState];
 }
 
 - (void)setSeparateFileControlsState:(BOOL)separateFileControlsState {
@@ -366,100 +374,13 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
 	}
 }
 
-- (IBAction)toggledSyncing:(id)sender {
-	[notationPrefs setSyncEnabled:[enabledSyncButton state] forService:SimplenoteServiceName];
-	[self setSyncControlsState:[enabledSyncButton state]];
-}
-
-- (IBAction)syncFrequencyChange:(id)sender {
-	if (sender) {
-		[self performSelector:_cmd withObject:nil afterDelay:0.0];
-	} else {
-		[notationPrefs setSyncFrequency:[syncingFrequency selectedTag] forService:SimplenoteServiceName];
-	}
-}
-
-- (void)syncEditingDidEnd:(NSNotification *)aNotification {
-	if (!verificationAttempted) {
-		[self cancelLoginVerifier];
-		[self startLoginVerifier];
-	}
-}
-
-- (void)syncCredentialsDidChange:(NSNotification *)aNotification {
-	
-	if ([aNotification object] == syncAccountField) {
-		[notationPrefs removeSyncPasswordForService:SimplenoteServiceName];
-		[notationPrefs setSyncUsername:[syncAccountField stringValue] forService:SimplenoteServiceName];
-		
-		[self startVerifyingAfterDelay];
-	} else if ([aNotification object] == syncPasswordField) {
-		[self startVerifyingAfterDelay];
-	}
-}
-
-
-- (void)setVerificationStatus:(int)status withString:(NSString*)aString {
-	
-	switch (status) {
-		case VERIFY_NOT_ATTEMPTED:
-			verificationAttempted = NO;
-			[verifyStatusImageView setImage:nil];
-			break;
-		case VERIFY_FAILED:
-			verificationAttempted = YES;
-			[verifyStatusImageView setImage:[NSImage imageNamed:@"statusError"]];
-			break;
-		case VERIFY_IN_PROGRESS:
-			[verifyStatusImageView setImage:[NSImage imageNamed:@"statusInProgress"]];
-			break;
-		case VERIFY_SUCCESS:
-			verificationAttempted = YES;
-			[verifyStatusImageView setImage:[NSImage imageNamed:@"statusValidated"]];
-			break;
-	}
-	[verifyStatusImageView setHidden: VERIFY_NOT_ATTEMPTED == status];
-	[verifyStatusField setStringValue: aString ? aString : @""];
-}
-
-- (void)startVerifyingAfterDelay {
-	[self cancelLoginVerifier];
-	
-	[self performSelector:@selector(startLoginVerifier) withObject:nil afterDelay:1.5];
-}
-
-- (void)cancelLoginVerifier {
-	[loginVerifier cancel];
-	[loginVerifier autorelease];
-	loginVerifier = nil;
-	[self setVerificationStatus:VERIFY_NOT_ATTEMPTED withString:@""];
-	
-	[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(startLoginVerifier) object:nil];
-}
-
-- (void)startLoginVerifier {
-	if (!loginVerifier && [[syncAccountField stringValue] length] && [[syncPasswordField stringValue] length]) {
-		NSURL *loginURL = [SimplenoteSession servletURLWithPath:@"/api/login" parameters:nil];
-		loginVerifier = [[SyncResponseFetcher alloc] initWithURL:loginURL bodyStringAsUTF8B64:
-						[[NSDictionary dictionaryWithObjectsAndKeys: [syncAccountField stringValue], @"email", [syncPasswordField stringValue], @"password", nil] 
-						 URLEncodedString] delegate:self];
-		[loginVerifier start];
-		[self setVerificationStatus:VERIFY_IN_PROGRESS withString:@""];
-	}
-}
-
-- (void)syncResponseFetcher:(SyncResponseFetcher*)fetcher receivedData:(NSData*)data returningError:(NSString*)errString {
-	BOOL authFailed = errString && [fetcher statusCode] == 400;
-	
-	[self setVerificationStatus:errString ? VERIFY_FAILED : VERIFY_SUCCESS withString: 
-	 authFailed ? NSLocalizedString(@"Incorrect login and password", @"sync status menu msg") : errString];
-	
-	if (authFailed) {
-		[notationPrefs removeSyncPasswordForService:SimplenoteServiceName];
-	} else {
-		[notationPrefs setSyncPassword:[syncPasswordField stringValue] forService:SimplenoteServiceName];
-	}
-}
+//Synchronization was removed along with Simplenote (its server was shut down years ago). These action
+//and notification handlers are kept as no-ops so the connections in NotationPrefsView.nib still
+//resolve; the sync controls in that pane are hidden at runtime by -hideSynchronizationControls.
+- (IBAction)toggledSyncing:(id)sender { }
+- (IBAction)syncFrequencyChange:(id)sender { }
+- (void)syncEditingDidEnd:(NSNotification *)aNotification { }
+- (void)syncCredentialsDidChange:(NSNotification *)aNotification { }
 
 - (IBAction)changedSecureTextEntry:(id)sender {
 	[notationPrefs setSecureTextEntry:[secureTextEntryButton state]];
@@ -473,9 +394,9 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
 	[changer showAroundWindow:[view window]];
 }
 
-- (IBAction)visitSimplenoteSite:(id)sender {
-    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://simplenoteapp.com/"]];
-}
+//kept as a no-op so the nib button connection still resolves; its control is hidden with the rest
+//of the synchronization section (see -hideSynchronizationControls)
+- (IBAction)visitSimplenoteSite:(id)sender { }
 
 - (IBAction)makeDefaultExtension:(id)sender {
 	[[allowedExtensionsTable window] makeFirstResponder:allowedExtensionsTable];
