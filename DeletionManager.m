@@ -41,13 +41,36 @@
 	return self;
 }
 
+//the prompt in this panel names the application, and it lives in a nib that cannot safely be
+//re-saved. The menu-tree substitution in AppController.m does not reach here, so walk this
+//panel's own text fields the same way. Without it the panel is the one place the retired
+//product name still reaches the screen, in every language.
+static void RenameTextFieldsFromOldNameToNew(NSView *view, NSString *oldName, NSString *newName) {
+
+	if ([view isKindOfClass:[NSTextField class]]) {
+		NSString *value = [(NSTextField *)view stringValue];
+		if ([value rangeOfString:oldName].location != NSNotFound)
+			[(NSTextField *)view setStringValue:
+				[value stringByReplacingOccurrencesOfString:oldName withString:newName]];
+	}
+
+	NSEnumerator *subviews = [[view subviews] objectEnumerator];
+	NSView *subview = nil;
+	while ((subview = [subviews nextObject]) != nil)
+		RenameTextFieldsFromOldNameToNew(subview, oldName, newName);
+}
+
 - (void)awakeFromNib {
 	//[window setMaxSize:NSMakeSize(371, 0)];
-	
-	NSAssert(notationController != nil, @"attempting to awake DeletionManager without a NotationController");	
-	
+
+	NSAssert(notationController != nil, @"attempting to awake DeletionManager without a NotationController");
+
 	[window setFloatingPanel:YES];
 	[window setDelegate:self];
+
+	NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
+	if ([appName length])
+		RenameTextFieldsFromOldNameToNew([window contentView], @"Notational Velocity", appName);
 }
 
 - (void)dealloc {

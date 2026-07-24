@@ -92,7 +92,7 @@
 "No notes were selected for exporting." = "未选择要导出的笔记。";
 
 /* No comment provided by engineer. */
-"Notational Velocity should assume the file quotemark%@quotemark was saved with the encoding:" = "Notational Velocity 假设文件 “%@” 使用的是下列编码：";
+"Notational Velocity should assume the file quotemark%@quotemark was saved with the encoding:" = "Kinetic Notes 假设文件 “%@” 使用的是下列编码：";
 
 /* No comment provided by engineer. */
 "Note Importing Cancelled" = "导入笔记已取消";
@@ -197,7 +197,7 @@
 "Select" = "Select";
 
 /* No Comment */
-"Select the folder that Notational Velocity should use for reading and storing notes." = "选择 Notational Velocity 用于读取和存储笔记的文件夹。";
+"Select the folder that Notational Velocity should use for reading and storing notes." = "选择 Kinetic Notes 用于读取和存储笔记的文件夹。";
 
 /* description for no key combination */
 "(None)" = "(无)";
@@ -230,7 +230,7 @@
 "Reverting to current location of %@." = "返回到 %@ 的当前位置。";
 
 /* no comment */
-"Warning: this database was created by a newer version of Notational Velocity. Continue anyway?" = "警告: 数据库由较新版本的 Notational Velocity 创建，确认继续？";
+"Warning: this database was created by a newer version of Notational Velocity. Continue anyway?" = "警告: 数据库由较新版本的 Kinetic Notes 创建，确认继续？";
 
 /* no comment */
 "If you make changes, some settings and metadata could be lost." = "如果您修改它，部分设置和元数据可能会丢失。";
@@ -360,22 +360,22 @@
 "Individual files remain in the notes directory. Leave them alone or move them to the Trash?" = "独立文件仍然保留在笔记目录中，保留他们或移动到废纸篓？";
 
 /* no comment */
-"<Feedback loop warning title>" = "警告: 此笔记文件夹同时与 %@ 和 %@ 同步，如果多个 Notational Velocity 同时使用此文件夹。则可能造成无限循环的同步。";
+"<Feedback loop warning title>" = "警告: 此笔记文件夹同时与 %@ 和 %@ 同步，如果多个 Kinetic Notes 同时使用此文件夹。则可能造成无限循环的同步。";
 
 /* no comment */
 "<Feedback loop warning message>" = "为了避免发生这个问题，请在这台计算机上选择一另一位置，或关闭与 %@ 的同步。";
 
 /* No comment provided by engineer. */
-"The %@ server holds a different set of notes. Replace all %u notes in Notational Velocity with the %u notes on the server, or merge both sets together?" = "%@ 的服务器上存有不同的笔记，替换所有位于 Notational Velocity 中的 %u 条笔记，将会使用位于服务器上的 %u 条笔记，或进行合并？";
+"The %@ server holds a different set of notes. Replace all %u notes in Notational Velocity with the %u notes on the server, or merge both sets together?" = "%@ 的服务器上存有不同的笔记，替换所有位于 Kinetic Notes 中的 %u 条笔记，将会使用位于服务器上的 %u 条笔记，或进行合并？";
 
 /* No comment provided by engineer. */
-"The %@ server reports that no notes exist. Delete all %u notes in Notational Velocity to match it, or re-upload them now?" = "%@ 服务器无笔记记录，删除 Notational Velocity 中存在的 %u 条笔记，或重新上传？";
+"The %@ server reports that no notes exist. Delete all %u notes in Notational Velocity to match it, or re-upload them now?" = "%@ 服务器无笔记记录，删除 Kinetic Notes 中存在的 %u 条笔记，或重新上传？";
 
 /* No comment provided by engineer. */
-"Replacing will remove all %u notes from Notational Velocity. Merging will upload all notes to %@, omitting duplicates." = "替换将会从 Notational Velocity 中删除所有 %u 条笔记。合并将会上传所有笔记到 %@，并忽略重复项目。";
+"Replacing will remove all %u notes from Notational Velocity. Merging will upload all notes to %@, omitting duplicates." = "替换将会从 Kinetic Notes 中删除所有 %u 条笔记。合并将会上传所有笔记到 %@，并忽略重复项目。";
 
 /* No comment provided by engineer. */
-"If your %@ account is different, you may prefer to create a new database in Notational Velocity instead." = "如果与您的 %@ 帐号不同，您可以选择创建一个新的 Notational Velocity 数据库。";
+"If your %@ account is different, you may prefer to create a new database in Notational Velocity instead." = "如果与您的 %@ 帐号不同，您可以选择创建一个新的 Kinetic Notes 数据库。";
 
 /* default button in the dialog above */
 "Turn Off Syncing" = "关闭同步";
@@ -504,7 +504,7 @@
 "No note selected." = "未选择笔记。";
 
 /* No comment provided by engineer. */
-"Notational Velocity supports encryption only for notes stored in a database file." = "Notational Velocity 的加密功能只能用于单独的数据库存储模式。";
+"Notational Velocity supports encryption only for notes stored in a database file." = "Kinetic Notes 的加密功能只能用于单独的数据库存储模式。";
 
 /* No comment provided by engineer. */
 "Open Console in /Applications/Utilities/ for more information." = "在 /应用程序/实用工具/ 中打开控制台来查看详细信息。";
@@ -546,7 +546,7 @@
 "rich text" = "多信息文本";
 
 /* No comment provided by engineer. */
-"Select a new location for your Notational Velocity notes." = "为您的 Notational Velocity 笔记选择新地址。";
+"Select a new location for your Notational Velocity notes." = "为您的 Kinetic Notes 笔记选择新地址。";
 
 /* menu item title for showing bookmarks */
 "Show Bookmarks" = "显示书签";
@@ -564,7 +564,7 @@
 "Unable to create an FSRef from the chosen directory." = "无法从选定的目录中创建 FSRef。";
 
 /* No comment provided by engineer. */
-"Unable to create or access the Interim Note-Changes file. Is another copy of Notational Velocity currently running?" = "无法创建或访问临时文件，是否当前有另一个 Notational Velocity 正在运行？";
+"Unable to create or access the Interim Note-Changes file. Is another copy of Notational Velocity currently running?" = "无法创建或访问临时文件，是否当前有另一个 Kinetic Notes 正在运行？";
 
 /* No comment provided by engineer. */
 "Strikethrough" = "删除线";
@@ -639,7 +639,7 @@
 "Switch to Horizontal Layout" = "切换到横向排版";
 
 /* for warning about incompatibility with TextExpander, Typinator, etc. */
-"Secure Text Entry will prevent %@, which is currently installed on this computer, from working in Notational Velocity." = "安全文本输入会阻止 %@ 的访问，并且可能影响 Notational Velocity 的正常运行。";
+"Secure Text Entry will prevent %@, which is currently installed on this computer, from working in Notational Velocity." = "安全文本输入会阻止 %@ 的访问，并且可能影响 Kinetic Notes 的正常运行。";
 
 /* Status message after downloading a URL */
 "Importing content..." = "正在导入内容…";
