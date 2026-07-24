@@ -30,9 +30,36 @@
 #import "NSData_transformations.h"
 #include <sys/param.h>
 #include <sys/mount.h>
+#include <unistd.h>
 #include <CommonCrypto/CommonDigest.h>
 
 NSString *NotesDatabaseFileName = @"Notes & Settings";
+
+//CreateTemporaryFile names its scratch files ".<digits>-<digits>-<digits>" (see CreateRandomizedFileName
+//in BufferUtils.c). Recognizing exactly that shape lets the sweep below remove leftover temp files
+//without touching the database, note files, or anything else in the directory.
+static BOOL IsOrphanedTemporaryFileName(NSString *name) {
+	const char *s = [name UTF8String];
+	if (!s || s[0] != '.') return NO;
+
+	int i = 1, groups = 0, digitsInGroup = 0;
+	while (s[i]) {
+		if (s[i] >= '0' && s[i] <= '9') {
+			digitsInGroup++;
+		} else if (s[i] == '-') {
+			if (digitsInGroup == 0) return NO;   //no empty groups, e.g. leading or doubled '-'
+			groups++;
+			digitsInGroup = 0;
+		} else {
+			return NO;                            //anything else (".DS_Store", a note title, ...) is not ours
+		}
+		i++;
+	}
+	if (digitsInGroup == 0) return NO;            //must not end on a '-'
+	groups++;                                     //count the final digit group
+
+	return groups == 3;
+}
 
 @implementation NotationController (NotationFileManager)
 
@@ -547,6 +574,31 @@ terminate:
 	return FSCreateFileIfNotPresentInDirectory(&noteDirectoryRef, childRef, (CFStringRef)filename, (Boolean*)created);
 }
 
+//Removes scratch files left behind by earlier atomic saves. The atomic-save path below swaps a temp
+//file's contents into place and then deletes it, but a save interrupted by a crash or force-quit -- or
+//an FSDeleteObject that fails on a stale ref after the emulated exchange on APFS -- can leave the temp
+//file behind. Notational Velocity accumulated hundreds of these over the years. Running this at load
+//(when no save is in flight) both cleans up any that exist and keeps them from ever piling up.
+- (NSUInteger)removeOrphanedTemporaryFiles {
+	NSString *directory = [[NSFileManager defaultManager] pathWithFSRef:&noteDirectoryRef];
+	if (![directory length]) return 0;
+
+	NSArray *contents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:directory error:NULL];
+	NSFileManager *fileManager = [NSFileManager defaultManager];
+	NSUInteger removed = 0, i = 0;
+
+	for (i = 0; i < [contents count]; i++) {
+		NSString *name = [contents objectAtIndex:i];
+		if (IsOrphanedTemporaryFileName(name)) {
+			if ([fileManager removeItemAtPath:[directory stringByAppendingPathComponent:name] error:NULL])
+				removed++;
+		}
+	}
+
+	if (removed) NSLog(@"removed %lu orphaned temporary file(s) from the notes directory", (unsigned long)removed);
+	return removed;
+}
+
 - (OSStatus)storeDataAtomicallyInNotesDirectory:(NSData*)data withName:(NSString*)filename destinationRef:(FSRef*)destRef {
 	return [self storeDataAtomicallyInNotesDirectory:data withName:filename destinationRef:destRef verifyWithSelector:NULL verificationDelegate:nil];
 }
@@ -608,9 +660,17 @@ terminate:
     }
     
     if ((err = FSDeleteObject(&tempFileRef)) != noErr) {
-		NSLog(@"Error deleting temporary file: %d; moving to trash", err);
-		if ((err = [self moveFileToTrash:&tempFileRef forFilename:nil]) != noErr)
-			NSLog(@"Error moving file to trash: %d\n", err);
+		//FSDeleteObject can fail on APFS when the ref went stale during the emulated exchange above;
+		//a POSIX unlink by path is more reliable, and only if that also fails do we resort to the trash.
+		//Anything still left behind is caught by -removeOrphanedTemporaryFiles on the next launch.
+		UInt8 tempPath[PATH_MAX];
+		if (FSRefMakePath(&tempFileRef, tempPath, sizeof(tempPath)) == noErr && unlink((char *)tempPath) == 0) {
+			err = noErr;
+		} else {
+			NSLog(@"Error deleting temporary file: %d; moving to trash", err);
+			if ((err = [self moveFileToTrash:&tempFileRef forFilename:nil]) != noErr)
+				NSLog(@"Error moving file to trash: %d\n", err);
+		}
     }
     
     return noErr;
