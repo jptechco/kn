@@ -38,4 +38,8 @@
 - (NSMutableSet*)deletedNotes; //these won't need to be encrypted
 - (NotationPrefs*)notationPrefs;
 
+//YES if this carries a notes payload. Lets a caller confirm a database file is structurally intact
+//without decrypting or decoding it -- used as a pre-commit gate by the first-run import.
+- (BOOL)hasEncodedNotesData;
+
 @end

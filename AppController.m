@@ -19,6 +19,7 @@
 #import "NoteObject.h"
 #import "GlobalPrefs.h"
 #import "AlienNoteImporter.h"
+#import "KNMigrationController.h"
 #import "AppController_Importing.h"
 #import "NotationPrefs.h"
 #import "PrefsWindowController.h"
@@ -222,11 +223,186 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	[NSApp setServicesProvider:self];
 }
 
+//Runs on a genuine first launch only. Detects an existing Notational Velocity notes directory and,
+//with the user's consent, copies it into place as Kinetic Notes' own database. Notational Velocity's
+//data is only ever read; see KNMigrationController for the safety invariants. An encrypted database
+//is committed as-is and unlocked by the normal passphrase prompt when the notes directory is opened
+//just below -- Kinetic Notes uses its own keychain service, so nothing NV relies on is touched.
+- (void)importFromNotationalVelocityIfFirstRun {
+
+	if (![KNMigrationController isFirstRun]) return;
+
+	NSString *source = [KNMigrationController detectedNotationalVelocityDirectory];
+	//nil source is fine: the user can still point us at a folder, or start fresh
+
+	//the offer repeats if the user chooses a different folder, so it is a loop
+	while (YES) {
+		//a database being written by a running NV could be copied mid-write
+		while ([KNMigrationController isNotationalVelocityRunning]) {
+			NSAlert *runningAlert = [[[NSAlert alloc] init] autorelease];
+			[runningAlert setMessageText:NSLocalizedString(@"Quit Notational Velocity to import your notes", nil)];
+			[runningAlert setInformativeText:NSLocalizedString(@"Notational Velocity is running. Please quit it so its notes can be copied safely, then click Retry.", nil)];
+			[runningAlert addButtonWithTitle:NSLocalizedString(@"Retry", nil)];
+			[runningAlert addButtonWithTitle:NSLocalizedString(@"Skip Import", nil)];
+			if ([runningAlert runModal] != NSAlertFirstButtonReturn) return;
+		}
+
+		NSInteger choice = [self runImportOfferForSource:source];
+
+		if (choice == NSAlertSecondButtonReturn) {
+			//"Choose a Different Folder…" -- pick a folder and re-offer; nil result means they cancelled
+			NSString *chosen = [self runImportFolderChooser];
+			if (chosen) source = chosen;
+			continue;
+		}
+		if (choice != NSAlertFirstButtonReturn) return;   //"Start Fresh"
+
+		if ([self performImportFromSource:source]) return;
+		//an import failure leaves everything recoverable; drop back to the offer so the user can retry
+	}
+}
+
+//Builds and runs the import offer. Shows the note count when it can be determined cheaply (an
+//unencrypted database) and notes when the database is encrypted. Returns the NSAlert button constant.
+- (NSInteger)runImportOfferForSource:(NSString*)source {
+
+	BOOL haveSource = [source length] != 0;
+
+	NSMutableString *info = [NSMutableString string];
+	if (haveSource) {
+		NSInteger count = [KNMigrationController noteCountInDirectory:source];
+		if (count > 0)
+			[info appendFormat:NSLocalizedString(@"Kinetic Notes found %ld notes from Notational Velocity in:\n%@\n\n", nil),
+				(long)count, [source stringByAbbreviatingWithTildeInPath]];
+		else
+			[info appendFormat:NSLocalizedString(@"Kinetic Notes found Notational Velocity notes in:\n%@\n\n", nil),
+				[source stringByAbbreviatingWithTildeInPath]];
+		[info appendString:NSLocalizedString(@"Your notes are copied, not moved. Notational Velocity will keep working exactly as it does now.", nil)];
+	} else {
+		[info appendString:NSLocalizedString(@"Kinetic Notes didn't find a Notational Velocity notes folder automatically. If you have one, you can choose it; otherwise start with an empty database.", nil)];
+	}
+
+	NSAlert *offer = [[[NSAlert alloc] init] autorelease];
+	[offer setMessageText:haveSource ?
+		NSLocalizedString(@"Import your notes from Notational Velocity?", nil) :
+		NSLocalizedString(@"Import notes from Notational Velocity?", nil)];
+	[offer setInformativeText:info];
+	//keep the button order stable so the returned constants are meaningful: first/second/third
+	[offer addButtonWithTitle:haveSource ? NSLocalizedString(@"Import", nil) : NSLocalizedString(@"Import…", nil)];
+	[offer addButtonWithTitle:NSLocalizedString(@"Choose a Different Folder…", nil)];
+	[offer addButtonWithTitle:NSLocalizedString(@"Start Fresh", nil)];
+
+	NSInteger result = [offer runModal];
+
+	//with no detected source, "Import" has nothing to import, so treat it as "choose a folder"
+	if (!haveSource && result == NSAlertFirstButtonReturn) return NSAlertSecondButtonReturn;
+	return result;
+}
+
+//Runs an open panel for the user to pick a Notational Velocity notes folder. Returns the chosen path,
+//or nil if they cancelled or the folder holds no database.
+- (NSString*)runImportFolderChooser {
+
+	NSOpenPanel *panel = [NSOpenPanel openPanel];
+	[panel setCanChooseFiles:NO];
+	[panel setCanChooseDirectories:YES];
+	[panel setAllowsMultipleSelection:NO];
+	[panel setPrompt:NSLocalizedString(@"Choose", nil)];
+	[panel setMessage:NSLocalizedString(@"Choose the Notational Velocity notes folder to import from.", nil)];
+
+	if ([panel runModal] != NSModalResponseOK) return nil;
+
+	NSString *chosen = [[panel URL] path];
+	NSError *error = nil;
+	if (![KNMigrationController verifyDatabaseInDirectory:chosen isEncrypted:NULL error:&error]) {
+		NSAlert *alert = [[[NSAlert alloc] init] autorelease];
+		[alert setMessageText:NSLocalizedString(@"That folder doesn't contain Notational Velocity notes", nil)];
+		[alert setInformativeText:NSLocalizedString(@"Choose the folder that contains the \"Notes & Settings\" database.", nil)];
+		[alert addButtonWithTitle:NSLocalizedString(@"OK", nil)];
+		[alert runModal];
+		return nil;
+	}
+	return chosen;
+}
+
+//Stages, verifies and commits the copy. Returns YES when the import is committed (or when there is
+//nothing to import and the user asked to start fresh), NO when a failure should drop back to the offer.
+- (BOOL)performImportFromSource:(NSString*)source {
+
+	if (![source length]) return YES;   //nothing to import: fall through to a normal empty first run
+
+	NSError *error = nil;
+
+	NSString *staged = [KNMigrationController stageImportFromDirectory:source error:&error];
+	if (!staged) { [self presentMigrationError:error]; return NO; }
+
+	BOOL isEncrypted = NO;
+	if (![KNMigrationController verifyDatabaseInDirectory:staged isEncrypted:&isEncrypted error:&error]) {
+		//leave the staged copy in place for inspection; nothing has replaced the live directory
+		[self presentMigrationError:error];
+		return NO;
+	}
+
+	//count before committing, while the copy is still plainly readable (unencrypted only)
+	NSInteger importedCount = [KNMigrationController noteCountInDirectory:staged];
+
+	NSString *committed = [KNMigrationController commitStagedImport:staged error:&error];
+	if (!committed) { [self presentMigrationError:error]; return NO; }
+
+	//the normal open path below will now open `committed`; if it is encrypted the standard passphrase
+	//prompt handles unlocking, so warn the user to expect it and to have their NV passphrase ready
+	if (isEncrypted) {
+		NSAlert *encryptedNote = [[[NSAlert alloc] init] autorelease];
+		[encryptedNote setMessageText:NSLocalizedString(@"Your imported notes are encrypted", nil)];
+		[encryptedNote setInformativeText:NSLocalizedString(@"Kinetic Notes will now ask for the passphrase you used in Notational Velocity.", nil)];
+		[encryptedNote addButtonWithTitle:NSLocalizedString(@"Continue", nil)];
+		[encryptedNote runModal];
+	} else {
+		[self presentImportSummaryForSource:source destination:committed noteCount:importedCount];
+	}
+	return YES;
+}
+
+//A short confirmation after a successful unencrypted import. (Encrypted imports get the passphrase
+//prompt instead; the notes appear once it is entered.)
+- (void)presentImportSummaryForSource:(NSString*)source destination:(NSString*)destination noteCount:(NSInteger)noteCount {
+
+	NSAlert *alert = [[[NSAlert alloc] init] autorelease];
+	[alert setMessageText:NSLocalizedString(@"Your notes were imported", nil)];
+
+	NSString *countLine = (noteCount > 0) ?
+		[NSString stringWithFormat:NSLocalizedString(@"%ld notes were copied into Kinetic Notes.\n\n", nil), (long)noteCount] :
+		NSLocalizedString(@"Your notes were copied into Kinetic Notes.\n\n", nil);
+
+	[alert setInformativeText:[countLine stringByAppendingString:
+		NSLocalizedString(@"Notational Velocity's notes in their original folder were not changed.", nil)]];
+	[alert addButtonWithTitle:NSLocalizedString(@"OK", nil)];
+	[alert runModal];
+}
+
+- (void)presentMigrationError:(NSError*)error {
+
+	NSAlert *alert = [[[NSAlert alloc] init] autorelease];
+	[alert setAlertStyle:NSAlertStyleWarning];
+	[alert setMessageText:NSLocalizedString(@"Your notes could not be imported", nil)];
+	NSString *reason = [error localizedDescription];
+	[alert setInformativeText:[NSString stringWithFormat:
+		NSLocalizedString(@"%@\n\nNotational Velocity's notes were not changed. Kinetic Notes will start with an empty database; you can try importing again by removing its notes folder.", nil),
+		reason ?: NSLocalizedString(@"An unexpected error occurred.", nil)]];
+	[alert addButtonWithTitle:NSLocalizedString(@"OK", nil)];
+	[alert runModal];
+}
+
 - (void)applicationDidFinishLaunching:(NSNotification*)aNote {
 
 	//has to happen here rather than in -awakeFromNib: MainMenu.nib is still loading at that point,
 	//so -[NSApp mainMenu] is not yet set
 	[self applyApplicationNameToInterface];
+
+	//before any notes directory is opened: on a genuine first run, offer to import from an existing
+	//Notational Velocity installation. A successful import commits into Kinetic Notes' own directory,
+	//which the normal open path below then picks up.
+	[self importFromNotationalVelocityIfFirstRun];
 
 	//on tiger dualfield is often not ready to add tracking tracks until this point:
 	[field setTrackingRect];

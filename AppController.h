@@ -84,6 +84,12 @@ void outletObjectAwoke(id sender);
 
 - (void)setupViewsAfterAppAwakened;
 - (void)applyApplicationNameToInterface;
+- (void)importFromNotationalVelocityIfFirstRun;
+- (NSInteger)runImportOfferForSource:(NSString*)source;
+- (NSString*)runImportFolderChooser;
+- (BOOL)performImportFromSource:(NSString*)source;
+- (void)presentImportSummaryForSource:(NSString*)source destination:(NSString*)destination noteCount:(NSInteger)noteCount;
+- (void)presentMigrationError:(NSError*)error;
 - (void)runDelayedUIActionsAfterLaunch;
 - (void)updateNoteMenus;
 

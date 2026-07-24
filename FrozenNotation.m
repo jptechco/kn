@@ -54,6 +54,10 @@
 	}
 }
 
+- (BOOL)hasEncodedNotesData {
+	return [notesData length] > 0;
+}
+
 - (id)initWithNotes:(NSMutableArray*)notes deletedNotes:(NSMutableSet*)antiNotes prefs:(NotationPrefs*)somePrefs {
 	
 	if ([super init]) {
