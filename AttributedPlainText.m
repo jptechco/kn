@@ -25,7 +25,6 @@
 #import "NSCollection_utils.h"
 #import "GlobalPrefs.h"
 #import "NSString_NV.h"
-#import <AutoHyperlinks/AutoHyperlinks.h>
 
 
 NSString *NVHiddenDoneTagAttributeName = @"NVDoneTag";
@@ -214,28 +213,32 @@ static BOOL _StringWithRangeIsProbablyObjC(NSString *string, NSRange blockRange)
 	if (!changedRange.length)
 		return;
 	
-	//lazily loads Adium's BSD-licensed Auto-Hyperlinks:
-	//http://trac.adium.im/wiki/AutoHyperlinksFramework
-	
-	static Class AHHyperlinkScanner = Nil;
-	static Class AHMarkedHyperlink = Nil;
-	if (!AHHyperlinkScanner || !AHMarkedHyperlink) {
-		if (![[NSBundle bundleWithPath:[[[NSBundle mainBundle] privateFrameworksPath] stringByAppendingPathComponent:@"AutoHyperlinks.framework"]] load]) {
-			NSLog(@"Could not load AutoHyperlinks framework");
+	//this used to lazily load Adium's Auto-Hyperlinks framework, which was never built for Apple Silicon;
+	//NSDataDetector is part of Foundation, recognizes a superset of what that scanner did, and needs no bundle
+
+	static NSDataDetector *linkDetector = nil;
+	if (!linkDetector) {
+		NSError *detectorError = nil;
+		linkDetector = [[NSDataDetector alloc] initWithTypes:NSTextCheckingTypeLink error:&detectorError];
+		if (!linkDetector) {
+			NSLog(@"Could not create a link detector: %@", detectorError);
 			return;
 		}
-		AHHyperlinkScanner = NSClassFromString(@"AHHyperlinkScanner");
-		AHMarkedHyperlink = NSClassFromString(@"AHMarkedHyperlink");
 	}
-	
-	id scanner = [AHHyperlinkScanner hyperlinkScannerWithString:[[self string] substringWithRange:changedRange]];
-	id markedLink = nil;
-	while ((markedLink = [scanner nextURI])) {
-		NSURL *markedLinkURL = nil;
-		if ((markedLinkURL = [markedLink URL]) && !([markedLinkURL isFileURL] && [[markedLinkURL absoluteString] 
-																				  rangeOfString:@"/.file/" options:NSLiteralSearch].location != NSNotFound)) {
-			[self addAttribute:NSLinkAttributeName value:markedLinkURL 
-						 range:NSMakeRange([markedLink range].location + changedRange.location, [markedLink range].length)];
+
+	NSString *scannedString = [[self string] substringWithRange:changedRange];
+	NSArray *matches = [linkDetector matchesInString:scannedString options:0
+											   range:NSMakeRange(0, [scannedString length])];
+	NSUInteger i = 0;
+	for (i = 0; i < [matches count]; i++) {
+		NSTextCheckingResult *match = [matches objectAtIndex:i];
+		NSURL *markedLinkURL = [match URL];
+
+		//skip the opaque /.file/ URLs that the pasteboard hands out for dragged files
+		if (markedLinkURL && !([markedLinkURL isFileURL] && [[markedLinkURL absoluteString]
+															 rangeOfString:@"/.file/" options:NSLiteralSearch].location != NSNotFound)) {
+			[self addAttribute:NSLinkAttributeName value:markedLinkURL
+						 range:NSMakeRange([match range].location + changedRange.location, [match range].length)];
 		}
 	}
 

@@ -130,53 +130,36 @@
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
-	<string>Notational Velocity</string>
-	<key>CFBundleGetInfoString</key>
-	<string>Based on 2.0 β5, Copyright © 2011 Zachary Schneirov, All Rights Reserved.</string>
+	<string>Kinetic Notes</string>
 	<key>CFBundleIconFile</key>
-	<string>Notality</string>
+	<string>kinetic</string>
 	<key>CFBundleIdentifier</key>
-	<string>net.notational.velocity</string>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Kinetic Notes</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
-	<key>CFBundleSignature</key>
-	<string>N†l√</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>net.notational.velocity</string>
-		</dict>
-		<dict>
+			<string>com.jptechco.KineticNotes</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>nv</string>
+				<string>kineticnotes</string>
 			</array>
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
-	<key>LSArchitecturePriority</key>
-	<array>
-		<string>x86_64</string>
-		<string>i386</string>
-		<string>ppc</string>
-	</array>
 	<key>LSMinimumSystemVersion</key>
-	<string>10.4</string>
-	<key>LSMinimumSystemVersionByArchitecture</key>
-	<dict>
-		<key>i386</key>
-		<string>10.4.4</string>
-		<key>ppc</key>
-		<string>10.4</string>
-		<key>x86_64</key>
-		<string>10.6.0</string>
-	</dict>
+	<string>13.0</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Kinetic Notes needs permission to send your notes to the external editor you choose.</string>
 	<key>NSAppleScriptEnabled</key>
 	<true/>
 	<key>NSMainNibFile</key>
@@ -194,12 +177,12 @@
 			<key>NSMenuItem</key>
 			<dict>
 				<key>default</key>
-				<string>NV: New Note With Selection</string>
+				<string>Kinetic Notes: New Note With Selection</string>
 			</dict>
 			<key>NSMessage</key>
 			<string>createFromSelection</string>
 			<key>NSPortName</key>
-			<string>Notational Velocity</string>
+			<string>Kinetic Notes</string>
 			<key>NSSendTypes</key>
 			<array>
 				<string>NSRTFDPboardType</string>
@@ -214,17 +197,5 @@
 	</array>
 	<key>OSAScriptingDefinition</key>
 	<string>Notation.sdef</string>
-	<key>SUCheckAtStartup</key>
-	<false/>
-	<key>SUFeedURL</key>
-	<string>http://notational.net/nvupdates.xml</string>
-	<key>SUPublicDSAKeyFile</key>
-	<string>dsa_pub.pem</string>
-	<key>SUScheduledCheckInterval</key>
-	<real>345600</real>
-	<key>SmartCrashReports_CompanyName</key>
-	<string>Notational.net</string>
-	<key>SmartCrashReports_EmailTicket</key>
-	<string>SCR-51ED0F7B2A</string>
 </dict>
 </plist>

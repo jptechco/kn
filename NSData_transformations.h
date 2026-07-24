@@ -1,14 +1,15 @@
 
 /*
- * You need to have the OpenSSL header files (as well as the location of their
- * include directory given to Project Builder) for this to compile.  For it
- * to link, add /usr/lib/libcrypto.dylib and /usr/lib/libssl.dylib to the linked
- * frameworks.
+ * Cryptography here is provided by CommonCrypto, which is part of libSystem --
+ * no external library is needed to build or run this.  The AES-256-CBC output
+ * is byte-identical to the OpenSSL EVP_aes_256_cbc() implementation this
+ * originally used, so databases encrypted by older versions still open.
  */
 /* NSData_crypto.h */
 
 #import <Foundation/Foundation.h>
-#include <openssl/evp.h>
+#include <CommonCrypto/CommonCryptor.h>
+#include <CommonCrypto/CommonDigest.h>
 
 @interface NSData (NVUtilities)
 
@@ -21,7 +22,6 @@
 - (NSMutableData*)derivedKeyOfLength:(int)len salt:(NSData*)salt iterations:(int)count;
 - (unsigned long)CRC32;
 - (NSData*)SHA1Digest;
-- (NSData*)MD5Digest;
 - (NSData*)BrokenMD5Digest;
 
 - (NSString*)pathURLFromWebArchive;
@@ -43,7 +43,6 @@
 - (BOOL)encryptAESDataWithKey:(NSData*)key iv:(NSData*)iv;
 - (BOOL)decryptAESDataWithKey:(NSData*)key iv:(NSData*)iv;
 
-- (BOOL)encryptDataWithCipher:(const EVP_CIPHER*)cipher key:(NSData*)key iv:(NSData*)iv;
-- (BOOL)decryptDataWithCipher:(const EVP_CIPHER*)cipher key:(NSData*)key iv:(NSData*)iv;
+- (BOOL)cryptAESDataWithKey:(NSData*)key iv:(NSData*)iv operation:(CCOperation)operation;
 
 @end
