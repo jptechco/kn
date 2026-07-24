@@ -45,7 +45,15 @@ static id _sharedKeyComboPanel = nil;
 
 - (void)windowDidLoad
 {
-	mTitleFormat = [[mTitleField stringValue] retain];
+	//this panel's prompt names the application, and it is baked into a nib that cannot safely be
+	//re-saved by a modern Xcode. Substitute the bundle's name once, on the way in, the same way
+	//the menu titles are handled by applyApplicationNameToInterface in AppController.m.
+	NSString *title = [mTitleField stringValue];
+	NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
+	if ([appName length])
+		title = [title stringByReplacingOccurrencesOfString:@"Notational Velocity" withString:appName];
+
+	mTitleFormat = [title retain];
 
 	[[NSNotificationCenter defaultCenter]
 		addObserver: self

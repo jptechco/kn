@@ -193,6 +193,10 @@
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
 		D3EECA00106F66C70023D7F8 /* NVPasswordGenerator.m in Sources */ = {isa = PBXBuildFile; fileRef = D3EEC9FE106F66C70023D7F8 /* NVPasswordGenerator.m */; };
+		DB6618121D4DD603B00B0375 /* ¿Cómo funciona esta cosa?.nvhelp in Resources */ = {isa = PBXBuildFile; fileRef = 1A6F8579372E9FD3E1822150 /* ¿Cómo funciona esta cosa?.nvhelp */; };
+		44CD91076D74E8B11760F23C /* Atajos de teclado terriblemente útiles.nvhelp in Resources */ = {isa = PBXBuildFile; fileRef = 39C4567AB934E28BBA9B8986 /* Atajos de teclado terriblemente útiles.nvhelp */; };
+		8C8F634203B37C81D0171256 /* Esto es el título de una nota.nvhelp in Resources */ = {isa = PBXBuildFile; fileRef = 51DFFE6FD79356732FA88E4E /* Esto es el título de una nota.nvhelp */; };
+		AD92F94EBF6407949A7FEC2D /* Información de Contacto.nvhelp in Resources */ = {isa = PBXBuildFile; fileRef = 006D6942172034AD2A52FEC6 /* Información de Contacto.nvhelp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -577,6 +581,30 @@
 		6E6AFB7524DAE638005CFF74 /* pt */ = {isa = PBXFileReference; lastKnownFileType = text; name = pt; path = "pt.lproj/Como funciona isso?.nvhelp"; sourceTree = "<group>"; };
 		6E6AFB7624DAE639005CFF74 /* pt */ = {isa = PBXFileReference; lastKnownFileType = text; name = pt; path = "pt.lproj/Este é o título de uma nota.nvhelp"; sourceTree = "<group>"; };
 		6E6AFB7724DAE639005CFF74 /* pt */ = {isa = PBXFileReference; lastKnownFileType = text; name = pt; path = "pt.lproj/Informações de Contato.nvhelp"; sourceTree = "<group>"; };
+		1305A0486DA4E9885CCC88A1 /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/BlorPasswordRetriever.nib; sourceTree = "<group>"; };
+		A263763DB9D65A9528E7EFE0 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = es; path = es.lproj/CarbonErrorStrings.plist; sourceTree = "<group>"; };
+		DD7449E79763659871288582 /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/DeletionManager.nib; sourceTree = "<group>"; };
+		2E4012361F6ED6B0C89F8BDD /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/EncodingsManager.nib; sourceTree = "<group>"; };
+		AEA3C14FA2CE6E2044D32455 /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/ExporterManager.nib; sourceTree = "<group>"; };
+		77E52E34B257E6EEB4E6A83A /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/FindPanel.nib; sourceTree = "<group>"; };
+		CDD2E8E07DE636903B90286F /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/ImporterAccessory.nib; sourceTree = "<group>"; };
+		654674B940F2AF1D9B72BF5A /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		A49F3E9A376E8EC05AE4167C /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/KeyDerivationManager.nib; sourceTree = "<group>"; };
+		1DE2936A07E80464D47188BA /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
+		C5C79573C8C02D40A8975386 /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/MainMenu.nib; sourceTree = "<group>"; };
+		54EC022A988E148E65DEFA54 /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/NotationPrefsView.nib; sourceTree = "<group>"; };
+		BD3EB83D1E094426C1848DAE /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/PTKeyComboPanel.nib; sourceTree = "<group>"; };
+		B3EEA3D9426676D500350350 /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/PassphraseChanger.nib; sourceTree = "<group>"; };
+		E61728C9F175C2A9F1FEA08D /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/PassphrasePicker.nib; sourceTree = "<group>"; };
+		FC6DF92C6205C90A31E85158 /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/PassphraseRetriever.nib; sourceTree = "<group>"; };
+		A52F558BB85DEDA32AF00066 /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/Preferences.nib; sourceTree = "<group>"; };
+		BD13F6A4146313308D8D5B9A /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/SavedSearches.nib; sourceTree = "<group>"; };
+		905106F3916A932069650F3A /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/ServicesMenu.strings; sourceTree = "<group>"; };
+		60AD1C5600C4EADB9499D2EB /* es */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = es; path = es.lproj/URLGetter.nib; sourceTree = "<group>"; };
+		B6213D55B6016348884EFD1C /* es */ = {isa = PBXFileReference; lastKnownFileType = text; name = es; path = "es.lproj/¿Cómo funciona esta cosa?.nvhelp"; sourceTree = "<group>"; };
+		FE0B58B197AA1EA46DA6CC0E /* es */ = {isa = PBXFileReference; lastKnownFileType = text; name = es; path = "es.lproj/Atajos de teclado terriblemente útiles.nvhelp"; sourceTree = "<group>"; };
+		2AE6C55B396A88C8E19939AD /* es */ = {isa = PBXFileReference; lastKnownFileType = text; name = es; path = "es.lproj/Esto es el título de una nota.nvhelp"; sourceTree = "<group>"; };
+		A375AB980F61156EC0B6CBE1 /* es */ = {isa = PBXFileReference; lastKnownFileType = text; name = es; path = "es.lproj/Información de Contacto.nvhelp"; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* Notational Velocity.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Notational Velocity.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3EEC9FE106F66C70023D7F8 /* NVPasswordGenerator.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NVPasswordGenerator.m; sourceTree = "<group>"; };
@@ -816,6 +844,10 @@
 				219D22281111564F005E7DF5 /* Contact Information.nvhelp */,
 				219D222A1111564F005E7DF5 /* This is the title of a note.nvhelp */,
 				219D222C1111564F005E7DF5 /* How does this thing work?.nvhelp */,
+				1A6F8579372E9FD3E1822150 /* ¿Cómo funciona esta cosa?.nvhelp */,
+				39C4567AB934E28BBA9B8986 /* Atajos de teclado terriblemente útiles.nvhelp */,
+				51DFFE6FD79356732FA88E4E /* Esto es el título de una nota.nvhelp */,
+				006D6942172034AD2A52FEC6 /* Información de Contacto.nvhelp */,
 			);
 			name = "Help Notes";
 			sourceTree = "<group>";
@@ -1071,6 +1103,7 @@
 				de,
 				fr,
 				pt,
+				es,
 			);
 			mainGroup = 29B97314FDCFA39411CA2CEA /* Notation */;
 			projectDirPath = "";
@@ -1183,6 +1216,10 @@
 				21CA2A931310E05300490979 /* Questo è il titolo di una nota.nvhelp in Resources */,
 				21CA2A941310E05300490979 /* Scorciatoie terribilmente utili.nvhelp in Resources */,
 				2147D82C131EC86100C65006 /* COPYING.txt in Resources */,
+				DB6618121D4DD603B00B0375 /* ¿Cómo funciona esta cosa?.nvhelp in Resources */,
+				44CD91076D74E8B11760F23C /* Atajos de teclado terriblemente útiles.nvhelp in Resources */,
+				8C8F634203B37C81D0171256 /* Esto es el título de una nota.nvhelp in Resources */,
+				AD92F94EBF6407949A7FEC2D /* Información de Contacto.nvhelp in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1287,6 +1324,7 @@
 				6E6AFB3824DAE62C005CFF74 /* de */,
 				6E6AFB5024DAE635005CFF74 /* fr */,
 				6E6AFB6824DAE637005CFF74 /* pt */,
+				654674B940F2AF1D9B72BF5A /* es */,
 			);
 			name = InfoPlist.strings;
 			sourceTree = "<group>";
@@ -1332,6 +1370,7 @@
 				6E6AFB4224DAE62E005CFF74 /* de */,
 				6E6AFB5A24DAE636005CFF74 /* fr */,
 				6E6AFB7224DAE638005CFF74 /* pt */,
+				BD13F6A4146313308D8D5B9A /* es */,
 			);
 			name = SavedSearches.nib;
 			sourceTree = "<group>";
@@ -1345,6 +1384,7 @@
 				6E6AFB3124DAE62C005CFF74 /* de */,
 				6E6AFB4924DAE632005CFF74 /* fr */,
 				6E6AFB6124DAE637005CFF74 /* pt */,
+				1305A0486DA4E9885CCC88A1 /* es */,
 			);
 			name = BlorPasswordRetriever.nib;
 			sourceTree = "<group>";
@@ -1358,6 +1398,7 @@
 				6E6AFB3A24DAE62C005CFF74 /* de */,
 				6E6AFB5224DAE635005CFF74 /* fr */,
 				6E6AFB6A24DAE637005CFF74 /* pt */,
+				1DE2936A07E80464D47188BA /* es */,
 			);
 			name = Localizable.strings;
 			sourceTree = "<group>";
@@ -1371,6 +1412,7 @@
 				6E6AFB3224DAE62C005CFF74 /* de */,
 				6E6AFB4A24DAE632005CFF74 /* fr */,
 				6E6AFB6224DAE637005CFF74 /* pt */,
+				A263763DB9D65A9528E7EFE0 /* es */,
 			);
 			name = CarbonErrorStrings.plist;
 			sourceTree = "<group>";
@@ -1383,6 +1425,7 @@
 				6E6AFB2B24DAE62A005CFF74 /* en */,
 				6E6AFB4324DAE62F005CFF74 /* de */,
 				6E6AFB5B24DAE636005CFF74 /* fr */,
+				905106F3916A932069650F3A /* es */,
 			);
 			name = ServicesMenu.strings;
 			sourceTree = "<group>";
@@ -1412,6 +1455,7 @@
 				6E6AFB3424DAE62C005CFF74 /* de */,
 				6E6AFB4C24DAE633005CFF74 /* fr */,
 				6E6AFB6424DAE637005CFF74 /* pt */,
+				2E4012361F6ED6B0C89F8BDD /* es */,
 			);
 			name = EncodingsManager.nib;
 			sourceTree = "<group>";
@@ -1425,6 +1469,7 @@
 				6E6AFB3324DAE62C005CFF74 /* de */,
 				6E6AFB4B24DAE633005CFF74 /* fr */,
 				6E6AFB6324DAE637005CFF74 /* pt */,
+				DD7449E79763659871288582 /* es */,
 			);
 			name = DeletionManager.nib;
 			sourceTree = "<group>";
@@ -1470,6 +1515,7 @@
 				6E6AFB3624DAE62C005CFF74 /* de */,
 				6E6AFB4E24DAE634005CFF74 /* fr */,
 				6E6AFB6624DAE637005CFF74 /* pt */,
+				77E52E34B257E6EEB4E6A83A /* es */,
 			);
 			name = FindPanel.nib;
 			sourceTree = "<group>";
@@ -1515,6 +1561,7 @@
 				6E6AFB3F24DAE62E005CFF74 /* de */,
 				6E6AFB5724DAE636005CFF74 /* fr */,
 				6E6AFB6F24DAE638005CFF74 /* pt */,
+				E61728C9F175C2A9F1FEA08D /* es */,
 			);
 			name = PassphrasePicker.nib;
 			sourceTree = "<group>";
@@ -1528,6 +1575,7 @@
 				6E6AFB3E24DAE62D005CFF74 /* de */,
 				6E6AFB5624DAE636005CFF74 /* fr */,
 				6E6AFB6E24DAE638005CFF74 /* pt */,
+				B3EEA3D9426676D500350350 /* es */,
 			);
 			name = PassphraseChanger.nib;
 			sourceTree = "<group>";
@@ -1541,6 +1589,7 @@
 				6E6AFB3924DAE62C005CFF74 /* de */,
 				6E6AFB5124DAE635005CFF74 /* fr */,
 				6E6AFB6924DAE637005CFF74 /* pt */,
+				A49F3E9A376E8EC05AE4167C /* es */,
 			);
 			name = KeyDerivationManager.nib;
 			sourceTree = "<group>";
@@ -1554,6 +1603,7 @@
 				6E6AFB3724DAE62C005CFF74 /* de */,
 				6E6AFB4F24DAE634005CFF74 /* fr */,
 				6E6AFB6724DAE637005CFF74 /* pt */,
+				CDD2E8E07DE636903B90286F /* es */,
 			);
 			name = ImporterAccessory.nib;
 			sourceTree = "<group>";
@@ -1567,6 +1617,7 @@
 				6E6AFB3B24DAE62D005CFF74 /* de */,
 				6E6AFB5324DAE635005CFF74 /* fr */,
 				6E6AFB6B24DAE638005CFF74 /* pt */,
+				C5C79573C8C02D40A8975386 /* es */,
 			);
 			name = MainMenu.nib;
 			sourceTree = "<group>";
@@ -1580,6 +1631,7 @@
 				6E6AFB4124DAE62E005CFF74 /* de */,
 				6E6AFB5924DAE636005CFF74 /* fr */,
 				6E6AFB7124DAE638005CFF74 /* pt */,
+				A52F558BB85DEDA32AF00066 /* es */,
 			);
 			name = Preferences.nib;
 			sourceTree = "<group>";
@@ -1593,6 +1645,7 @@
 				6E6AFB4024DAE62E005CFF74 /* de */,
 				6E6AFB5824DAE636005CFF74 /* fr */,
 				6E6AFB7024DAE638005CFF74 /* pt */,
+				FC6DF92C6205C90A31E85158 /* es */,
 			);
 			name = PassphraseRetriever.nib;
 			sourceTree = "<group>";
@@ -1630,6 +1683,7 @@
 				6E6AFB3C24DAE62D005CFF74 /* de */,
 				6E6AFB5424DAE635005CFF74 /* fr */,
 				6E6AFB6C24DAE638005CFF74 /* pt */,
+				54EC022A988E148E65DEFA54 /* es */,
 			);
 			name = NotationPrefsView.nib;
 			sourceTree = "<group>";
@@ -1675,6 +1729,7 @@
 				6E6AFB4424DAE62F005CFF74 /* de */,
 				6E6AFB5C24DAE636005CFF74 /* fr */,
 				6E6AFB7324DAE638005CFF74 /* pt */,
+				60AD1C5600C4EADB9499D2EB /* es */,
 			);
 			name = URLGetter.nib;
 			sourceTree = "<group>";
@@ -1704,6 +1759,7 @@
 				6E6AFB3D24DAE62D005CFF74 /* de */,
 				6E6AFB5524DAE636005CFF74 /* fr */,
 				6E6AFB6D24DAE638005CFF74 /* pt */,
+				BD3EB83D1E094426C1848DAE /* es */,
 			);
 			name = PTKeyComboPanel.nib;
 			sourceTree = "<group>";
@@ -1725,8 +1781,41 @@
 				6E6AFB3524DAE62C005CFF74 /* de */,
 				6E6AFB4D24DAE634005CFF74 /* fr */,
 				6E6AFB6524DAE637005CFF74 /* pt */,
+				AEA3C14FA2CE6E2044D32455 /* es */,
 			);
 			name = ExporterManager.nib;
+			sourceTree = "<group>";
+		};
+		1A6F8579372E9FD3E1822150 /* ¿Cómo funciona esta cosa?.nvhelp */ = {
+			isa = PBXVariantGroup;
+			children = (
+				B6213D55B6016348884EFD1C /* es */,
+			);
+			name = "¿Cómo funciona esta cosa?.nvhelp";
+			sourceTree = "<group>";
+		};
+		39C4567AB934E28BBA9B8986 /* Atajos de teclado terriblemente útiles.nvhelp */ = {
+			isa = PBXVariantGroup;
+			children = (
+				FE0B58B197AA1EA46DA6CC0E /* es */,
+			);
+			name = "Atajos de teclado terriblemente útiles.nvhelp";
+			sourceTree = "<group>";
+		};
+		51DFFE6FD79356732FA88E4E /* Esto es el título de una nota.nvhelp */ = {
+			isa = PBXVariantGroup;
+			children = (
+				2AE6C55B396A88C8E19939AD /* es */,
+			);
+			name = "Esto es el título de una nota.nvhelp";
+			sourceTree = "<group>";
+		};
+		006D6942172034AD2A52FEC6 /* Información de Contacto.nvhelp */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A375AB980F61156EC0B6CBE1 /* es */,
+			);
+			name = "Información de Contacto.nvhelp";
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
@@ -1739,7 +1828,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = NO;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -1773,7 +1862,7 @@
 				INSTALL_PATH = "$(HOME)/Applications";
 				LIBRARY_SEARCH_PATHS = "$(LIBRARY_SEARCH_PATHS)";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				OTHER_LDFLAGS = (
 					"-weak_framework",
 					PDFKit,
@@ -1797,7 +1886,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEPLOYMENT_POSTPROCESSING = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = NO;
@@ -1830,7 +1919,7 @@
 				INSTALL_PATH = "$(HOME)/Applications";
 				LIBRARY_SEARCH_PATHS = "$(LIBRARY_SEARCH_PATHS)";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jptechco.KineticNotes;
 				PRODUCT_NAME = "Kinetic Notes";
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -1849,7 +1938,7 @@
 				CLANG_CXX_LIBRARY = "compiler-default";
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_IDENTITY = "-";
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				ENABLE_STRICT_OBJC_MSGSEND = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1880,7 +1969,7 @@
 				INSTALL_PATH = "$(HOME)/Applications";
 				LIBRARY_SEARCH_PATHS = "$(LIBRARY_SEARCH_PATHS)";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				OTHER_LDFLAGS = (
 					"-weak_framework",
 					PDFKit,

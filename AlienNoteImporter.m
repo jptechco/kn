@@ -77,7 +77,25 @@ NSString *ShouldImportCreationDates = @"ShouldImportCreationDates";
 			NSArray *helpNotes = [[[[AlienNoteImporter alloc] initWithStoragePaths:paths] autorelease] importedNotes];
 			if ([helpNotes count] > 0) {
 				[notation addNotes:helpNotes];
-				[[notation delegate] notation:notation revealNote:[helpNotes lastObject] options:NVEditNoteToReveal];
+
+				//reveal the introductory note rather than whichever one the bundle happened to
+				//enumerate last. Its filename is localized, and is already carried as a string
+				//key for every language, the same way the Help menu resolves the shortcuts note.
+				//compare precomposed: these titles come from filenames, and the file system may
+				//hand back a decomposed form that would never match the composed string literal
+				NSString *introTitle = [NSLocalizedString(@"This is the title of a note", nil)
+										precomposedStringWithCanonicalMapping];
+				NoteObject *noteToReveal = [helpNotes lastObject];
+				NSUInteger i = 0;
+				for (i = 0; i < [helpNotes count]; i++) {
+					NoteObject *note = [helpNotes objectAtIndex:i];
+					if ([[titleOfNote(note) precomposedStringWithCanonicalMapping] isEqualToString:introTitle]) {
+						noteToReveal = note;
+						break;
+					}
+				}
+
+				[[notation delegate] notation:notation revealNote:noteToReveal options:NVEditNoteToReveal];
 			}
 		}
 		[prefsController setBlorImportAttempted:YES];
