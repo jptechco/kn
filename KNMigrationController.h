@@ -58,4 +58,38 @@ extern NSString *KNNotationalVelocityDefaultDirectoryName;
 //Path of the staged copy, if a previous attempt was interrupted and left one behind.
 + (NSString*)stagedImportDirectory;
 
+
+//Errors are reported in this domain; the codes below say which step failed.
+extern NSString *KNMigrationErrorDomain;
+
+typedef NS_ENUM(NSInteger, KNMigrationError) {
+	KNMigrationErrorSourceUnreadable = 1,   //could not read the NV directory (should not happen after detection)
+	KNMigrationErrorInsufficientSpace,       //destination volume can't hold the copy
+	KNMigrationErrorDestinationNotWritable,  //Application Support is not writable
+	KNMigrationErrorCopyFailed,              //the recursive copy itself failed
+	KNMigrationErrorCommitFailed,            //the staged copy could not be moved into place
+};
+
+/*
+ Copies an entire Notational Velocity notes directory into a staging directory beside where Kinetic
+ Notes keeps its own notes. The copy is a plain recursive copy of everything -- the database, every
+ per-note file, and the journal if present -- with the source opened read-only throughout.
+
+ Returns the path of the staged copy on success, or nil with *outError set. The staged copy is NOT
+ yet the live database; it has to be opened, verified, and then committed with -commitStagedImport:.
+ A failure leaves the staged directory in place rather than deleting it, so a caller can inspect it;
+ the next run detects it via +stagedImportDirectory.
+
+ The source is never written, moved, renamed, or deleted, on any path including every failure.
+ */
++ (NSString*)stageImportFromDirectory:(NSString*)sourceDirectory error:(NSError**)outError;
+
+//Atomically moves a verified staged copy into place as Kinetic Notes' live notes directory.
+//Uses a same-volume replace so there is never a window with no notes directory. Returns the final
+//path, or nil with *outError set. Only call after the staged copy has been opened and verified.
++ (NSString*)commitStagedImport:(NSString*)stagedDirectory error:(NSError**)outError;
+
+//The directory Kinetic Notes uses for its own notes; exposed so callers can report it.
++ (NSString*)kineticNotesDirectory;
+
 @end

@@ -28,6 +28,7 @@
 
 NSString *KNNotationalVelocityBundleIdentifier = @"net.notational.velocity";
 NSString *KNNotationalVelocityDefaultDirectoryName = @"Notational Data";
+NSString *KNMigrationErrorDomain = @"KNMigrationErrorDomain";
 
 //the key under which NV records the notes directory it last used, in its own defaults domain
 static NSString *KNNotationalVelocityDirectoryAliasKey = @"DirectoryAlias";
@@ -138,6 +139,123 @@ static NSString *KNStagedImportDirectoryName = @"Kinetic Notes (importing)";
 
 	return [[NSFileManager defaultManager] fileExistsAtPath:
 			[directory stringByAppendingPathComponent:KNWriteAheadLogFileName]];
+}
+
+
+#pragma mark - Staging and committing the copy
+
++ (NSError*)errorWithCode:(KNMigrationError)code description:(NSString*)description underlying:(NSError*)underlying {
+
+	NSMutableDictionary *info = [NSMutableDictionary dictionary];
+	if (description) [info setObject:description forKey:NSLocalizedDescriptionKey];
+	if (underlying) [info setObject:underlying forKey:NSUnderlyingErrorKey];
+	return [NSError errorWithDomain:KNMigrationErrorDomain code:code userInfo:info];
+}
+
+//total bytes occupied by everything under a directory, following the tree but not symlinks out of it
++ (unsigned long long)sizeOfDirectory:(NSString*)directory {
+
+	NSFileManager *fm = [NSFileManager defaultManager];
+	NSDirectoryEnumerator *enumerator = [fm enumeratorAtPath:directory];
+	unsigned long long total = 0;
+	NSString *relative = nil;
+	while ((relative = [enumerator nextObject])) {
+		NSDictionary *attributes = [enumerator fileAttributes];
+		if ([[attributes fileType] isEqualToString:NSFileTypeRegular])
+			total += [attributes fileSize];
+	}
+	return total;
+}
+
++ (unsigned long long)availableCapacityAtPath:(NSString*)path {
+
+	NSURL *url = [NSURL fileURLWithPath:path];
+	NSNumber *available = nil;
+	if ([url getResourceValue:&available forKey:NSURLVolumeAvailableCapacityKey error:NULL] && available)
+		return [available unsignedLongLongValue];
+
+	return 0;
+}
+
++ (NSString*)stageImportFromDirectory:(NSString*)sourceDirectory error:(NSError**)outError {
+
+	NSFileManager *fm = [NSFileManager defaultManager];
+
+	if (![self directoryHoldsNotesDatabase:sourceDirectory]) {
+		if (outError) *outError = [self errorWithCode:KNMigrationErrorSourceUnreadable
+										  description:NSLocalizedString(@"The Notational Velocity notes folder could not be read.", nil)
+										   underlying:nil];
+		return nil;
+	}
+
+	NSString *applicationSupport = [self applicationSupportDirectory];
+	if (![fm isWritableFileAtPath:applicationSupport]) {
+		if (outError) *outError = [self errorWithCode:KNMigrationErrorDestinationNotWritable
+										  description:NSLocalizedString(@"Kinetic Notes cannot write to its Application Support folder.", nil)
+										   underlying:nil];
+		return nil;
+	}
+
+	//require noticeably more free space than the source occupies, so the copy can't fill the volume
+	unsigned long long needed = [self sizeOfDirectory:sourceDirectory];
+	unsigned long long available = [self availableCapacityAtPath:applicationSupport];
+	if (available && needed && available < needed + needed / 5) {
+		if (outError) *outError = [self errorWithCode:KNMigrationErrorInsufficientSpace
+										  description:NSLocalizedString(@"There is not enough free disk space to import your notes.", nil)
+										   underlying:nil];
+		return nil;
+	}
+
+	NSString *staged = [applicationSupport stringByAppendingPathComponent:KNStagedImportDirectoryName];
+
+	//clear any staged directory left by an interrupted earlier attempt; it is ours, never the source
+	if ([fm fileExistsAtPath:staged])
+		[fm removeItemAtPath:staged error:NULL];
+
+	//copyItemAtPath: opens the source read-only. It never modifies, moves, or deletes the source.
+	NSError *copyError = nil;
+	if (![fm copyItemAtPath:sourceDirectory toPath:staged error:&copyError]) {
+		//leave whatever landed for inspection rather than deleting it
+		if (outError) *outError = [self errorWithCode:KNMigrationErrorCopyFailed
+										  description:NSLocalizedString(@"Your notes could not be copied.", nil)
+										   underlying:copyError];
+		return nil;
+	}
+
+	return staged;
+}
+
++ (NSString*)commitStagedImport:(NSString*)stagedDirectory error:(NSError**)outError {
+
+	NSFileManager *fm = [NSFileManager defaultManager];
+	NSString *destination = [self kineticNotesDirectory];
+
+	NSURL *stagedURL = [NSURL fileURLWithPath:stagedDirectory];
+	NSURL *destinationURL = [NSURL fileURLWithPath:destination];
+	NSError *moveError = nil;
+
+	if ([fm fileExistsAtPath:destination]) {
+		//there is an existing (presumably empty first-run) directory; swap it atomically on the same volume
+		NSURL *resultingURL = nil;
+		if (![fm replaceItemAtURL:destinationURL withItemAtURL:stagedURL backupItemName:nil
+						  options:0 resultingItemURL:&resultingURL error:&moveError]) {
+			if (outError) *outError = [self errorWithCode:KNMigrationErrorCommitFailed
+											  description:NSLocalizedString(@"The imported notes could not be put into place.", nil)
+											   underlying:moveError];
+			return nil;
+		}
+		return resultingURL ? [resultingURL path] : destination;
+	}
+
+	//no existing directory: a plain move is already atomic on one volume
+	if (![fm moveItemAtURL:stagedURL toURL:destinationURL error:&moveError]) {
+		if (outError) *outError = [self errorWithCode:KNMigrationErrorCommitFailed
+										  description:NSLocalizedString(@"The imported notes could not be put into place.", nil)
+										   underlying:moveError];
+		return nil;
+	}
+
+	return destination;
 }
 
 @end
