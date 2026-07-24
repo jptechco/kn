@@ -8,7 +8,8 @@ and has no Apple Silicon slice, so on modern Macs it runs only under Rosetta 2 �
 being withdrawn after macOS 26 Tahoe. Kinetic Notes is that application rebuilt to run natively,
 with its dead and Intel-only dependencies replaced, and nothing removed that anyone was using.
 
-**Status: 1.0 is in development.** See [Version history](#version-history) for what has landed.
+**Status: 1.0 — production ready, development ongoing.** See [Version history](#version-history)
+for what has landed.
 
 ---
 
@@ -62,7 +63,27 @@ You can keep both installed indefinitely.
 
 ## Version history
 
-### 1.0 — in development
+### 1.1 — in development
+
+**Spanish is back, and the rebrand now reaches every language.**
+
+*Localization*
+- **Spanish added as a seventh shipping locale.** A Spanish translation contributed years ago was
+  never wired into the build and was left behind under its old directory name. It now ships as
+  `es`, and it is complete: the alert and dialog text it originally covered, all four welcome
+  notes, and — new in this release — the menus, Preferences and every panel, which had been
+  committed as untranslated copies of the English nibs.
+- The rebrand from Notational Velocity, which previously covered only English, is applied across
+  every locale: alert text, the welcome notes, and the hotkey panel's prompt.
+- Translators are credited in-app again. A German, French, Italian or Portuguese About box has
+  always named its translator; the Chinese credit had been dropped and is restored, and Spanish
+  is credited for the first time. See [Translations](#translations).
+
+*Housekeeping*
+- Removed 100+ orphaned localization files: `.strings` overlays superseded years ago by fully
+  translated nibs, and the nibs of `TagEditingManager`, a feature that no longer exists.
+
+### 1.0
 
 **Runs natively on Apple Silicon.** The headline change: the app is now a universal `arm64` +
 `x86_64` binary with no external dependencies.
@@ -96,10 +117,16 @@ You can keep both installed indefinitely.
 - The Help menu's website items, which pointed at an undefined localized string and so did
   nothing at all, now open this repository.
 
-*Still to come before 1.0*
-- First-run import assistant for Notational Velocity data, including encrypted databases.
-- Removal of the long-dead Simplenote sync, whose server was shut down over a decade ago.
-- Dark mode support.
+*Features*
+- **First-run import assistant.** On a genuine first launch, Kinetic Notes offers to copy an
+  existing Notational Velocity notes directory, including encrypted databases. The offer reports
+  how many notes were found where that can be determined without the passphrase. Notational
+  Velocity's own directory is only ever read, never written.
+- **Dark Mode.** Notes that stored a baked-in foreground colour rendered as black text on the
+  dark editor background, making them unreadable; that, the empty-editor panel and the list
+  preview text now follow the system appearance.
+- **Simplenote sync removed.** Its server was shut down over a decade ago, so the feature could
+  not work at all.
 
 ### Upstream
 
@@ -153,3 +180,17 @@ Notational Velocity. The full text is in [COPYING.txt](COPYING.txt).
 - The original Notational Velocity application icon by Taylor Carrigan is **not** used here and
   is not part of this repository; its licence does not permit commercial use. Kinetic Notes ships
   its own icon.
+
+### Translations
+
+Kinetic Notes ships the interface translations contributed to Notational Velocity, and is grateful
+to the people who wrote them:
+
+| Language | Translator |
+|---|---|
+| Spanish | Iago Ramos, OpenAI |
+| French | David Bosman |
+| Portuguese | Daniel R. Souza |
+| German | Benedikt Hopmann |
+| Chinese (Simplified) | Tunghsiao Liu |
+| Italian | Paolo Tramannoni |
