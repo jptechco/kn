@@ -29,6 +29,12 @@
 
 #define SYSTEM_LIST_FONT_SIZE 12.0f
 
+//the preference panes are only ~368pt wide, which is too narrow to display all four
+//toolbar items on modern macOS (they collapse into a ">>" overflow menu). Keep the window
+//at least this wide so every pane's toolbar item is always visible; narrower panes are
+//centered within the extra width.
+#define PREFS_MIN_CONTENT_WIDTH 540.0f
+
 @implementation PrefsWindowController
 
 - (id)init {
@@ -494,26 +500,40 @@
 	[[NSFontPanel sharedFontPanel] close];
 	
 	//fix this math to convert between window and view coordinates for resolution independence
-	
+
 	float userSpaceScaleFactor = [window userSpaceScaleFactor];
-	
+
     //to stop flicker, we make a temp blank view.
-	
+
 	NSRect windowContentFrame = ScaleRectWithFactor([[window contentView] frame], userSpaceScaleFactor);
     NSView *tempView = [[NSView alloc] initWithFrame:[[window contentView] frame]];
     [window setContentView:tempView];
     [tempView release];
-    
+
     NSRect newFrame = [window frame];
 	NSRect viewFrameForWindow = ScaleRectWithFactor([prefsView frame], userSpaceScaleFactor);
     newFrame.size.height = viewFrameForWindow.size.height + ([window frame].size.height - windowContentFrame.size.height);
-    newFrame.size.width = viewFrameForWindow.size.width;
+    newFrame.size.width = MAX(viewFrameForWindow.size.width, PREFS_MIN_CONTENT_WIDTH);
     newFrame.origin.y += (windowContentFrame.size.height - viewFrameForWindow.size.height);
-    	
+
     [window setShowsResizeIndicator:YES];
     [window setFrame:newFrame display:YES animate:YES];
 
-    [window setContentView:prefsView];
+	//the window may be wider than the pane (so the toolbar always fits); host the pane in a
+	//container and center it horizontally rather than letting it stretch left-aligned.
+	NSRect contentBounds = [[window contentView] frame];
+	if (contentBounds.size.width > viewFrameForWindow.size.width) {
+		NSView *container = [[[NSView alloc] initWithFrame:contentBounds] autorelease];
+		NSRect paneFrame = [prefsView frame];
+		paneFrame.origin.x = floorf((contentBounds.size.width - paneFrame.size.width) / 2.0f);
+		paneFrame.origin.y = contentBounds.size.height - paneFrame.size.height;
+		[prefsView setFrame:paneFrame];
+		[prefsView setAutoresizingMask:NSViewMinXMargin | NSViewMaxXMargin | NSViewMinYMargin];
+		[container addSubview:prefsView];
+		[window setContentView:container];
+	} else {
+		[window setContentView:prefsView];
+	}
 }
 
 NSRect ScaleRectWithFactor(NSRect rect, float factor) {
