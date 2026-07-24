@@ -152,10 +152,14 @@
 		}
 		
 		[self upgradeDatabaseIfNecessary];
-		
+
 		[self updateTitlePrefixConnections];
+
+		//the database is loaded and no save is in flight yet, so this is a safe moment to clear out
+		//scratch files left behind by earlier interrupted or failed atomic saves
+		[self removeOrphanedTemporaryFiles];
     }
-    
+
     return self;
 }
 
