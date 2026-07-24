@@ -1158,13 +1158,22 @@ bail:
 }
 
 - (void)makeForegroundTextColorMatchGlobalPrefs {
+	NSColor *fgColor = [prefsController foregroundTextColor];
+	if (!fgColor) return;
+
+	//when following the system appearance, always push the live semantic color into note content.
+	//The 8-bit equality gate below cannot be trusted here: at load in Light Mode the dynamic
+	//[NSColor textColor] resolves to black and compares equal to a database's baked-in static black,
+	//so the gate would skip and leave that static black in the content -- unreadable once the app is
+	//in Dark Mode. Storing the dynamic color instead lets NSTextView re-resolve it per appearance.
+	if ([prefsController automaticallyManagesTextColors]) {
+		[self setForegroundTextColor:fgColor];
+		return;
+	}
+
 	NSColor *prefsFGColor = [notationPrefs foregroundColor];
-	if (prefsFGColor) {
-		NSColor *fgColor = [prefsController foregroundTextColor];
-		
-		if (!ColorsEqualWith8BitChannels(prefsFGColor, fgColor)) {			
-			[self setForegroundTextColor:fgColor];
-		}
+	if (prefsFGColor && !ColorsEqualWith8BitChannels(prefsFGColor, fgColor)) {
+		[self setForegroundTextColor:fgColor];
 	}
 }
 
