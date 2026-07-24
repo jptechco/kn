@@ -68,6 +68,7 @@ typedef NS_ENUM(NSInteger, KNMigrationError) {
 	KNMigrationErrorDestinationNotWritable,  //Application Support is not writable
 	KNMigrationErrorCopyFailed,              //the recursive copy itself failed
 	KNMigrationErrorCommitFailed,            //the staged copy could not be moved into place
+	KNMigrationErrorDatabaseUnreadable,      //the copied database file is missing or corrupt
 };
 
 /*
@@ -88,6 +89,13 @@ typedef NS_ENUM(NSInteger, KNMigrationError) {
 //Uses a same-volume replace so there is never a window with no notes directory. Returns the final
 //path, or nil with *outError set. Only call after the staged copy has been opened and verified.
 + (NSString*)commitStagedImport:(NSString*)stagedDirectory error:(NSError**)outError;
+
+//Confirms a copied "Notes & Settings" is a structurally intact database before it is committed:
+//it must unarchive to a FrozenNotation that carries a notes payload. This does NOT decrypt or decode
+//the notes -- for an encrypted database the passphrase is asked for later, on open, by the normal
+//path. *isEncrypted (if given) reports whether opening it will need a passphrase. Returns NO with
+//*outError if the file is missing or corrupt.
++ (BOOL)verifyDatabaseInDirectory:(NSString*)directory isEncrypted:(BOOL*)isEncrypted error:(NSError**)outError;
 
 //The directory Kinetic Notes uses for its own notes; exposed so callers can report it.
 + (NSString*)kineticNotesDirectory;

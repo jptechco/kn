@@ -25,6 +25,8 @@
 #import "NotationFileManager.h"
 #import "NSFileManager_NV.h"
 #import "NSData_transformations.h"
+#import "FrozenNotation.h"
+#import "NotationPrefs.h"
 
 NSString *KNNotationalVelocityBundleIdentifier = @"net.notational.velocity";
 NSString *KNNotationalVelocityDefaultDirectoryName = @"Notational Data";
@@ -223,6 +225,35 @@ static NSString *KNStagedImportDirectoryName = @"Kinetic Notes (importing)";
 	}
 
 	return staged;
+}
+
++ (BOOL)verifyDatabaseInDirectory:(NSString*)directory isEncrypted:(BOOL*)isEncrypted error:(NSError**)outError {
+
+	NSString *databasePath = [directory stringByAppendingPathComponent:NotesDatabaseFileName];
+	NSData *archived = [NSData dataWithContentsOfFile:databasePath];
+	if (![archived length]) {
+		if (outError) *outError = [self errorWithCode:KNMigrationErrorDatabaseUnreadable
+										  description:NSLocalizedString(@"The copied notes database could not be read.", nil)
+										   underlying:nil];
+		return NO;
+	}
+
+	FrozenNotation *frozen = nil;
+	@try {
+		frozen = [NSKeyedUnarchiver unarchiveObjectWithData:archived];
+	} @catch (NSException *exception) {
+		frozen = nil;
+	}
+
+	if (![frozen isKindOfClass:[FrozenNotation class]] || ![frozen hasEncodedNotesData]) {
+		if (outError) *outError = [self errorWithCode:KNMigrationErrorDatabaseUnreadable
+										  description:NSLocalizedString(@"The copied notes database is not in a form Kinetic Notes recognizes.", nil)
+										   underlying:nil];
+		return NO;
+	}
+
+	if (isEncrypted) *isEncrypted = [[frozen notationPrefs] doesEncryption];
+	return YES;
 }
 
 + (NSString*)commitStagedImport:(NSString*)stagedDirectory error:(NSError**)outError {

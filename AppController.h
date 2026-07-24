@@ -83,6 +83,8 @@ void outletObjectAwoke(id sender);
 
 - (void)setupViewsAfterAppAwakened;
 - (void)applyApplicationNameToInterface;
+- (void)importFromNotationalVelocityIfFirstRun;
+- (void)presentMigrationError:(NSError*)error;
 - (void)runDelayedUIActionsAfterLaunch;
 - (void)updateNoteMenus;
 
