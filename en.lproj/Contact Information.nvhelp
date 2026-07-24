@@ -6,14 +6,15 @@
 
 \f0\b\fs24 \cf0 Homepage:
 \b0 \
-	http://www.notational.net/\
+	https://github.com/jptechco/kn\
 
 \b \
-Development:
+Report a problem:
 \b0 \
-	https://github.com/scrod/nv/wiki/\
+	https://github.com/jptechco/kn/issues\
 \
 
-\b Contact:
+\b About:
 \b0 \
-	Zachary Schneirov <scrod@notational.net>}
+	Kinetic Notes is a modern fork of Notational Velocity,\
+	originally created by Zachary Schneirov.}
