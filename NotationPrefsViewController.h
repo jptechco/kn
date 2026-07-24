@@ -26,7 +26,6 @@
 @class NotationPrefs;
 @class PassphrasePicker;
 @class PassphraseChanger;
-@class SyncResponseFetcher;
 
 @interface FileKindListView : NSTableView {
     IBOutlet NSPopUpButton *storageFormatPopupButton;
@@ -75,14 +74,12 @@
 	PassphrasePicker *passphrasePicker;
 	PassphraseChanger *changer;
 
-	BOOL verificationAttempted;
-	SyncResponseFetcher *loginVerifier;
 	
 	NSString *disableEncryptionString, *enableEncryptionString;
 }
 
 - (NSView*)view;
-- (void)setSyncControlsState:(BOOL)syncState;
+- (void)hideSynchronizationControls;
 - (void)setEncryptionControlsState:(BOOL)encryptionState;
 - (void)setSeparateFileControlsState:(BOOL)separateFileControlsState;
 - (void)initializeControls;
@@ -108,10 +105,6 @@
 - (IBAction)toggledSyncing:(id)sender;
 - (IBAction)syncFrequencyChange:(id)sender;
 
-- (void)startVerifyingAfterDelay;
-- (void)startLoginVerifier;
-- (void)cancelLoginVerifier;
-- (void)setVerificationStatus:(int)status withString:(NSString*)aString;
 
 - (void)encryptionFormatMismatchSheetDidEnd:(NSWindow *)sheet returnCode:(int)returnCode 
 								contextInfo:(void *)contextInfo;
