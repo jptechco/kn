@@ -1105,7 +1105,7 @@ copyRTFType:
 		return;
 	}
 	
-	if ([aLink isKindOfClass:[NSURL class]] && [[aLink scheme] isEqualToString:@"nv"]) {
+	if ([aLink isKindOfClass:[NSURL class]] && KNIsRecognizedNoteURLScheme([aLink scheme])) {
 		[[NSApp delegate] interpretNVURL:aLink];
 	} else {
 		[super clickedOnLink:aLink atIndex:charIndex];

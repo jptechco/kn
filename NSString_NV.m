@@ -27,6 +27,16 @@
 #import "GlobalPrefs.h"
 #import "LabelObject.h"
 
+NSString *KNNoteURLScheme = @"kn";
+NSString *KNNoteFindURLPrefix = @"kn://find/";
+
+BOOL KNIsRecognizedNoteURLScheme(NSString *scheme) {
+	//"nv" is accepted for backward compatibility with Notational Velocity links; see NSString_NV.h
+	return [scheme isEqualToString:KNNoteURLScheme] ||
+		   [scheme isEqualToString:@"kineticnotes"] ||
+		   [scheme isEqualToString:@"nv"];
+}
+
 @implementation NSString (NV)
 
 static int dayFromAbsoluteTime(CFAbsoluteTime absTime);

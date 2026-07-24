@@ -29,6 +29,7 @@
 #import "NotationPrefs.h"
 #import "AttributedPlainText.h"
 #import "NSString_CustomTruncation.h"
+#import "NSString_NV.h"
 #import "NSFileManager_NV.h"
 #include "BufferUtils.h"
 #import "NotationFileManager.h"
@@ -1089,7 +1090,7 @@ force_inline id unifiedCellForNote(NotesTableView *tv, NoteObject *note, NSInteg
 	}
 	[idsDict setObject:[[NSData dataWithBytes:&uniqueNoteIDBytes length:16] encodeBase64WithNewlines:NO] forKey:@"NV"];
 	
-	return [NSURL URLWithString:[@"nv://find/" stringByAppendingFormat:@"%@/?%@", [titleString stringWithPercentEscapes], 
+	return [NSURL URLWithString:[KNNoteFindURLPrefix stringByAppendingFormat:@"%@/?%@", [titleString stringWithPercentEscapes],
 								 [idsDict URLEncodedString]]];
 }
 
