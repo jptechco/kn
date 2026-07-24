@@ -8,7 +8,7 @@ and has no Apple Silicon slice, so on modern Macs it runs only under Rosetta 2 �
 being withdrawn after macOS 26 Tahoe. Kinetic Notes is that application rebuilt to run natively,
 with its dead and Intel-only dependencies replaced, and nothing removed that anyone was using.
 
-**Status: 1.0 — production ready, development ongoing.** See [Version history](#version-history)
+**Status: 1.1 — production ready, development ongoing.** See [Version history](#version-history)
 for what has landed.
 
 ---
@@ -63,7 +63,7 @@ You can keep both installed indefinitely.
 
 ## Version history
 
-### 1.1 — in development
+### 1.1
 
 **Spanish is back, and the rebrand now reaches every language.**
 
