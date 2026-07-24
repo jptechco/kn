@@ -227,6 +227,29 @@ static NSString *KNStagedImportDirectoryName = @"Kinetic Notes (importing)";
 	return staged;
 }
 
++ (NSInteger)noteCountInDirectory:(NSString*)directory {
+
+	NSString *databasePath = [directory stringByAppendingPathComponent:NotesDatabaseFileName];
+	NSData *archived = [NSData dataWithContentsOfFile:databasePath];
+	if (![archived length]) return -1;
+
+	@try {
+		FrozenNotation *frozen = [NSKeyedUnarchiver unarchiveObjectWithData:archived];
+		if (![frozen isKindOfClass:[FrozenNotation class]]) return -1;
+
+		//can't count an encrypted database without the passphrase, which is asked for later, on open
+		if ([[frozen notationPrefs] doesEncryption]) return -1;
+
+		OSStatus err = noErr;
+		NSArray *notes = [frozen unpackedNotesWithPrefs:[frozen notationPrefs] returningError:&err];
+		if (err != noErr || !notes) return -1;
+
+		return (NSInteger)[notes count];
+	} @catch (NSException *exception) {
+		return -1;
+	}
+}
+
 + (BOOL)verifyDatabaseInDirectory:(NSString*)directory isEncrypted:(BOOL*)isEncrypted error:(NSError**)outError {
 
 	NSString *databasePath = [directory stringByAppendingPathComponent:NotesDatabaseFileName];

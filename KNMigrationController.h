@@ -90,6 +90,12 @@ typedef NS_ENUM(NSInteger, KNMigrationError) {
 //path, or nil with *outError set. Only call after the staged copy has been opened and verified.
 + (NSString*)commitStagedImport:(NSString*)stagedDirectory error:(NSError**)outError;
 
+//Best-effort count of the notes in a directory's database, for display in the import prompt.
+//Returns a count for an unencrypted database, or -1 when the database is encrypted (the notes cannot
+//be counted without the passphrase, which is not asked for until the database is opened) or unreadable.
+//Read-only: it decodes the notes in memory and discards them.
++ (NSInteger)noteCountInDirectory:(NSString*)directory;
+
 //Confirms a copied "Notes & Settings" is a structurally intact database before it is committed:
 //it must unarchive to a FrozenNotation that carries a notes payload. This does NOT decrypt or decode
 //the notes -- for an encrypted database the passphrase is asked for later, on open, by the normal
