@@ -57,17 +57,24 @@
 	[self addCursorRect:[self bounds] cursor: [NSCursor arrowCursor]];
 }
 
-- (BOOL)isOpaque {	
+- (BOOL)isOpaque {
 	return YES;
+}
+
+- (void)viewDidChangeEffectiveAppearance {
+	[super viewDidChangeEffectiveAppearance];
+	[self setNeedsDisplay:YES];
 }
 
 - (void)drawRect:(NSRect)rect {
 	NSRect bounds = [self bounds];
-	
-	[[NSColor whiteColor] set];
+
+	//semantic colors so the empty editor background follows Light/Dark Mode; this used to be a
+	//hard-coded white fill with a light-gray frame, which stayed white on a dark screen
+	[[NSColor textBackgroundColor] set];
     NSRectFill(bounds);
-	
-	[[NSColor lightGrayColor] set];
+
+	[[NSColor separatorColor] set];
     NSFrameRect(bounds);
 }
 
