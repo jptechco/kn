@@ -20,6 +20,7 @@ This icon may not be used for commercial purposes.
 
 Notational Velocity Interface Localizations
 
+Spanish - Iago Ramos, OpenAI
 French - David Bosman
 Portuguese - Daniel R. Souza
 German - Benedikt Hopmann
