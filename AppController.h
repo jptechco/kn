@@ -79,6 +79,7 @@
 void outletObjectAwoke(id sender);
 
 - (void)setNotationController:(NotationController*)newNotation;
+- (void)applyAutomaticTextColorsToNotes;
 - (void)handleGetURLEvent:(NSAppleEventDescriptor *)event withReplyEvent:(NSAppleEventDescriptor *)replyEvent;
 
 - (void)setupViewsAfterAppAwakened;

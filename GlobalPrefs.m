@@ -57,6 +57,7 @@ static NSString *AutoSuggestLinksKey = @"AutoSuggestLinks";
 static NSString *AutoIndentsNewLinesKey = @"AutoIndentsNewLines";
 static NSString *HighlightSearchTermsKey = @"HighlightSearchTerms";
 static NSString *SearchTermHighlightColorKey = @"SearchTermHighlightColor";
+static NSString *AutomaticallyManagesTextColorsKey = @"AutomaticallyManagesTextColors";
 static NSString *ForegroundTextColorKey = @"ForegroundTextColor";
 static NSString *BackgroundTextColorKey = @"BackgroundTextColor";
 static NSString *UseSoftTabsKey = @"UseSoftTabs";
@@ -119,7 +120,8 @@ static void sendCallbacksForGlobalPrefs(GlobalPrefs* self, SEL selector, id orig
 			[NSNumber numberWithBool:YES], ConfirmNoteDeletionKey,
 			[NSNumber numberWithBool:YES], CheckSpellingInNoteBodyKey, 
 			[NSNumber numberWithBool:NO], TextReplacementInNoteBodyKey, 
-			[NSNumber numberWithBool:YES], AutoCompleteSearchesKey, 
+			[NSNumber numberWithBool:YES], AutoCompleteSearchesKey,
+			[NSNumber numberWithBool:YES], AutomaticallyManagesTextColorsKey,
 			[NSNumber numberWithBool:YES], QuitWhenClosingMainWindowKey, 
 			[NSNumber numberWithBool:NO], TriedToImportBlorKey,
 			[NSNumber numberWithBool:NO], HorizontalLayoutKey,
@@ -597,21 +599,41 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2) {
 	return noteBodyParagraphStyle;
 }
 
+//YES (the default) means text colors follow the system light/dark appearance instead of a color the
+//user pinned. This is what keeps note text readable in Dark Mode: NV stored [NSColor textColor], but
+//the legacy NSUnarchiver flattens it to a static snapshot taken in whatever appearance was current
+//when it was archived, so a database first saved in Light Mode carries a static black that then
+//stays black on a dark background. Returning the live semantic colors instead lets them adapt.
+- (BOOL)automaticallyManagesTextColors {
+	return [defaults boolForKey:AutomaticallyManagesTextColorsKey];
+}
+
+- (void)setAutomaticallyManagesTextColors:(BOOL)value sender:(id)sender {
+	[defaults setBool:value forKey:AutomaticallyManagesTextColorsKey];
+	[noteBodyAttributes release];
+	noteBodyAttributes = nil;
+	//notify observers under the foreground-color selector, so the same restyle path runs
+	sendCallbacksForGlobalPrefs(self, @selector(setForegroundTextColor:sender:), sender);
+}
+
 - (void)setForegroundTextColor:(NSColor*)aColor sender:(id)sender {
 	if (aColor) {
 		[noteBodyAttributes release];
 		noteBodyAttributes = nil;
-		
+
+		//the user pinned a specific color, so stop following the system appearance
+		[defaults setBool:NO forKey:AutomaticallyManagesTextColorsKey];
 		[defaults setObject:[NSArchiver archivedDataWithRootObject:aColor] forKey:ForegroundTextColorKey];
-		
+
 		SEND_CALLBACKS();
-	}	
+	}
 }
 
 - (NSColor*)foregroundTextColor {
+	if ([self automaticallyManagesTextColors]) return [NSColor textColor];
 	NSData *theData = [defaults dataForKey:ForegroundTextColorKey];
 	if (theData) return (NSColor *)[NSUnarchiver unarchiveObjectWithData:theData];
-	return nil;
+	return [NSColor textColor];
 }
 
 - (void)setBackgroundTextColor:(NSColor*)aColor sender:(id)sender {
@@ -623,19 +645,21 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2) {
 		[searchTermHighlightAttributes release];
 		searchTermHighlightAttributes = nil;
 
+		[defaults setBool:NO forKey:AutomaticallyManagesTextColorsKey];
 		[defaults setObject:[NSArchiver archivedDataWithRootObject:aColor] forKey:BackgroundTextColorKey];
-	
+
 		SEND_CALLBACKS();
 	}
 }
 
 - (NSColor*)backgroundTextColor {
 	//don't need to cache the unarchived color, as it's not used in a random-access pattern
-	
+	if ([self automaticallyManagesTextColors]) return [NSColor textBackgroundColor];
+
 	NSData *theData = [defaults dataForKey:BackgroundTextColorKey];
 	if (theData) return (NSColor *)[NSUnarchiver unarchiveObjectWithData:theData];
 
-	return nil;	
+	return [NSColor textBackgroundColor];
 }
 
 - (BOOL)tableColumnsShowPreview {

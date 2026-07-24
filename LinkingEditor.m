@@ -196,11 +196,22 @@ CGFloat _perceptualDarkness(NSColor*a);
 - (void)updateTextColors {
 	NSColor *fgColor = [prefsController foregroundTextColor];
 	NSColor *bgColor = [prefsController backgroundTextColor];
-	
+
+	[self setBackgroundColor:bgColor];
 	[self setInsertionPointColor:[self _insertionPointColorForForegroundColor:fgColor backgroundColor:bgColor]];
 	[self setLinkTextAttributes:[self preferredLinkAttributes]];
-	[self setSelectedTextAttributes:[NSDictionary dictionaryWithObject:[self _selectionColorForForegroundColor:fgColor backgroundColor:bgColor] 
+	[self setSelectedTextAttributes:[NSDictionary dictionaryWithObject:[self _selectionColorForForegroundColor:fgColor backgroundColor:bgColor]
 																forKey:NSBackgroundColorAttributeName]];
+}
+
+//AppKit sends this when the system switches between Light and Dark Mode. The editor's own colors are
+//refreshed here; the note content itself is restyled by the app delegate, which owns the notes.
+- (void)viewDidChangeEffectiveAppearance {
+	[super viewDidChangeEffectiveAppearance];
+	[self updateTextColors];
+	id appDelegate = [NSApp delegate];
+	if ([appDelegate respondsToSelector:@selector(applyAutomaticTextColorsToNotes)])
+		[appDelegate performSelector:@selector(applyAutomaticTextColorsToNotes)];
 }
 
 #define _CM(__ch) ((__ch) * 255.0)
@@ -1105,7 +1116,7 @@ copyRTFType:
 		return;
 	}
 	
-	if ([aLink isKindOfClass:[NSURL class]] && [[aLink scheme] isEqualToString:@"nv"]) {
+	if ([aLink isKindOfClass:[NSURL class]] && KNIsRecognizedNoteURLScheme([aLink scheme])) {
 		[[NSApp delegate] interpretNVURL:aLink];
 	} else {
 		[super clickedOnLink:aLink atIndex:charIndex];

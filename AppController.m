@@ -415,8 +415,14 @@ terminateApp:
 	}
 }
 
+//called by the editor when the system switches between Light and Dark Mode. The notes are owned by
+//the notation controller, so it re-applies the (appearance-following) foreground color to their content.
+- (void)applyAutomaticTextColorsToNotes {
+	[notationController makeForegroundTextColorMatchGlobalPrefs];
+}
+
 - (void)setNotationController:(NotationController*)newNotation {
-	
+
     if (newNotation) {
 		if (notationController) {
 			[notationController closeAllResources];

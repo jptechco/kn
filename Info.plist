@@ -151,6 +151,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>kineticnotes</string>
+				<string>kn</string>
 			</array>
 		</dict>
 	</array>
