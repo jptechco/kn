@@ -99,3 +99,10 @@ CFDateFormatterRef simplenoteDateFormatter(int lowPrecision);
 - (unichar)firstCharacter;
 - (unichar)firstCharacterIgnoringModifiers;
 @end
+
+//Kinetic Notes' note-link URL scheme. Copy URL and [[wiki links]] generate "kn://find/...".
+//The app registers "kn" and "kineticnotes"; it also still recognizes Notational Velocity's "nv"
+//when opening a link, so links copied from NV -- or already sitting inside imported notes -- work.
+extern NSString *KNNoteURLScheme;       // "kn"
+extern NSString *KNNoteFindURLPrefix;   // "kn://find/"
+BOOL KNIsRecognizedNoteURLScheme(NSString *scheme);
