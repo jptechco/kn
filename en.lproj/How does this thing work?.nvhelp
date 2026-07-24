@@ -5,11 +5,11 @@
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\ql\qnatural\pardirnatural
 
-\f0\fs24 \cf0 Always begin typing in the upper search area. Press return to add a new note with that title. While you type, NV searches for notes whose body or title contain your words. Observe that naming a note and searching always occur simultaneously.\
+\f0\fs24 \cf0 Always begin typing in the upper search area. Press return to add a new note with that title. While you type, Kinetic Notes searches for notes whose body or title contain your words. Observe that naming a note and searching always occur simultaneously.\
 \
-When you select one of the found notes (e.g., using the up/down keys) NV displays its body in the lower text area (what you're reading now).\
+When you select one of the found notes (e.g., using the up/down keys) Kinetic Notes displays its body in the lower text area (what you're reading now).\
 \
-If you had typed the beginning of a note's title, NV would have selected that note automatically.\
+If you had typed the beginning of a note's title, Kinetic Notes would have selected that note automatically.\
 \
 To create another note, just start typing in the search area again (press 
 \f1 \uc0\u8984 
@@ -19,7 +19,7 @@ To create another note, just start typing in the search area again (press
 \
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\ql\qnatural\pardirnatural
 
-\f2\i \cf0 But NV won't let me save my changes!
+\f2\i \cf0 But Kinetic Notes won't let me save my changes!
 \f0\i0 \
-NV constantly writes your changes to disk as you create and edit notes, so there's no need to "Save" anything manually.\
+Kinetic Notes constantly writes your changes to disk as you create and edit notes, so there's no need to "Save" anything manually.\
 }
