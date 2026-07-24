@@ -82,6 +82,7 @@ void outletObjectAwoke(id sender);
 - (void)handleGetURLEvent:(NSAppleEventDescriptor *)event withReplyEvent:(NSAppleEventDescriptor *)replyEvent;
 
 - (void)setupViewsAfterAppAwakened;
+- (void)applyApplicationNameToInterface;
 - (void)runDelayedUIActionsAfterLaunch;
 - (void)updateNoteMenus;
 

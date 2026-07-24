@@ -47,6 +47,9 @@
 #import "SecureTextEntryManager.h"
 #import "NSString_CustomTruncation.h"
 
+//where the Help menu's site items point; update alongside the repository if it moves
+static NSString *KNProjectURLString = @"https://github.com/jptechco/kn";
+
 
 @implementation AppController
 
@@ -73,9 +76,9 @@
 
 - (void)awakeFromNib {
 	prefsController = [GlobalPrefs defaultPrefs];
-	
+
 	[NSColor setIgnoresAlpha:NO];
-	
+
 	NSView *dualSV = [field superview];
 	dualFieldItem = [[NSToolbarItem alloc] initWithItemIdentifier:@"DualField"];
 	//[[dualSV superview] setFrameSize:NSMakeSize([[dualSV superview] frame].size.width, [[dualSV superview] frame].size.height -1)];
@@ -166,6 +169,40 @@ void outletObjectAwoke(id sender) {
 	}
 }
 
+//MainMenu.nib is in the Interface Builder 3 format and cannot safely be re-saved by a modern Xcode,
+//so the old product name is still baked into several menu titles and the window title. Rather than
+//touch the nib, substitute the bundle's name at launch wherever the old one was hard-coded.
+//Known occurrences: the application menu and its About/Hide/Quit items, and "... Web Site" in Help.
+static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSString *newName) {
+
+	if ([[menu title] rangeOfString:oldName].location != NSNotFound)
+		[menu setTitle:[[menu title] stringByReplacingOccurrencesOfString:oldName withString:newName]];
+
+	NSInteger i = 0;
+	for (i = 0; i < [menu numberOfItems]; i++) {
+		NSMenuItem *item = [menu itemAtIndex:i];
+
+		if ([[item title] rangeOfString:oldName].location != NSNotFound)
+			[item setTitle:[[item title] stringByReplacingOccurrencesOfString:oldName withString:newName]];
+
+		//the Help and Window menus are populated by AppKit, but everything else nests through here
+		if ([item hasSubmenu])
+			RenameMenuTreeFromOldNameToNew([item submenu], oldName, newName);
+	}
+}
+
+- (void)applyApplicationNameToInterface {
+
+	NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
+	if (![appName length]) return;
+
+	//AppKit draws the name in the menu bar from the first item of the main menu, not from its
+	//submenu, so walking the whole tree covers that along with everything nested below it
+	RenameMenuTreeFromOldNameToNew([NSApp mainMenu], @"Notational Velocity", appName);
+
+	[window setTitle:appName];
+}
+
 - (void)runDelayedUIActionsAfterLaunch {
 	[[prefsController bookmarksController] setAppController:self];
 	[[prefsController bookmarksController] restoreWindowFromSave];
@@ -177,32 +214,20 @@ void outletObjectAwoke(id sender) {
 	[notationController checkIfNotationIsTrashed];
 	[[SecureTextEntryManager sharedInstance] checkForIncompatibleApps];
 	
-	//connect sparkle programmatically to avoid loading its framework at nib awake;
-	
-	if (!NSClassFromString(@"SUUpdater")) {
-		NSString *frameworkPath = [[[NSBundle bundleForClass:[self class]] privateFrameworksPath] stringByAppendingPathComponent:@"Sparkle.framework"];
-		if ([[NSBundle bundleWithPath:frameworkPath] load]) {
-			id updater = [NSClassFromString(@"SUUpdater") performSelector:@selector(sharedUpdater)];
-			[sparkleUpdateItem setTarget:updater];
-			[sparkleUpdateItem setAction:@selector(checkForUpdates:)];
-			if (![[prefsController notationPrefs] firstTimeUsed]) {
-				//don't do anything automatically on the first launch; afterwards, check every 4 days, as specified in Info.plist
-				SEL checksSEL = @selector(setAutomaticallyChecksForUpdates:);
-                typedef void (*UpdaterMethod)(id, SEL, BOOL);
-                UpdaterMethod updaterChecks;
-                updaterChecks = (UpdaterMethod)[updater methodForSelector:checksSEL];
-                updaterChecks(updater, checksSEL, YES);
-			}
-		} else {
-			NSLog(@"Could not load %@!", frameworkPath);
-		}
-	}
-	
+	//Sparkle 1.5b6 was bundled here, but it was only ever built for ppc/i386/x86_64 and so could never
+	//load on Apple Silicon. Auto-update stays switched off until there is a signing identity to
+	//sign an appcast with; hide the menu item rather than leave a control that does nothing.
+	[sparkleUpdateItem setHidden:YES];
+
 	[NSApp setServicesProvider:self];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification*)aNote {
-	
+
+	//has to happen here rather than in -awakeFromNib: MainMenu.nib is still loading at that point,
+	//so -[NSApp mainMenu] is not yet set
+	[self applyApplicationNameToInterface];
+
 	//on tiger dualfield is often not ready to add tracking tracks until this point:
 	[field setTrackingRect];
 	
@@ -745,10 +770,12 @@ terminateApp:
 											options:NSWorkspaceLaunchDefault additionalEventParamDescriptor:nil launchIdentifiers:NULL];
 			break;
 		case 3:		//product site
-			[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:NSLocalizedString(@"SiteURL", nil)]];
+			//this used to read a "SiteURL" localized string that was never actually defined in any
+			//Localizable.strings, so the item silently did nothing; point it at the project instead
+			[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:KNProjectURLString]];
 			break;
 		case 4:		//development site
-			[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://notational.net/development"]];
+			[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:KNProjectURLString]];
 			break;
 		default:
 			NSBeep();

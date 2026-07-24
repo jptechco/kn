@@ -38,7 +38,14 @@
 #define DEFAULT_HASH_ITERATIONS 8000
 #define DEFAULT_KEY_LENGTH 256
 
-#define KEYCHAIN_SERVICENAME "Notational Velocity"
+//Kinetic Notes owns its own keychain service. This is a safety boundary, not branding: -setKeychainData:
+//below modifies a matching item in place, and an imported database still carries Notational Velocity's
+//keychainDatabaseIdentifier, so sharing NV's service name would let a passphrase change here overwrite the
+//item NV needs and lock the user out of their original database.
+#define KEYCHAIN_SERVICENAME "Kinetic Notes"
+
+//read-only: used by the first-run importer to reuse an NV passphrase instead of prompting for it
+#define NV_LEGACY_KEYCHAIN_SERVICENAME "Notational Velocity"
 
 #define INIT_DICT_ACCT() NSMutableDictionary *accountDict = ServiceAccountDictInit(self, serviceName)
 
