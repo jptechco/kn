@@ -77,6 +77,7 @@
 		215452080B06541800C0D1D5 /* PassphraseChanger.m in Sources */ = {isa = PBXBuildFile; fileRef = 215450F80B06509600C0D1D5 /* PassphraseChanger.m */; };
 		215453F00B067A5100C0D1D5 /* KeyDerivationDelaySlider.m in Sources */ = {isa = PBXBuildFile; fileRef = 215453EF0B067A5100C0D1D5 /* KeyDerivationDelaySlider.m */; };
 		2155DEA6097B5F0300163A10 /* BufferUtils.c in Sources */ = {isa = PBXBuildFile; fileRef = 2155DEA5097B5F0300163A10 /* BufferUtils.c */; };
+		KN01BUILD000000000000001 /* KNFileInfo.c in Sources */ = {isa = PBXBuildFile; fileRef = KN01FILE0000000000000002 /* KNFileInfo.c */; };
 		2155DF44097C992800163A10 /* AttributedPlainText.m in Sources */ = {isa = PBXBuildFile; fileRef = 2155DF43097C992800163A10 /* AttributedPlainText.m */; };
 		21582DC50B73F59B00711663 /* BookmarksController.m in Sources */ = {isa = PBXBuildFile; fileRef = 21582DC40B73F59A00711663 /* BookmarksController.m */; };
 		215DE83809ECC4FE009A710B /* HeaderViewWIthMenu.m in Sources */ = {isa = PBXBuildFile; fileRef = 215DE83709ECC4FE009A710B /* HeaderViewWIthMenu.m */; };
@@ -316,6 +317,8 @@
 		215453EF0B067A5100C0D1D5 /* KeyDerivationDelaySlider.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KeyDerivationDelaySlider.m; sourceTree = "<group>"; };
 		2155DEA4097B5F0300163A10 /* BufferUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BufferUtils.h; sourceTree = "<group>"; };
 		2155DEA5097B5F0300163A10 /* BufferUtils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BufferUtils.c; sourceTree = "<group>"; };
+		KN01FILE0000000000000001 /* KNFileInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KNFileInfo.h; sourceTree = "<group>"; };
+		KN01FILE0000000000000002 /* KNFileInfo.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = KNFileInfo.c; sourceTree = "<group>"; };
 		2155DF42097C992800163A10 /* AttributedPlainText.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AttributedPlainText.h; sourceTree = "<group>"; };
 		2155DF43097C992800163A10 /* AttributedPlainText.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AttributedPlainText.m; sourceTree = "<group>"; };
 		21582DC40B73F59A00711663 /* BookmarksController.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = BookmarksController.m; sourceTree = "<group>"; };
@@ -693,6 +696,8 @@
 				217CEBA209E9885500DF0E09 /* NotationFileManager.m */,
 				2155DEA4097B5F0300163A10 /* BufferUtils.h */,
 				2155DEA5097B5F0300163A10 /* BufferUtils.c */,
+				KN01FILE0000000000000001 /* KNFileInfo.h */,
+				KN01FILE0000000000000002 /* KNFileInfo.c */,
 				2168EC5109E33B0300778D02 /* FrozenNotation.h */,
 				2168EC5209E33B0300778D02 /* FrozenNotation.m */,
 				21A73DC6099712A8009F8A6C /* WALController.h */,
@@ -1254,6 +1259,7 @@
 				212B84620978422300F3597F /* NSString_NV.m in Sources */,
 				21DC788F097894B600E59B09 /* NSCollection_utils.m in Sources */,
 				2155DEA6097B5F0300163A10 /* BufferUtils.c in Sources */,
+				KN01BUILD000000000000001 /* KNFileInfo.c in Sources */,
 				2155DF44097C992800163A10 /* AttributedPlainText.m in Sources */,
 				21D60128098FDB46007440DF /* GlobalPrefs.m in Sources */,
 				21A73DC8099712A8009F8A6C /* WALController.m in Sources */,

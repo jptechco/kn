@@ -328,7 +328,7 @@ void RemovePerDiskInfoWithTableIndex(UInt32 diskIndex, PerDiskInfo **perDiskGrou
 	}
 }
 
-unsigned int SetPerDiskInfoWithTableIndex(UTCDateTime *dateTime, UInt32 *nodeID, UInt32 diskIndex, PerDiskInfo **perDiskGroups, unsigned int *groupCount) {
+unsigned int SetPerDiskInfoWithTableIndex(KNFileTime *dateTime, UInt32 *nodeID, UInt32 diskIndex, PerDiskInfo **perDiskGroups, unsigned int *groupCount) {
 	//if an entry for this diskIndex already exists, then just update it in place
 	//if an entry does not exist, then resize the buffer and add one at the end
 	//if one of dateTime or nodeID is NULL, then do not set it
@@ -340,7 +340,7 @@ unsigned int SetPerDiskInfoWithTableIndex(UTCDateTime *dateTime, UInt32 *nodeID,
 	PerDiskInfo *groups = *perDiskGroups;
 	for (i=0; i<count; i++) {
 		//use this slot if the diskIndex matches OR it's the first one listed and its attrTime and nodeID haven't been touched
-		if (groups[i].diskIDIndex == diskIndex || (!i && groups[i].nodeID == 0U && UTCDateTimeIsEmpty(groups[i].attrTime))) {
+		if (groups[i].diskIDIndex == diskIndex || (!i && groups[i].nodeID == 0U && KNFileTimeIsEmpty(groups[i].attrTime))) {
 			if (dateTime) groups[i].attrTime = *dateTime;
 			if (nodeID) groups[i].nodeID = *nodeID;
 			groups[i].diskIDIndex = diskIndex;
@@ -355,7 +355,7 @@ unsigned int SetPerDiskInfoWithTableIndex(UTCDateTime *dateTime, UInt32 *nodeID,
 	//items not currently being set are initialized to a known value, so that they can be initialized later by attrsModifiedDateOfNote and fileNodeIDOfNote
 	//although those functions do not initialize these to anything particularly useful, anyway
 	groups = *perDiskGroups;
-	groups[count].attrTime = dateTime ? *dateTime : (UTCDateTime){0, 0, 0};
+	groups[count].attrTime = dateTime ? *dateTime : (KNFileTime){0, 0, 0};
 	groups[count].nodeID = nodeID ? *nodeID : 0;
 	groups[count].diskIDIndex = diskIndex;
 	
@@ -396,7 +396,7 @@ void CopyPerDiskInfoGroupsToOrder(PerDiskInfo **flippedGroups, unsigned int *exi
 	}
 }
 
-CFStringRef CreateRandomizedFileName() {
+CFStringRef CreateRandomizedFileName(void) {
     static int sequence = 0;
     
     sequence++;

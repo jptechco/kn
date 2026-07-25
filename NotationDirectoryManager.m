@@ -29,8 +29,7 @@
 #import "NoteObject.h"
 #import "DeletionManager.h"
 #import "NSCollection_utils.h"
-
-#define kMaxFileIteratorCount 100
+#include <errno.h>
 
 @implementation NotationController (NotationDirectoryManager)
 
@@ -254,96 +253,37 @@ void NotesDirFNSubscriptionProc(FNMessage message, OptionBits flags, void * refc
 
 //scour the notes directory for fresh meat
 - (BOOL)_readFilesInDirectory {
-    
-    OSStatus status = noErr;
-    FSIterator dirIterator;
-    ItemCount totalObjects = 0, dirObjectCount = 0;
-    unsigned int i = 0, catIndex = 0;
-    
-    //something like 16 VM pages used here?
-    if (!fsCatInfoArray) fsCatInfoArray = (FSCatalogInfo *)calloc(kMaxFileIteratorCount, sizeof(FSCatalogInfo));
-    if (!HFSUniNameArray) HFSUniNameArray = (HFSUniStr255 *)calloc(kMaxFileIteratorCount, sizeof(HFSUniStr255));
-	
-    if ((status = FSOpenIterator(&noteDirectoryRef, kFSIterateFlat, &dirIterator)) == noErr) {
-		//catEntriesCount = 0;
-		
-        do {
-            // Grab a batch of source files to process from the source directory
-            status = FSGetCatalogInfoBulk(dirIterator, kMaxFileIteratorCount, &dirObjectCount, NULL,
-										  kFSCatInfoNodeFlags | kFSCatInfoFinderInfo | kFSCatInfoContentMod | 
-										  kFSCatInfoAttrMod | kFSCatInfoDataSizes | kFSCatInfoNodeID,
-										  fsCatInfoArray, NULL, NULL, HFSUniNameArray);
-			
-            if ((status == errFSNoMoreItems || status == noErr) && dirObjectCount) {
-                status = noErr;
-				
-				totalObjects += dirObjectCount;
-				if (totalObjects > totalCatEntriesCount) {
-					unsigned int oldCatEntriesCount = totalCatEntriesCount;
-					
-					totalCatEntriesCount = totalObjects;
-					catalogEntries = (NoteCatalogEntry *)realloc(catalogEntries, totalObjects * sizeof(NoteCatalogEntry));
-					sortedCatalogEntries = (NoteCatalogEntry **)realloc(sortedCatalogEntries, totalObjects * sizeof(NoteCatalogEntry*));
-					
-					//clear unused memory to make filename and filenameChars null
-					
-					size_t newSpace = (totalCatEntriesCount - oldCatEntriesCount) * sizeof(NoteCatalogEntry);
-					bzero(catalogEntries + oldCatEntriesCount, newSpace);
-				}
-				
-				for (i = 0; i < dirObjectCount; i++) {
-					// Only read files, not directories
-					if (!(fsCatInfoArray[i].nodeFlags & kFSNodeIsDirectoryMask)) { 
-						//filter these only for files that will be added
-						//that way we can catch changes in files whose format is still being lazily updated
-						
-						NoteCatalogEntry *entry = &catalogEntries[catIndex];
-						HFSUniStr255 *filename = &HFSUniNameArray[i];
-						
-						entry->fileType = ((FileInfo *)fsCatInfoArray[i].finderInfo)->fileType;
-						entry->logicalSize = (UInt32)(fsCatInfoArray[i].dataLogicalSize & 0xFFFFFFFF);
-						entry->nodeID = (UInt32)fsCatInfoArray[i].nodeID;
-						entry->lastModified = fsCatInfoArray[i].contentModDate;
-						entry->lastAttrModified = fsCatInfoArray[i].attributeModDate;
 
-						ResizeArray(&(entry->filenameChars), filename->length, &(entry->filenameCharCount));
-						memcpy(entry->filenameChars, filename->unicode, filename->length * sizeof(UniChar));
-						
-						if (!entry->filename)
-							entry->filename = CFStringCreateMutableWithExternalCharactersNoCopy(NULL, entry->filenameChars, filename->length, entry->filenameCharCount, kCFAllocatorNull);
-						else
-							CFStringSetExternalCharactersNoCopy(entry->filename, entry->filenameChars, filename->length, entry->filenameCharCount);
-						
-						// mipe: Normalize the filename to make sure that it will be found regardless of international characters
-						CFStringNormalize(entry->filename, kCFStringNormalizationFormC);
+	NSString *directory = [[NSFileManager defaultManager] pathWithFSRef:&noteDirectoryRef];
+	if (![directory length]) {
+		NSLog(@"_readFilesInDirectory: the notes directory has no path");
+		return NO;
+	}
 
-						catIndex++;
-                    }
-                }
-				
-				catEntriesCount = catIndex;
-            }
-            
-        } while (status == noErr);
-		
-		FSCloseIterator(dirIterator);
-		
-		for (i=0; i<catEntriesCount; i++) {
-			sortedCatalogEntries[i] = &catalogEntries[i];
-		}
-		
-		return YES;
-    }
-    
-    NSLog(@"Error opening FSIterator: %d", status);
-    
-    return NO;
+	ssize_t count = KNScanDirectoryForCatalogEntries([directory fileSystemRepresentation],
+													 &catalogEntries, &totalCatEntriesCount);
+	if (count < 0) {
+		NSLog(@"Error scanning the notes directory: %d", errno);
+		return NO;
+	}
+	catEntriesCount = (size_t)count;
+
+	//the sorted list is a permutation of pointers into the entries themselves, so it only ever
+	//needs to be as large as the buffer they live in
+	sortedCatalogEntries = (NoteCatalogEntry **)realloc(sortedCatalogEntries, totalCatEntriesCount * sizeof(NoteCatalogEntry*));
+
+	size_t i;
+	for (i=0; i<catEntriesCount; i++) {
+		sortedCatalogEntries[i] = &catalogEntries[i];
+	}
+
+	return YES;
 }
 
 - (BOOL)modifyNoteIfNecessary:(NoteObject*)aNoteObject usingCatalogEntry:(NoteCatalogEntry*)catEntry {
 	//check dates
-	UTCDateTime lastReadDate = fileModifiedDateOfNote(aNoteObject);
-	UTCDateTime *lastAttrModDate = attrsModifiedDateOfNote(aNoteObject);
+	KNFileTime lastReadDate = fileModifiedDateOfNote(aNoteObject);
+	KNFileTime *lastAttrModDate = attrsModifiedDateOfNote(aNoteObject);
 	
 	//should we always update the note's stored inode here regardless?
 //	NSLog(@"content mod: %d,%d,%d, attr mod: %d,%d,%d", catEntry->lastModified.highSeconds,catEntry->lastModified.lowSeconds,catEntry->lastModified.fraction,

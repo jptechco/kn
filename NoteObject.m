@@ -44,6 +44,7 @@
 #import "UnifiedCell.h"
 #import "LabelColumnCell.h"
 #import "ODBEditor.h"
+#include <errno.h>
 
 #if __LP64__
 // Needed for compatability with data created by 32bit app
@@ -58,7 +59,7 @@ typedef NSRange NSRange32;
 @implementation NoteObject
 
 static FSRef *noteFileRefInit(NoteObject* obj);
-static void setAttrModifiedDate(NoteObject *note, UTCDateTime *dateTime);
+static void setAttrModifiedDate(NoteObject *note, KNFileTime *dateTime);
 static void setCatalogNodeID(NoteObject *note, UInt32 cnid);
 static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft);
 
@@ -130,7 +131,7 @@ static FSRef *noteFileRefInit(NoteObject* obj) {
 	return obj->noteFileRef;
 }
 
-static void setAttrModifiedDate(NoteObject *note, UTCDateTime *dateTime) {
+static void setAttrModifiedDate(NoteObject *note, KNFileTime *dateTime) {
 	unsigned int idx = SetPerDiskInfoWithTableIndex(dateTime, NULL, diskUUIDIndexForNotation(note->delegate), 
 													&(note->perDiskInfoGroups), &(note->perDiskInfoGroupCount));
 	note->attrsModifiedDate = &(note->perDiskInfoGroups[idx].attrTime);
@@ -141,7 +142,7 @@ static void setCatalogNodeID(NoteObject *note, UInt32 cnid) {
 	note->nodeID = cnid;
 }
 
-UTCDateTime *attrsModifiedDateOfNote(NoteObject *note) {
+KNFileTime *attrsModifiedDateOfNote(NoteObject *note) {
 	//once unarchived, the disk UUID index won't change, so this pointer will always reflect the current attr mod time
 	if (!note->attrsModifiedDate) {
 		//init from delegate based on disk table index
@@ -149,7 +150,7 @@ UTCDateTime *attrsModifiedDateOfNote(NoteObject *note) {
 		
 		for (i=0; i<note->perDiskInfoGroupCount; i++) {
 			//check if this date has actually been initialized; this entry could be here only because setCatalogNodeID was called
-			if (note->perDiskInfoGroups[i].diskIDIndex == tableIndex && !UTCDateTimeIsEmpty(note->perDiskInfoGroups[i].attrTime)) {
+			if (note->perDiskInfoGroups[i].diskIDIndex == tableIndex && !KNFileTimeIsEmpty(note->perDiskInfoGroups[i].attrTime)) {
 				note->attrsModifiedDate = &(note->perDiskInfoGroups[i].attrTime);
 				goto giveDate;
 			}
@@ -547,7 +548,7 @@ force_inline id unifiedCellForNote(NotesTableView *tv, NoteObject *note, NSInteg
 		
 		createdDate = modifiedDate = CFAbsoluteTimeGetCurrent();
 		dateCreatedString = [dateModifiedString = [[NSString relativeDateStringWithAbsoluteTime:modifiedDate] retain] retain];
-		UCConvertCFAbsoluteTimeToUTCDateTime(modifiedDate, &fileModifiedDate);
+		fileModifiedDate = KNFileTimeFromCFAbsoluteTime(modifiedDate);
 		
 		if (delegate)
 			[self updateTablePreviewString];
@@ -1149,22 +1150,13 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
     }
     
 	//createFileIfNotPresentInNotesDirectory: works by name, so if this file is not owned by us at this point, it was a race with moving it
-    FSCatalogInfo info;
-    if ([delegate fileInNotesDirectory:noteFileRefInit(self) isOwnedByUs:&fileIsOwned hasCatalogInfo:&info] != noErr)
+    KNFileInfo info;
+    if ([delegate fileInNotesDirectory:noteFileRefInit(self) isOwnedByUs:&fileIsOwned hasFileInfo:&info] != noErr)
 		return NO;
     
-    CFAbsoluteTime timeOnDisk, lastTime;
-    OSStatus err = noErr;
-    if ((err = (UCConvertUTCDateTimeToCFAbsoluteTime(&fileModifiedDate, &lastTime) == noErr)) &&
-		(err = (UCConvertUTCDateTimeToCFAbsoluteTime(&info.contentModDate, &timeOnDisk) == noErr))) {
-		
-		if (lastTime > timeOnDisk) {
-			NSLog(@"writing note %@, because it was modified", titleString);
-			return [self writeUsingCurrentFileFormat];
-		}
-    } else {
-		NSLog(@"Could not convert dates: %d", err);
-		return NO;
+    if (KNCFAbsoluteTimeFromFileTime(fileModifiedDate) > KNCFAbsoluteTimeFromFileTime(info.contentModDate)) {
+		NSLog(@"writing note %@, because it was modified", titleString);
+		return [self writeUsingCurrentFileFormat];
     }
     
     return YES;
@@ -1287,10 +1279,6 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 	if (SingleDatabaseFormat == currentFormatID) return noErr;
 	
 	//sync the file's creation and modification date:
-	FSCatalogInfo catInfo;
-	UCConvertCFAbsoluteTimeToUTCDateTime(createdDate, &catInfo.createDate);
-	UCConvertCFAbsoluteTimeToUTCDateTime(modifiedDate, &catInfo.contentModDate);
-	
 	// if this method is called anywhere else, then use [delegate refreshFileRefIfNecessary:noteFileRefInit(self) withName:filename charsBuffer:chars]; instead
 	// for now, it is not called in any situations where the fsref might accidentally point to a moved file
 	OSStatus err = noErr;
@@ -1298,24 +1286,27 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 		if (noErr != err || IsZeros(noteFileRefInit(self), sizeof(FSRef))) {
 			if (![delegate notesDirectoryContainsFile:filename returningFSRef:noteFileRefInit(self)]) return fnfErr;
 		}
-		err = FSSetCatalogInfo(noteFileRefInit(self), kFSCatInfoCreateDate | kFSCatInfoContentMod, &catInfo);
+		NSString *path = [[NSFileManager defaultManager] pathWithFSRef:noteFileRefInit(self)];
+		int posixErr = path ? KNSetFileDatesAtPath([path fileSystemRepresentation], createdDate, modifiedDate) : ENOENT;
+		err = posixErr ? (ENOENT == posixErr ? fnfErr : ioErr) : noErr;
 	} while (fnfErr == err);
 
 	if (noErr != err) {
-		NSLog(@"could not set catalog info: %d", err);
+		NSLog(@"could not set the file's dates: %d", err);
 		return err;
 	}
 	
-	//regardless of whether FSSetCatalogInfo was successful, the file mod date could still have changed
+	//regardless of whether the dates were set successfully, the file mod date could still have changed
 	
-	if ((err = [delegate fileInNotesDirectory:noteFileRefInit(self) isOwnedByUs:NULL hasCatalogInfo:&catInfo]) != noErr) {
+	KNFileInfo info;
+	if ((err = [delegate fileInNotesDirectory:noteFileRefInit(self) isOwnedByUs:NULL hasFileInfo:&info]) != noErr) {
 		NSLog(@"Unable to get new modification date of file %@: %d", filename, err);
 		return err;
 	}
-	fileModifiedDate = catInfo.contentModDate;
-	setAttrModifiedDate(self, &catInfo.attributeModDate);
-	setCatalogNodeID(self, catInfo.nodeID);
-	logicalSize = (UInt32)(catInfo.dataLogicalSize & 0xFFFFFFFF);
+	fileModifiedDate = info.contentModDate;
+	setAttrModifiedDate(self, &info.attributeModDate);
+	setCatalogNodeID(self, (UInt32)info.nodeID);
+	logicalSize = (UInt32)(info.dataLogicalSize & 0xFFFFFFFF);
 	
 	return noErr;
 }
@@ -1360,8 +1351,7 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 				//in case this note isn't otherwise modified before that happens.
 				//a side effect is that if the user switches to an RTF or HTML format,
 				//this note will be written immediately instead of lazily upon the next modification
-				if (UCConvertCFAbsoluteTimeToUTCDateTime(CFAbsoluteTimeGetCurrent(), &fileModifiedDate) != noErr)
-					NSLog(@"%s: can't set file modification date from current date", _cmd);
+				fileModifiedDate = KNFileTimeFromCFAbsoluteTime(CFAbsoluteTimeGetCurrent());
 			}
 		}
 		//make note dirty to ensure these changes are saved
@@ -1412,11 +1402,11 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
     }
 	
     if ([self updateFromData:data inFormat:currentFormatID]) {
-		FSCatalogInfo info;
-		if ([delegate fileInNotesDirectory:noteFileRefInit(self) isOwnedByUs:NULL hasCatalogInfo:&info] == noErr) {
+		KNFileInfo info;
+		if ([delegate fileInNotesDirectory:noteFileRefInit(self) isOwnedByUs:NULL hasFileInfo:&info] == noErr) {
 			fileModifiedDate = info.contentModDate;
 			setAttrModifiedDate(self, &info.attributeModDate);
-			setCatalogNodeID(self, info.nodeID);
+			setCatalogNodeID(self, (UInt32)info.nodeID);
 			logicalSize = (UInt32)(info.dataLogicalSize & 0xFFFFFFFF);
 			
 			return YES;
@@ -1462,20 +1452,16 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 		}
 	}
 	
-	OSStatus err = noErr;
-	CFAbsoluteTime aModDate, aCreateDate;
-	if (noErr == (err = UCConvertUTCDateTimeToCFAbsoluteTime(&fileModifiedDate, &aModDate))) {
-		[self setDateModified:aModDate];
-	}
+	[self setDateModified:KNCFAbsoluteTimeFromFileTime(fileModifiedDate)];
 	
 	if (createdDate == 0.0 || didRestoreLabels) {
 		//when reading files from disk for the first time, grab their creation date
 		//or if this file has just been altered, grab its newly-changed modification dates
 		
-		FSCatalogInfo info;
-		if ([delegate fileInNotesDirectory:noteFileRefInit(self) isOwnedByUs:NULL hasCatalogInfo:&info] == noErr) {
-			if (createdDate == 0.0 && UCConvertUTCDateTimeToCFAbsoluteTime(&info.createDate, &aCreateDate) == noErr) {
-				[self setDateAdded:aCreateDate];
+		KNFileInfo info;
+		if ([delegate fileInNotesDirectory:noteFileRefInit(self) isOwnedByUs:NULL hasFileInfo:&info] == noErr) {
+			if (createdDate == 0.0) {
+				[self setDateAdded:KNCFAbsoluteTimeFromFileTime(info.createDate)];
 			}
 			if (didRestoreLabels) {
 				fileModifiedDate = info.contentModDate;
@@ -1625,8 +1611,7 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 			//only set if we're not currently synchronizing to avoid re-reading old data
 			//this will be updated again when writing to a file, but for now we have the newest version
 			//we must do this to allow new notes to be written when switching formats, and for encodingmanager checks
-			if (UCConvertCFAbsoluteTimeToUTCDateTime(modifiedDate, &fileModifiedDate) != noErr)
-				NSLog(@"Unable to set file modification date from current date");
+			fileModifiedDate = KNFileTimeFromCFAbsoluteTime(modifiedDate);
 		}
 	}
 	if (updateFile && updateTime) {
@@ -1718,10 +1703,8 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 	[fileMan setOpenMetaTags:[self orderedLabelTitles] atFSPath:[[fileMan pathWithFSRef:&fileRef] fileSystemRepresentation]];
 	
 	//also export the note's modification and creation dates
-	FSCatalogInfo catInfo;
-	UCConvertCFAbsoluteTimeToUTCDateTime(createdDate, &catInfo.createDate);
-	UCConvertCFAbsoluteTimeToUTCDateTime(modifiedDate, &catInfo.contentModDate);
-	FSSetCatalogInfo(&fileRef, kFSCatInfoCreateDate | kFSCatInfoContentMod, &catInfo);
+	NSString *exportedPath = [fileMan pathWithFSRef:&fileRef];
+	if (exportedPath) (void)KNSetFileDatesAtPath([exportedPath fileSystemRepresentation], createdDate, modifiedDate);
 			
 	return noErr;
 }

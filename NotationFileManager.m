@@ -32,6 +32,8 @@
 #include <sys/param.h>
 #include <sys/mount.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <errno.h>
 #include <CommonCrypto/CommonDigest.h>
 
 NSString *NotesDatabaseFileName = @"Notes & Settings";
@@ -297,7 +299,7 @@ long BlockSizeForNotation(NotationController *controller) {
 
 - (OSStatus)refreshFileRefIfNecessary:(FSRef *)childRef withName:(NSString *)filename charsBuffer:(UniChar*)charsBuffer {
 	BOOL isOwned = NO;
-	if (IsZeros(childRef, sizeof(FSRef)) || [self fileInNotesDirectory:childRef isOwnedByUs:&isOwned hasCatalogInfo:NULL] != noErr || !isOwned) {
+	if (IsZeros(childRef, sizeof(FSRef)) || [self fileInNotesDirectory:childRef isOwnedByUs:&isOwned hasFileInfo:NULL] != noErr || !isOwned) {
 		OSStatus err = noErr;
 		if ((err = FSRefMakeInDirectoryWithString(&noteDirectoryRef, childRef, (CFStringRef)filename, charsBuffer)) != noErr) {
 			NSLog(@"Could not get an fsref for file with name %@: %d\n", filename, err);
@@ -509,21 +511,30 @@ terminate:
     return noErr;
 }
 
-- (OSStatus)fileInNotesDirectory:(FSRef*)childRef isOwnedByUs:(BOOL*)owned hasCatalogInfo:(FSCatalogInfo *)info {
+- (OSStatus)fileInNotesDirectory:(FSRef*)childRef isOwnedByUs:(BOOL*)owned hasFileInfo:(KNFileInfo *)info {
     FSRef parentRef;
-    FSCatalogInfoBitmap whichInfo = kFSCatInfoNone;
     
     if (owned) *owned = NO;
     
-    if (info) {
-		whichInfo = kFSCatInfoContentMod | kFSCatInfoCreateDate | kFSCatInfoAttrMod | kFSCatInfoNodeID | kFSCatInfoDataSizes;
-		bzero(info, sizeof(FSCatalogInfo));
-    }
-    
     OSStatus err = noErr;
     
-    if ((err = FSGetCatalogInfo(childRef, whichInfo, info, NULL, NULL, &parentRef)) != noErr)
+    //the parent is still resolved through the file reference so that ownership survives a rename,
+    //but the metadata itself now comes from getattrlist by path
+    if ((err = FSGetCatalogInfo(childRef, kFSCatInfoNone, NULL, NULL, NULL, &parentRef)) != noErr)
 	return err;
+    
+    if (info) {
+		bzero(info, sizeof(KNFileInfo));
+		
+		NSString *path = [[NSFileManager defaultManager] pathWithFSRef:childRef];
+		if (!path) return fnfErr;
+		
+		int posixErr = KNGetFileInfoAtPath([path fileSystemRepresentation], info);
+		if (posixErr) {
+			NSLog(@"could not read the attributes of %@: %d", path, posixErr);
+			return ENOENT == posixErr ? fnfErr : ioErr;
+		}
+    }
     
     if (owned) *owned = (FSCompareFSRefs(&parentRef, &noteDirectoryRef) == noErr);
     
@@ -635,7 +646,7 @@ terminate:
     
 	//don't try to make a new fsref if the file is still inside notes folder, but perhaps under a different name
 	BOOL isOwned = NO;
-	if (IsZeros(destRef,sizeof(FSRef)) || [self fileInNotesDirectory:destRef isOwnedByUs:&isOwned hasCatalogInfo:NULL] != noErr || !isOwned) {
+	if (IsZeros(destRef,sizeof(FSRef)) || [self fileInNotesDirectory:destRef isOwnedByUs:&isOwned hasFileInfo:NULL] != noErr || !isOwned) {
 		
 		if ((err = [self createFileIfNotPresentInNotesDirectory:destRef forFilename:filename fileWasCreated:nil]) != noErr) {
 			NSLog(@"error creating or getting fsref for file %@: %d", filename, err);
@@ -757,16 +768,12 @@ terminate:
 	}
 	
 	if (err == noErr) {
-		FSCatalogInfo catInfo;
-		
-		CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
-		err = UCConvertCFAbsoluteTimeToUTCDateTime(now, &catInfo.contentModDate);
-		if (err == noErr)
-			err = FSSetCatalogInfo(&noteDirectoryRef, kFSCatInfoContentMod, &catInfo);
-		if (err) {
-			NSLog(@"couldn't touch modification date of file's parent folder: error %d", err);
-			err = noErr;
-		}
+		NSString *directory = [[NSFileManager defaultManager] pathWithFSRef:&noteDirectoryRef];
+		//leave the access time alone, as setting only the modification date did
+		struct timespec times[2] = { {0, UTIME_OMIT}, KNTimespecFromCFAbsoluteTime(CFAbsoluteTimeGetCurrent()) };
+
+		if (!directory || utimensat(AT_FDCWD, [directory fileSystemRepresentation], times, 0) != 0)
+			NSLog(@"couldn't touch modification date of file's parent folder: error %d", errno);
 	}
     
     return err;
