@@ -19,26 +19,29 @@
 
 #import <Cocoa/Cocoa.h>
 
-@protocol NSURLDownloadDelegate;
-
-@interface URLGetter : NSObject <NSURLDownloadDelegate>
+@interface URLGetter : NSObject <NSURLSessionDownloadDelegate>
 {
     IBOutlet NSButton *cancelButton;
     IBOutlet NSTextField *objectURLStatus;
     IBOutlet NSProgressIndicator *progress;
     IBOutlet NSTextField *progressStatus;
     IBOutlet NSPanel *window;
-	
+
 	NSURL *url;
-	NSURLDownload *downloader;
+	NSURLSession *session;
+	NSURLSessionDownloadTask *downloadTask;
 	NSString *downloadPath, *tempDirectory;
-	
+
 	id userData;
-	
+
 	id delegate;
-	
+
 	BOOL isIndicating, isImporting;
-	
+
+	//-endDownloadWithPath: releases self and hands the file to the delegate, so it must run exactly
+	//once; a cancel and the session's own completion callback can otherwise both reach it
+	BOOL didEndDownload;
+
 	long long totalReceivedByteCount, maxExpectedByteCount;
 }
 

@@ -16,6 +16,7 @@
 
 
 #import "PassphraseChanger.h"
+#import "KNAlert.h"
 #import "NotationPrefs.h"
 #import "KeyDerivationManager.h"
 
@@ -44,7 +45,7 @@
 			[changePassphraseWindow close];
 			
 		} else {
-			NSRunAlertPanel(NSLocalizedString(@"Your entered new passphrase does not match your verification passphrase.",nil),
+			KNRunAlert(NSLocalizedString(@"Your entered new passphrase does not match your verification passphrase.",nil),
 							NSLocalizedString(@"Please try again.",nil), NSLocalizedString(@"OK",nil), nil, nil);
 			[verifyChangedPasswordField setStringValue:@""];
 			[verifyChangedPasswordField performSelector:@selector(selectText:) withObject:nil afterDelay:0.0];
@@ -52,7 +53,7 @@
 		}
 	} else {
 		
-		NSRunAlertPanel(NSLocalizedString(@"Your entered current passphrase is incorrect.",nil), 
+		KNRunAlert(NSLocalizedString(@"Your entered current passphrase is incorrect.",nil), 
 						NSLocalizedString(@"Please try again.",nil), NSLocalizedString(@"OK",nil), nil, nil);
 		[currentPasswordField setStringValue:@""];
 		[currentPasswordField performSelector:@selector(selectText:) withObject:nil afterDelay:0.0];

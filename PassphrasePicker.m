@@ -16,6 +16,7 @@
 
 
 #import "PassphrasePicker.h"
+#import "KNAlert.h"
 #import "NotationPrefs.h"
 #import "KeyDerivationManager.h"
 
@@ -125,7 +126,7 @@
 		[newPassphraseWindow close];
 		
 	} else {
-		NSRunAlertPanel(NSLocalizedString(@"Your entered passphrase does not match your verify passphrase.",nil), 
+		KNRunAlert(NSLocalizedString(@"Your entered passphrase does not match your verify passphrase.",nil), 
 						NSLocalizedString(@"Please try again.",nil), NSLocalizedString(@"OK",nil), nil, nil);
 		[verifyNewPasswordField setStringValue:@""];
 		[verifyNewPasswordField performSelector:@selector(selectText:) withObject:nil afterDelay:0.0];

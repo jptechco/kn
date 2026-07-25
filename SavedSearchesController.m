@@ -7,6 +7,7 @@
 //
 
 #import "SavedSearchesController.h"
+#import "KNAlert.h"
 #import "NoteObject.h"
 #import "GlobalPrefs.h"
 #import "AppController.h"
@@ -519,8 +520,8 @@ static NSString *SSSelectedNoteUUIDStringKey = @"NoteUUIDString";
 }
 
 - (void)clearAllSearches:(id)sender {
-	if (NSRunAlertPanel(@"Remove all saved searches?", @"You cannot undo this action.", 
-						@"Remove All Searches", @"Cancel", NULL) == NSAlertDefaultReturn) {
+	if (KNRunAlert(@"Remove all saved searches?", @"You cannot undo this action.", 
+						@"Remove All Searches", @"Cancel", NULL) == NSAlertFirstButtonReturn) {
 
 		[searches removeAllObjects];
 	

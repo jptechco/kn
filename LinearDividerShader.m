@@ -98,8 +98,11 @@ void ColorBlendFunction(void *info, const CGFloat *in, CGFloat *out) {
 - (void)drawCenteredInRect:(NSRect)aRect fraction:(float)aFraction {
 	NSRect cent = centeredRectInRect(aRect, [self size]);
 	cent = [[NSView focusView] centerScanRect:cent];
-//	[self drawAtPoint:cent.origin fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:aFraction];
-	[self compositeToPoint:NSMakePoint(cent.origin.x, cent.origin.y + cent.size.height) operation:NSCompositingOperationSourceOver fraction:aFraction];
+	//every caller draws into a flipped view (NSButton/NSTextField control views, and RBSplitView's
+	//divider callback), where -compositeToPoint: ran the image upward from the point -- which is why
+	//the call this replaces passed the top edge plus the height. -respectFlipped: fills `cent` directly.
+	[self drawInRect:cent fromRect:NSZeroRect operation:NSCompositingOperationSourceOver
+			fraction:aFraction respectFlipped:YES hints:nil];
 }
 
 @end

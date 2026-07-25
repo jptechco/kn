@@ -22,6 +22,7 @@
 
 
 #import "BookmarksController.h"
+#import "KNAlert.h"
 #import "NoteObject.h"
 #import "GlobalPrefs.h"
 #import "AppController.h"
@@ -497,9 +498,9 @@ static NSString *BMNoteUUIDStringKey = @"NoteUUIDString";
 }
 
 - (void)clearAllBookmarks:(id)sender {
-	if (NSRunAlertPanel(NSLocalizedString(@"Remove all bookmarks?",@"alert title when clearing bookmarks"), 
+	if (KNRunAlert(NSLocalizedString(@"Remove all bookmarks?",@"alert title when clearing bookmarks"), 
 						NSLocalizedString(@"You cannot undo this action.",nil), 
-						NSLocalizedString(@"Remove All Bookmarks",nil), NSLocalizedString(@"Cancel",nil), NULL) == NSAlertDefaultReturn) {
+						NSLocalizedString(@"Remove All Bookmarks",nil), NSLocalizedString(@"Cancel",nil), NULL) == NSAlertFirstButtonReturn) {
 
 		[bookmarks removeAllObjects];
 	
@@ -511,7 +512,7 @@ static NSString *BMNoteUUIDStringKey = @"NoteUUIDString";
 	
 	if (![appController selectedNoteObject]) {
 		
-		NSRunAlertPanel(NSLocalizedString(@"No note selected.",@"alert title when bookmarking no note"), NSLocalizedString(@"You must select a note before it can be added as a bookmark.",nil), NSLocalizedString(@"OK",nil), nil, NULL);
+		KNRunAlert(NSLocalizedString(@"No note selected.",@"alert title when bookmarking no note"), NSLocalizedString(@"You must select a note before it can be added as a bookmark.",nil), NSLocalizedString(@"OK",nil), nil, NULL);
 		
 	} else if ([bookmarks count] < 27) {
 		NSString *newString = [[appController fieldSearchString] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];		
@@ -534,7 +535,7 @@ static NSString *BMNoteUUIDStringKey = @"NoteUUIDString";
 		[bookmark release];
 	} else {
 		//there are only so many numbers and modifiers
-		NSRunAlertPanel(NSLocalizedString(@"Too many bookmarks.",nil), NSLocalizedString(@"You cannot create more than 26 bookmarks. Try removing some first.",nil), NSLocalizedString(@"OK",nil), nil, NULL);
+		KNRunAlert(NSLocalizedString(@"Too many bookmarks.",nil), NSLocalizedString(@"You cannot create more than 26 bookmarks. Try removing some first.",nil), NSLocalizedString(@"OK",nil), nil, NULL);
 	}
 }
 

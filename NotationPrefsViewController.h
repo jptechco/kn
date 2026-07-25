@@ -106,7 +106,7 @@
 - (IBAction)syncFrequencyChange:(id)sender;
 
 
-- (void)encryptionFormatMismatchSheetDidEnd:(NSWindow *)sheet returnCode:(int)returnCode 
+- (void)encryptionFormatMismatchSheetDidEnd:(NSWindow *)sheet returnCode:(NSModalResponse)returnCode 
 								contextInfo:(void *)contextInfo;
 - (IBAction)toggledEncryption:(id)sender;
 - (void)enableEncryption;

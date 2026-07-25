@@ -16,6 +16,7 @@
 
 
 #import "URLGetter.h"
+#import "KNAlert.h"
 
 @implementation URLGetter
 
@@ -30,20 +31,28 @@
 		url = [aUrl retain];
 		userData = [someObj retain];
 		
-		downloader = [[NSURLDownload alloc] initWithRequest:[NSURLRequest requestWithURL:url] delegate:self];
-		
+		//NSURLDownload delivered its callbacks on the run loop that started it; asking for the main
+		//queue here keeps that guarantee, so the progress window and the import delegate are still
+		//only ever touched from the main thread
+		session = [[NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]
+												 delegate:self delegateQueue:[NSOperationQueue mainQueue]] retain];
+		downloadTask = [[session downloadTaskWithRequest:[NSURLRequest requestWithURL:url]] retain];
+		[downloadTask resume];
+
 		[self startProgressIndication:self];
 	}
-	
+
 	return self;
 }
 
 - (void)dealloc {
-	[downloader release];
+	[session release];
+	[downloadTask release];
 	[downloadPath release];
+	[tempDirectory release];
 	[url release];
 	[userData release];
-	
+
 	[super dealloc];
 }
 
@@ -56,8 +65,10 @@
 }
 
 - (IBAction)cancelDownload:(id)sender {
-	[downloader cancel];
+	[downloadTask cancel];
 
+	//end straight away rather than waiting for the cancellation to come back through the session, so
+	//the progress window closes on the click; -endDownloadWithPath: ignores the later callback
 	[self endDownloadWithPath:nil];
 }
 
@@ -108,79 +119,102 @@
 	}
 }
 
-- (void)download:(NSURLDownload *)download didReceiveResponse:(NSURLResponse *)response {
-	maxExpectedByteCount = [response expectedContentLength];
-	//NSLog(@"max KB: %lld", maxExpectedByteCount/1024);
-	
+- (void)URLSession:(NSURLSession *)aSession downloadTask:(NSURLSessionDownloadTask *)aTask
+	  didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten
+totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite {
+
+	//a server that sends no Content-Length reports NSURLSessionTransferSizeUnknown (-1); zero is what
+	//-updateProgress reads as "no total known", which makes the bar indeterminate
+	maxExpectedByteCount = totalBytesExpectedToWrite == NSURLSessionTransferSizeUnknown ? 0 : totalBytesExpectedToWrite;
+	totalReceivedByteCount = totalBytesWritten;
+
 	[self updateProgress];
 }
 
-- (void)download:(NSURLDownload *)download didReceiveDataOfLength:(NSUInteger)length {
-	totalReceivedByteCount += length;
-	
-	[self updateProgress];
-}
+- (void)URLSession:(NSURLSession *)aSession downloadTask:(NSURLSessionDownloadTask *)aTask
+didFinishDownloadingToURL:(NSURL *)location {
 
-- (void)download:(NSURLDownload *)download decideDestinationWithSuggestedFilename:(NSString *)name {
-	
+	//NSURLSession deletes `location` as soon as this method returns, so the file has to be moved
+	//here and now -- this is the one delegate callback that cannot be deferred
+	NSString *name = [[aTask response] suggestedFilename];
+	if (![name length]) name = [[[aTask originalRequest] URL] lastPathComponent];
+	if (![name length]) name = @"download";
+
 	[tempDirectory autorelease];
 	tempDirectory = [[NSTemporaryDirectory() stringByAppendingPathComponent:[[NSProcessInfo processInfo] globallyUniqueString]] retain];
-	if (![[NSFileManager defaultManager] createDirectoryAtPath:tempDirectory attributes:nil]) {
+
+	NSFileManager *fileMan = [NSFileManager defaultManager];
+	if (![fileMan createDirectoryAtPath:tempDirectory withIntermediateDirectories:YES attributes:nil error:NULL]) {
 		NSLog(@"URLGetter: Couldn't create temporary directory!");
-		[download cancel];
-		NSBeep();
+		[tempDirectory release];
+		tempDirectory = nil;
+		return;
 	}
-	
+
 	[downloadPath autorelease];
 	downloadPath = [[tempDirectory stringByAppendingPathComponent:name] retain];
-	[download setDestination:downloadPath allowOverwrite:YES];
-	
-	//need to delete this stuff eventually
-}
 
-- (void)download:(NSURLDownload *)download didFailWithError:(NSError *)error {
-	
-	NSString *reason = [error localizedDescription];
-	if (!reason) reason = NSLocalizedString(@"unknown error.", @"error description of last resort for why a URL couldn't be accessed");
-	NSRunAlertPanel([NSString stringWithFormat:NSLocalizedString(@"The URL quotemark%@quotemark could not be accessed: %@.", nil), 
-		[url absoluteString], reason], @"", NSLocalizedString(@"OK",nil), nil, nil);
-	
-	
-	[self endDownloadWithPath:nil];
-}
-
-- (void)downloadDidFinish:(NSURLDownload *)download {
-	
-	[self endDownloadWithPath:downloadPath];
-}
-
-- (void)endDownloadWithPath:(NSString*)path {
-	isImporting = YES;
-	[self updateProgress];
-	
-	[self retain];
-	[delegate URLGetter:self returnedDownloadedFile:path];
-	
-	//clean up after ourselves
-	NSFileManager *fileMan = [NSFileManager defaultManager];
-	if (downloadPath) {
-		[fileMan removeFileAtPath:downloadPath handler:NULL];
+	NSError *moveError = nil;
+	if (![fileMan moveItemAtPath:[location path] toPath:downloadPath error:&moveError]) {
+		NSLog(@"URLGetter: couldn't move the downloaded file into place: %@", moveError);
 		[downloadPath release];
 		downloadPath = nil;
 	}
-	
+}
+
+- (void)URLSession:(NSURLSession *)aSession task:(NSURLSessionTask *)aTask didCompleteWithError:(NSError *)error {
+
+	//the sole completion funnel: it runs for success, for failure, and for the cancellation that
+	//-cancelDownload: kicked off (which has already finished up, hence the didEndDownload guard)
+	if (didEndDownload) return;
+
+	if (error) {
+		NSString *reason = [error localizedDescription];
+		if (!reason) reason = NSLocalizedString(@"unknown error.", @"error description of last resort for why a URL couldn't be accessed");
+		KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"The URL quotemark%@quotemark could not be accessed: %@.", nil),
+			[url absoluteString], reason], @"", NSLocalizedString(@"OK",nil), nil, nil);
+
+		[self endDownloadWithPath:nil];
+	} else {
+		//nil when -URLSession:downloadTask:didFinishDownloadingToURL: could not keep the file
+		[self endDownloadWithPath:downloadPath];
+	}
+}
+
+- (void)endDownloadWithPath:(NSString*)path {
+	if (didEndDownload) return;
+	didEndDownload = YES;
+
+	isImporting = YES;
+	[self updateProgress];
+
+	[self retain];
+	[delegate URLGetter:self returnedDownloadedFile:path];
+
+	//clean up after ourselves
+	NSFileManager *fileMan = [NSFileManager defaultManager];
+	if (downloadPath) {
+		[fileMan removeItemAtPath:downloadPath error:NULL];
+		[downloadPath release];
+		downloadPath = nil;
+	}
+
 	if (tempDirectory) {
 		//only remove temporary directory if there's nothing in it
-		if (![[fileMan directoryContentsAtPath:tempDirectory] count])
-			[fileMan removeFileAtPath:tempDirectory handler:NULL];
+		if (![[fileMan contentsOfDirectoryAtPath:tempDirectory error:NULL] count])
+			[fileMan removeItemAtPath:tempDirectory error:NULL];
 		else
 			NSLog(@"note removing %@ because it still contains files!", tempDirectory);
 		[tempDirectory release];
 		tempDirectory = nil;
 	}
-	
+
 	[self stopProgressIndication];
-	
+
+	//the session holds a strong reference to its delegate -- that is us -- until it is invalidated,
+	//so without this the URLGetter would never be deallocated
+	[session invalidateAndCancel];
+
 	[self release];
 }
 

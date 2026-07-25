@@ -22,6 +22,7 @@
 
 
 #import "BlorPasswordRetriever.h"
+#import "KNAlert.h"
 #import "NoteObject.h"
 #import "GlobalPrefs.h"
 #import "NSData_transformations.h"
@@ -55,7 +56,7 @@
 	[window close];
 	
 	if (![[GlobalPrefs defaultPrefs] triedToImportBlor])
-		NSRunAlertPanel(NSLocalizedString(@"Note Importing Cancelled", nil), 
+		KNRunAlert(NSLocalizedString(@"Note Importing Cancelled", nil), 
 						NSLocalizedString(@"You can import your old notes at any time by choosing quotemarkImport...quotemark from the quotemarkNotequotemark menu and selecting your NotationalDatabase.blor file.",nil), 
 						NSLocalizedString(@"OK",nil), nil, nil);
 }
@@ -71,8 +72,8 @@
 		[window close];
 		
 	} else {
-		NSBeginAlertSheet(NSLocalizedString(@"Sorry, you entered an incorrect passphrase.",nil), NSLocalizedString(@"OK",nil), 
-						  nil, nil, window, nil, NULL, NULL, NULL, NSLocalizedString(@"Please try again.",nil));
+		KNBeginAlertSheet(window, NSLocalizedString(@"Sorry, you entered an incorrect passphrase.",nil),
+						  NSLocalizedString(@"Please try again.",nil), NSLocalizedString(@"OK",nil));
 	}	
 	
 }
