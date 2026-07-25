@@ -62,8 +62,6 @@
 		lastWordInFilterStr = 0;
 		selectedNoteIndex = NSNotFound;
 		
-		fsCatInfoArray = NULL;
-		HFSUniNameArray = NULL;
 		catalogEntries = NULL;
 		sortedCatalogEntries = NULL;
 		catEntriesCount = totalCatEntriesCount = 0;
@@ -1562,10 +1560,6 @@ bail:
 #if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
     DisposeFNSubscriptionUPP(subscriptionCallback);
 #endif
-	if (fsCatInfoArray)
-		free(fsCatInfoArray);
-	if (HFSUniNameArray)
-		free(HFSUniNameArray);
     if (catalogEntries)
 		free(catalogEntries);
     if (sortedCatalogEntries)

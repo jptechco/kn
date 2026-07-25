@@ -27,19 +27,9 @@
 #import "WALController.h"
 
 #import <CoreServices/CoreServices.h>
+#import "KNFileInfo.h"
 
 //enum { kUISearch, kUINewNote, kUIDeleteNote, kUIRenameNote, kUILabelOperation };
-
-typedef struct _NoteCatalogEntry {
-    UTCDateTime lastModified;
-	UTCDateTime lastAttrModified;
-    UInt32 logicalSize;
-    OSType fileType;
-    UInt32 nodeID;
-    unsigned int filenameCharCount;
-    UniChar *filenameChars;
-	CFMutableStringRef filename;
-} NoteCatalogEntry;
 
 @class NoteObject;
 @class DeletedNoteObject;
@@ -76,8 +66,6 @@ typedef struct _NoteCatalogEntry {
 	NSMutableSet *deletedNotes;
     
 	int volumeSupportsExchangeObjects;
-    FSCatalogInfo *fsCatInfoArray;
-    HFSUniStr255 *HFSUniNameArray;
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
 	FNSubscriptionUPP subscriptionCallback;
