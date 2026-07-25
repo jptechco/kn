@@ -21,6 +21,7 @@
     along with Notational Velocity.  If not, see <http://www.gnu.org/licenses/>. */
 
 #import "NotationDirectoryManager.h"
+#import "NotationFileManager.h"
 #import "NSFileManager_NV.h"
 #import "NotationPrefs.h"
 #import "BufferUtils.h"
@@ -127,7 +128,7 @@ void FSEventsCallback(ConstFSEventStreamRef stream, void* info, size_t num_event
 		[self _destroyDirEventStream];
 	}
 	
-	NSString *path = [[NSFileManager defaultManager] pathWithFSRef:&noteDirectoryRef];
+	NSString *path = [self noteDirectoryPath];
 	
 	FSEventStreamContext context = { 0, self, CFRetain, CFRelease, CFCopyDescription };
 	
@@ -155,16 +156,6 @@ void FSEventsCallback(ConstFSEventStreamRef stream, void* info, size_t num_event
 - (void)startFileNotifications {
 	eventStreamStarted = YES;
 	
-#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5				
-	if (IsZeros(&noteDirSubscription, sizeof(FNSubscriptionRef))) {
-		
-		OSStatus err = FNSubscribe(&noteDirectoryRef, subscriptionCallback, self, kFNNoImplicitAllSubscription | kFNNotifyInBackground, &noteDirSubscription);
-		if (err != noErr) {
-			NSLog(@"Could not subscribe to changes in notes directory!");
-			//just check modification time of directory?
-		}
-	}
-#endif
 	[self _configureDirEventStream];
 }
 
@@ -172,40 +163,10 @@ void FSEventsCallback(ConstFSEventStreamRef stream, void* info, size_t num_event
 	
 	if (!eventStreamStarted) return;
 	
-#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
-	OSStatus err = noErr;
-    if (!IsZeros(&noteDirSubscription, sizeof(FNSubscriptionRef))) {
-		
-		if ((err = FNUnsubscribe(noteDirSubscription)) != noErr) {
-			NSLog(@"Could not unsubscribe from note changes callback: %d", err);
-		} else {
-			bzero(&noteDirSubscription, sizeof(FNSubscriptionRef));
-		}
-		
-		[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(synchronizeNotesFromDirectory) object:nil];
-    }
-#endif
-    
 	[self _destroyDirEventStream];
 
 	eventStreamStarted = NO;
 }
-
-#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
-void NotesDirFNSubscriptionProc(FNMessage message, OptionBits flags, void * refcon, FNSubscriptionRef subscription) {
-    //this only works for the Finder and perhaps the navigation manager right now
-	if (kFNDirectoryModifiedMessage == message) {
-		//NSLog(@"note directory changed");
-		if (refcon) {
-			[NSObject cancelPreviousPerformRequestsWithTarget:(id)refcon selector:@selector(synchronizeNotesFromDirectory) object:nil];
-			[(id)refcon performSelector:@selector(synchronizeNotesFromDirectory) withObject:nil afterDelay:0.0];
-		}
-		
-    } else {
-		NSLog(@"we received an FNSubscr. callback and the directory didn't actually change?");
-    }
-}
-#endif
 
 - (BOOL)synchronizeNotesFromDirectory {
     if ([self currentNoteStorageFormat] == SingleDatabaseFormat) {
@@ -254,7 +215,7 @@ void NotesDirFNSubscriptionProc(FNMessage message, OptionBits flags, void * refc
 //scour the notes directory for fresh meat
 - (BOOL)_readFilesInDirectory {
 
-	NSString *directory = [[NSFileManager defaultManager] pathWithFSRef:&noteDirectoryRef];
+	NSString *directory = [self noteDirectoryPath];
 	if (![directory length]) {
 		NSLog(@"_readFilesInDirectory: the notes directory has no path");
 		return NO;

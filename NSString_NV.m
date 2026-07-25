@@ -594,10 +594,10 @@ BOOL IsHardLineBreakUnichar(unichar uchar, NSString *str, unsigned charIndex) {
 	NSStringEncoding anEncoding = NSMacOSRomanStringEncoding; //won't use this, doesn't matter
 	
 	return [self newShortLivedStringFromData:[NSMutableData dataWithContentsOfFile:filename options:NSUncachedRead error:NULL] 
-						   ofGuessedEncoding:&anEncoding withPath:[filename fileSystemRepresentation] orWithFSRef:NULL];
+						   ofGuessedEncoding:&anEncoding withPath:[filename fileSystemRepresentation]];
 }
 
-+ (NSMutableString*)newShortLivedStringFromData:(NSMutableData*)data ofGuessedEncoding:(NSStringEncoding*)encoding withPath:(const char*)aPath orWithFSRef:(const FSRef*)fsRef{
++ (NSMutableString*)newShortLivedStringFromData:(NSMutableData*)data ofGuessedEncoding:(NSStringEncoding*)encoding withPath:(const char*)aPath {
 	//this will fail if data lacks a BOM, but try it first as it's the fastest check
 	NSMutableString* stringFromData = [data newStringUsingBOMReturningEncoding:encoding];
 	if (stringFromData) {
@@ -621,11 +621,7 @@ BOOL IsHardLineBreakUnichar(unichar uchar, NSString *str, unsigned charIndex) {
 	if (hasHighASCII) {
 		//check the file on disk for extended attributes only if absolutely necessary
 		NSStringEncoding extendedAttrsEncoding = 0;
-		if (!aPath && fsRef && !IsZeros(fsRef, sizeof(FSRef))) {
-			NSMutableData *pathData = [NSMutableData dataWithLength:4 * 1024];
-			if (FSRefMakePath(fsRef, [pathData mutableBytes], [pathData length]) == noErr)
-				extendedAttrsEncoding = [[NSFileManager defaultManager] textEncodingAttributeOfFSPath:[pathData bytes]];
-		} else if (aPath) {
+		if (aPath) {
 			extendedAttrsEncoding = [[NSFileManager defaultManager] textEncodingAttributeOfFSPath:aPath];
 		}
 		if (extendedAttrsEncoding) AddIfUnique(extendedAttrsEncoding);

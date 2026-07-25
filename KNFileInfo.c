@@ -13,8 +13,11 @@
 #include <sys/attr.h>
 #include <sys/vnode.h>
 #include <sys/errno.h>
+#include <sys/param.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -138,6 +141,178 @@ int KNSetFileDatesAtPath(const char *path, CFAbsoluteTime createdDate, CFAbsolut
 		return errno ? errno : EIO;
 
 	return 0;
+}
+
+int KNReadDataAtPath(const char *path, size_t chunkSize, uint64_t *ioSize, void **outBuffer, int uncached) {
+	if (!path || !ioSize || !outBuffer) return EINVAL;
+
+	//A symlink's own data fork holds the path it points at, and that -- not the file at the other
+	//end -- is what the File Manager's fork read returned. KNGetFileInfoAtPath describes the link
+	//itself for the same reason, so reading through the link here would leave a note's contents and
+	//its metadata describing two different files.
+	struct stat linkInfo;
+	if (lstat(path, &linkInfo) == 0 && S_ISLNK(linkInfo.st_mode)) {
+		char *linkBuffer = (char *)valloc((size_t)linkInfo.st_size + 1);
+		if (!linkBuffer) return ENOMEM;
+
+		ssize_t linkLength = readlink(path, linkBuffer, (size_t)linkInfo.st_size + 1);
+		if (linkLength < 0) {
+			int linkError = errno ? errno : EIO;
+			free(linkBuffer);
+			return linkError;
+		}
+
+		*outBuffer = linkBuffer;
+		*ioSize = (uint64_t)linkLength;
+		return 0;
+	}
+
+	int fd = open(path, O_RDONLY);
+	if (fd < 0) return errno ? errno : EIO;
+
+	//the fork read this replaces took noCacheMask for data it did not expect to want again
+	if (uncached) (void)fcntl(fd, F_NOCACHE, 1);
+
+	off_t size = (off_t)*ioSize;
+	if (size < 1) {
+		struct stat sb;
+		if (fstat(fd, &sb) != 0) {
+			int statError = errno ? errno : EIO;
+			close(fd);
+			return statError;
+		}
+		size = sb.st_size;
+	}
+
+	//page-aligned, as the fork read was, and freed by the caller with free()
+	char *buffer = (char *)valloc(size > 0 ? (size_t)size : 1);
+	if (!buffer) {
+		close(fd);
+		return ENOMEM;
+	}
+
+	const size_t chunk = chunkSize ? chunkSize : (16 * 1024);
+	off_t total = 0;
+	int readError = 0;
+
+	while (total < size) {
+		ssize_t got = read(fd, buffer + total, (size_t)MIN((off_t)chunk, size - total));
+		if (got < 0) {
+			if (EINTR == errno) continue;
+			readError = errno ? errno : EIO;
+			break;
+		}
+		//end of file before the expected size: report what was there, which is what eofErr meant
+		if (got == 0) break;
+		total += got;
+	}
+	close(fd);
+
+	if (readError) {
+		free(buffer);
+		return readError;
+	}
+
+	*outBuffer = buffer;
+	*ioSize = (uint64_t)total;
+	return 0;
+}
+
+int KNWriteDataToDescriptor(int fd, size_t chunkSize, uint64_t size, const void *buffer) {
+	if (fd < 0 || (size && !buffer)) return EINVAL;
+
+	const size_t chunk = chunkSize ? chunkSize : (16 * 1024);
+	uint64_t total = 0;
+
+	while (total < size) {
+		ssize_t put = write(fd, (const char *)buffer + total, (size_t)MIN((uint64_t)chunk, size - total));
+		if (put < 0) {
+			if (EINTR == errno) continue;
+			return errno ? errno : EIO;
+		}
+		total += put;
+	}
+
+	if (ftruncate(fd, (off_t)size) != 0) return errno ? errno : EIO;
+
+	return 0;
+}
+
+int KNWriteDataAtPath(const char *path, size_t chunkSize, uint64_t size, const void *buffer) {
+	if (!path) return EINVAL;
+
+	int fd = open(path, O_WRONLY | O_CREAT, 0644);
+	if (fd < 0) return errno ? errno : EIO;
+
+	int writeError = KNWriteDataToDescriptor(fd, chunkSize, size, buffer);
+	if (close(fd) != 0 && !writeError) writeError = errno ? errno : EIO;
+
+	return writeError;
+}
+
+int KNCreateFileIfNotPresentAtPath(const char *path, int *outCreated) {
+	if (!path) return EINVAL;
+
+	if (outCreated) *outCreated = 0;
+
+	int fd = open(path, O_WRONLY | O_CREAT | O_EXCL, 0644);
+	if (fd >= 0) {
+		if (outCreated) *outCreated = 1;
+		close(fd);
+		return 0;
+	}
+	if (EEXIST == errno) return 0;
+
+	return errno ? errno : EIO;
+}
+
+int KNReplaceItemAtPath(const char *tempPath, const char *destPath) {
+	if (!tempPath || !destPath) return EINVAL;
+
+	//The exchange this replaces swapped two files' contents and left both catalog entries alone, so
+	//the destination's permissions and creation date survived a save. A rename cannot do that -- the
+	//destination becomes the file that was just written -- so carry those two across first and let
+	//the rename be the single atomic step. renameatx_np(RENAME_SWAP) would not help: it swaps the
+	//directory entries, so the destination's inode changes exactly as it does here, and it leaves the
+	//old file behind under the temporary name for someone to delete.
+	struct stat destInfo;
+	if (lstat(destPath, &destInfo) == 0) {
+		(void)chmod(tempPath, destInfo.st_mode & 07777);
+
+		struct attrlist alist;
+		struct timespec createTime = destInfo.st_birthtimespec;
+
+		memset(&alist, 0, sizeof(alist));
+		alist.bitmapcount = ATTR_BIT_MAP_COUNT;
+		alist.commonattr = ATTR_CMN_CRTIME;
+		(void)setattrlist(tempPath, &alist, &createTime, sizeof(createTime), FSOPT_NOFOLLOW);
+	}
+
+	//rename(2) replaces the destination and unlinks what was there in one step, so a save that
+	//finishes never leaves a scratch file behind -- only one interrupted before this point can
+	if (rename(tempPath, destPath) != 0) return errno ? errno : EIO;
+
+	return 0;
+}
+
+OSStatus KNOSStatusFromErrno(int posixError) {
+	switch (posixError) {
+		case 0:				return noErr;
+		case ENOENT:
+		case ENOTDIR:		return fnfErr;
+		case EEXIST:		return dupFNErr;
+		case ENOSPC:
+		case EDQUOT:		return dskFulErr;
+		case EACCES:
+		case EPERM:			return afpAccessDenied;
+		case EROFS:			return wrPermErr;
+		case EBUSY:
+		case ETXTBSY:		return fBsyErr;
+		case ENAMETOOLONG:	return bdNamErr;
+		case EINVAL:		return paramErr;
+		case ENOMEM:		return memFullErr;
+		default:			return ioErr;
+	}
 }
 
 struct KNBulkAttrBuf {

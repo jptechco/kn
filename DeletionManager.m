@@ -119,8 +119,6 @@ static void RenameTextFieldsFromOldNameToNew(NSView *view, NSString *oldName, NS
 			}
 		}
 		
-		[array makeObjectsPerformSelector:@selector(invalidateFSRef)];
-		
 		if (didAddDeletedNote) {
 			[self _updatePanelForNotes];
 		}
@@ -140,10 +138,6 @@ static void RenameTextFieldsFromOldNameToNew(NSView *view, NSString *oldName, NS
 			[deletedNotes addObject:aNote];
 			[self _updatePanelForNotes];
 		}
-		
-		//clear fsref to ensure that files are re-created if they are restored
-		//if they are to be deleted, we don't care about them, anyway--they should already be gone
-		[aNote invalidateFSRef];
 	}
 	hasDeletedNotes = [deletedNotes count] != 0;
 }

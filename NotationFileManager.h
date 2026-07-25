@@ -23,7 +23,6 @@
 
 #import <Cocoa/Cocoa.h>
 #import "NotationController.h"
-#include "FSExchangeObjectsCompat.h"
 #import "BufferUtils.h"
 
 extern NSString *NotesDatabaseFileName;
@@ -39,8 +38,6 @@ typedef union VolumeUUID {
 
 @interface NotationController (NotationFileManager)
 
-OSStatus CreateTemporaryFile(FSRef *parentRef, FSRef *childTempRef);
-OSStatus CreateDirectoryIfNotPresent(FSRef *parentRef, CFStringRef subDirectoryName, FSRef *childRef);
 CFUUIDRef CopyHFSVolumeUUIDForMount(const char *mntonname);
 long BlockSizeForNotation(NotationController *controller);
 UInt32 diskUUIDIndexForNotation(NotationController *controller);
@@ -51,32 +48,36 @@ UInt32 diskUUIDIndexForNotation(NotationController *controller);
 
 - (BOOL)notesDirectoryIsTrashed;
 
-- (BOOL)notesDirectoryContainsFile:(NSString*)filename returningFSRef:(FSRef*)childRef;
-- (OSStatus)refreshFileRefIfNecessary:(FSRef *)childRef withName:(NSString *)filename charsBuffer:(UniChar*)charsBuffer;
+//Every note file is addressed as the notes directory plus the note's filename, so a path is never
+//stale in the way an FSRef was: it does not follow a file renamed out from under us, and the
+//directory scan is what notices such a rename and updates the note's filename to match.
+- (NSString*)noteDirectoryPath;
+- (NSString*)pathInNotesDirectoryForFilename:(NSString*)filename;
+- (BOOL)notesDirectoryContainsFile:(NSString*)filename;
 
 - (OSStatus)renameAndForgetNoteDatabaseFile:(NSString*)newfilename;
 - (BOOL)removeSpuriousDatabaseFileNotes;
 
 - (void)relocateNotesDirectory;
 
-+ (OSStatus)getDefaultNotesDirectoryRef:(FSRef*)notesDir;
++ (NSString*)defaultNotesDirectoryPathReturningError:(OSStatus*)outErr;
 
-- (NSMutableData*)dataFromFileInNotesDirectory:(FSRef*)childRef forFilename:(NSString*)filename;
-- (NSMutableData*)dataFromFileInNotesDirectory:(FSRef*)childRef forCatalogEntry:(NoteCatalogEntry*)catEntry;
-- (NSMutableData*)dataFromFileInNotesDirectory:(FSRef*)childRef forFilename:(NSString*)filename fileSize:(UInt64)givenFileSize;
-- (OSStatus)noteFileRenamed:(FSRef*)childRef fromName:(NSString*)oldName toName:(NSString*)newName;
+- (NSMutableData*)dataFromFileInNotesDirectory:(NSString*)filename;
+- (NSMutableData*)dataFromFileInNotesDirectoryForCatalogEntry:(NoteCatalogEntry*)catEntry;
+- (NSMutableData*)dataFromFileInNotesDirectory:(NSString*)filename fileSize:(UInt64)givenFileSize;
+- (OSStatus)noteFileRenamedFromName:(NSString*)oldName toName:(NSString*)newName;
 - (NSString*)uniqueFilenameForTitle:(NSString*)title fromNote:(NoteObject*)note;
-- (OSStatus)fileInNotesDirectory:(FSRef*)childRef isOwnedByUs:(BOOL*)owned hasFileInfo:(KNFileInfo *)info;
-- (OSStatus)deleteFileInNotesDirectory:(FSRef*)childRef forFilename:(NSString*)filename;
-- (OSStatus)createFileIfNotPresentInNotesDirectory:(FSRef*)childRef forFilename:(NSString*)filename fileWasCreated:(BOOL*)created;
-- (OSStatus)storeDataAtomicallyInNotesDirectory:(NSData*)data withName:(NSString*)filename destinationRef:(FSRef*)destRef;
-- (OSStatus)storeDataAtomicallyInNotesDirectory:(NSData*)data withName:(NSString*)filename destinationRef:(FSRef*)destRef 
+- (OSStatus)fileInNotesDirectory:(NSString*)filename hasFileInfo:(KNFileInfo *)info;
+- (OSStatus)deleteFileInNotesDirectory:(NSString*)filename;
+- (OSStatus)createFileIfNotPresentInNotesDirectory:(NSString*)filename fileWasCreated:(BOOL*)created;
+- (OSStatus)storeDataAtomicallyInNotesDirectory:(NSData*)data withName:(NSString*)filename;
+- (OSStatus)storeDataAtomicallyInNotesDirectory:(NSData*)data withName:(NSString*)filename
 							 verifyWithSelector:(SEL)verifySel verificationDelegate:(id)verifyDelegate;
-+ (OSStatus)trashFolderRef:(FSRef*)trashRef forChild:(FSRef*)childRef;
-- (OSStatus)moveFileToTrash:(FSRef *)childRef forFilename:(NSString*)filename;
++ (NSURL*)trashDirectoryURLForItemAtURL:(NSURL*)itemURL;
+- (OSStatus)moveFileToTrash:(NSString*)filename;
 - (void)notifyOfChangedTrash;
 @end
 
 @interface NSObject (NotationFileManagerDelegate)
-- (NSNumber*)verifyDataAtTemporaryFSRef:(NSValue*)fsRefValue withFinalName:(NSString*)filename;
+- (NSNumber*)verifyDataAtTemporaryPath:(NSString*)tempPath withFinalName:(NSString*)filename;
 @end
