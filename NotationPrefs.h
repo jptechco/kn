@@ -95,7 +95,7 @@ NSMutableDictionary *ServiceAccountDictInit(NotationPrefs *prefs, NSString* serv
 
 - (void)forgetKeychainIdentifier;
 - (const char *)setKeychainIdentifier;
-- (SecKeychainItemRef)currentKeychainItem;
+- (BOOL)hasKeychainItem;
 - (NSData*)passwordDataFromKeychain;
 - (void)removeKeychainData;
 - (void)setKeychainData:(NSData*)data;
