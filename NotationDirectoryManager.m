@@ -166,9 +166,7 @@ void FSEventsCallback(ConstFSEventStreamRef stream, void* info, size_t num_event
 		}
 	}
 #endif
-	if (IsLeopardOrLater) {
-		[self _configureDirEventStream];
-	}
+	[self _configureDirEventStream];
 }
 
 - (void)stopFileNotifications {
@@ -189,10 +187,8 @@ void FSEventsCallback(ConstFSEventStreamRef stream, void* info, size_t num_event
     }
 #endif
     
-	if (IsLeopardOrLater) {
-		[self _destroyDirEventStream];
-	}
-	
+	[self _destroyDirEventStream];
+
 	eventStreamStarted = NO;
 }
 

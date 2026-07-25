@@ -101,10 +101,6 @@ static NSString *KNProjectURLString = @"https://github.com/jptechco/kn";
 	[window setShowsToolbarButton:NO];
 	titleBarButton = [[TitlebarButton alloc] initWithFrame:NSMakeRect(0, 0, 17.0, 17.0) pullsDown:YES];
 	[titleBarButton addToWindow:window];
-	
-//	if (IsLeopardOrLater)
-//		[window setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces];
-	
 
 	[NSApp setDelegate:self];
 	[notesTableView setDelegate:self];
@@ -739,7 +735,7 @@ terminateApp:
 			[notationController removeNote:retainedDeleteObj];
 		}
 		
-		if (IsLeopardOrLater && [[alert suppressionButton] state] == NSOnState) {
+		if ([[alert suppressionButton] state] == NSOnState) {
 			[prefsController setConfirmNoteDeletion:NO sender:self];
 		}
 	}
@@ -763,7 +759,7 @@ terminateApp:
 			NSAlert *alert = [NSAlert alertWithMessageText:warnString defaultButton:NSLocalizedString(@"Delete", @"name of delete button")
 										   alternateButton:NSLocalizedString(@"Cancel", @"name of cancel button") otherButton:nil 
 								 informativeTextWithFormat:NSLocalizedString(@"Press Command-Z to undo this action later.", @"informational delete-this-note? text")];
-			if (IsLeopardOrLater) [alert setShowsSuppressionButton:YES];
+			[alert setShowsSuppressionButton:YES];
 			
 			[alert beginSheetModalForWindow:window modalDelegate:self didEndSelector:@selector(deleteAlertDidEnd:returnCode:contextInfo:) contextInfo:(void*)deleteObj];
 		} else {
@@ -976,17 +972,15 @@ terminateApp:
 
 - (void)applicationWillBecomeActive:(NSNotification *)aNotification {
 	
-	if (IsLeopardOrLater) {
-		SpaceSwitchingContext thisSpaceSwitchCtx;
-		CurrentContextForWindowNumber([window windowNumber], &thisSpaceSwitchCtx);
-		//what if the app is switched-to in another way? then the last-stored spaceSwitchCtx will cause us to return to the wrong app
-		//unfortunately this notification occurs only after NV has become the front process, but we can still verify the space number
-		
-		if (thisSpaceSwitchCtx.userSpace != spaceSwitchCtx.userSpace || 
-			thisSpaceSwitchCtx.windowSpace != spaceSwitchCtx.windowSpace) {
-			//forget the last space-switch info if it's effectively different from how we're switching into the app now
-			bzero(&spaceSwitchCtx, sizeof(SpaceSwitchingContext));
-		}
+	SpaceSwitchingContext thisSpaceSwitchCtx;
+	CurrentContextForWindowNumber([window windowNumber], &thisSpaceSwitchCtx);
+	//what if the app is switched-to in another way? then the last-stored spaceSwitchCtx will cause us to return to the wrong app
+	//unfortunately this notification occurs only after NV has become the front process, but we can still verify the space number
+
+	if (thisSpaceSwitchCtx.userSpace != spaceSwitchCtx.userSpace ||
+		thisSpaceSwitchCtx.windowSpace != spaceSwitchCtx.windowSpace) {
+		//forget the last space-switch info if it's effectively different from how we're switching into the app now
+		bzero(&spaceSwitchCtx, sizeof(SpaceSwitchingContext));
 	}
 }
 
@@ -1598,8 +1592,7 @@ terminateApp:
 		if (opts & NVOrderFrontWindow) {
 			//for external url-handling, often the app will already have been brought to the foreground
 			if (![NSApp isActive]) {
-				if (IsLeopardOrLater)
-					CurrentContextForWindowNumber([window windowNumber], &spaceSwitchCtx);
+				CurrentContextForWindowNumber([window windowNumber], &spaceSwitchCtx);
 				[NSApp activateIgnoringOtherApps:YES];
 			}
 			if (![window isKeyWindow])
@@ -1972,10 +1965,9 @@ terminateApp:
 	if ([NSApp isActive] && [window isMainWindow]) {
 		
 		SpaceSwitchingContext laterSpaceSwitchCtx;
-		if (IsLeopardOrLater)
-			CurrentContextForWindowNumber([window windowNumber], &laterSpaceSwitchCtx);
-		
-		if (!IsLeopardOrLater || !CompareContextsAndSwitch(&spaceSwitchCtx, &laterSpaceSwitchCtx)) {
+		CurrentContextForWindowNumber([window windowNumber], &laterSpaceSwitchCtx);
+
+		if (!CompareContextsAndSwitch(&spaceSwitchCtx, &laterSpaceSwitchCtx)) {
 			//hide only if we didn't need to or weren't able to switch spaces
 			[NSApp hide:sender];
 		}

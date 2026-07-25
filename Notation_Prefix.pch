@@ -3,24 +3,18 @@
 //
 
 #include <AvailabilityMacros.h>
-#ifndef MAC_OS_X_VERSION_10_6
-#define MAC_OS_X_VERSION_10_6 1060
-#endif
 
 #if __OBJC__
 #import <Cocoa/Cocoa.h>
 #endif
 
-#ifndef NSFoundationVersionNumber10_6
-#define NSFoundationVersionNumber10_6 751.00
-#endif
-#ifndef NSFoundationVersionNumber10_5
-#define NSFoundationVersionNumber10_5 677.00
-#endif
 #ifndef NSAppKitVersionNumber10_3
 #define NSAppKitVersionNumber10_3 743.0
 #endif
 
+//NSInteger/NSUInteger for the pure-C translation units (Spaces.c, BufferUtils.h, ...) that use them
+//without importing Foundation. Objective-C files get these from Cocoa above, which defines
+//NSINTEGER_DEFINED and skips this block; C files that never include NSObjCRuntime.h rely on it.
 #ifndef NSINTEGER_DEFINED
 #if __LP64__ || NS_BUILD_32_LIKE_64
 typedef long NSInteger;
@@ -72,9 +66,6 @@ typedef char _COMPILE_ASSERT_SYMBOL(__LINE__, msg) [ ((test) ? 1 : -1) ]
 
 #define VERIFY_SALT "Salt for verifying master key in a single iteration"
 #define LOG_SESSION_SALT "Salt for encrypting a write-ahead-log session"
-
-#define IsLeopardOrLater (floor(NSFoundationVersionNumber) >= NSFoundationVersionNumber10_5)
-#define IsSnowLeopardOrLater (floor(NSFoundationVersionNumber) >= NSFoundationVersionNumber10_6)
 
 #define NOTES_MENU_ID 89
 #define VIEW_MENU_ID 99

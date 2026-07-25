@@ -244,8 +244,8 @@ static BOOL VolumeSupportsExchangeObjects(NotationController *controller) {
 		//ah but what happens when a non-hfs disk is first mounted on leopard+, and then moves to a tiger machine?
 		//or vise-versa; that calls for tracking how the UUIDs were generated, and grouping them together when others are found;
 		//this is probably unnecessary for now
-		if (!diskUUID && IsLeopardOrLater) {
-			//this is not an hfs disk, and this computer is new enough to have FSEvents	
+		if (!diskUUID) {
+			//this is not an hfs disk; use FSEvents to identify the volume
 			diskUUID = FSEventsCopyUUIDForDevice(sfsb->f_fsid.val[0]);
 		}
 		

@@ -159,13 +159,7 @@ static int dayFromAbsoluteTime(CFAbsoluteTime absTime) {
 }
 
 - (NSArray*)labelCompatibleWords {
-	NSArray *array = nil;
-	if (IsLeopardOrLater) {
-		array = [self componentsSeparatedByCharactersInSet:[NSCharacterSet labelSeparatorCharacterSet]];
-	} else {
-		BOOL lacksSpace = [self rangeOfString:@" " options:NSLiteralSearch].location == NSNotFound;
-		array = [self componentsSeparatedByString: lacksSpace ? @"," : @" "];
-	}
+	NSArray *array = [self componentsSeparatedByCharactersInSet:[NSCharacterSet labelSeparatorCharacterSet]];
 	NSMutableArray *titles = [NSMutableArray arrayWithCapacity:[array count]];
 	
 	NSUInteger i;
