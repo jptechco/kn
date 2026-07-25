@@ -36,7 +36,7 @@ typedef struct _NoteFilterContext {
 	BOOL useCachedPositions;
 } NoteFilterContext;
 
-@interface NoteObject : NSObject <NSCoding, SynchronizedNote> {
+@interface NoteObject : NSObject <NSSecureCoding, SynchronizedNote> {
 @public
 	NSAttributedString *tableTitleString;
 	NSString *titleString, *labelString;

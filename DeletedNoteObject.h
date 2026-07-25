@@ -27,7 +27,7 @@
 //archived instances of this class are stored in the journal and on the server
 //the sole purpose of these objects is to aid in the removal of existing notes
 
-@interface DeletedNoteObject : NSObject <NSCoding, SynchronizedNote> {
+@interface DeletedNoteObject : NSObject <NSSecureCoding, SynchronizedNote> {
     unsigned int logSequenceNumber;
     CFUUIDBytes uniqueNoteIDBytes;
     NSMutableDictionary *syncServicesMD;

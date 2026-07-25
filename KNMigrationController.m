@@ -26,6 +26,7 @@
 #import "NSFileManager_NV.h"
 #import "NSData_transformations.h"
 #import "FrozenNotation.h"
+#import "KNSecureArchiving.h"
 #import "NotationPrefs.h"
 
 NSString *KNNotationalVelocityBundleIdentifier = @"net.notational.velocity";
@@ -234,7 +235,7 @@ static NSString *KNStagedImportDirectoryName = @"Kinetic Notes (importing)";
 	if (![archived length]) return -1;
 
 	@try {
-		FrozenNotation *frozen = [NSKeyedUnarchiver unarchiveObjectWithData:archived];
+		FrozenNotation *frozen = KNUnarchiveObjectOfClass([FrozenNotation class], archived);
 		if (![frozen isKindOfClass:[FrozenNotation class]]) return -1;
 
 		//can't count an encrypted database without the passphrase, which is asked for later, on open
@@ -263,7 +264,7 @@ static NSString *KNStagedImportDirectoryName = @"Kinetic Notes (importing)";
 
 	FrozenNotation *frozen = nil;
 	@try {
-		frozen = [NSKeyedUnarchiver unarchiveObjectWithData:archived];
+		frozen = KNUnarchiveObjectOfClass([FrozenNotation class], archived);
 	} @catch (NSException *exception) {
 		frozen = nil;
 	}

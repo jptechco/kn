@@ -23,7 +23,7 @@
 #import <Cocoa/Cocoa.h>
 
 
-@interface DiskUUIDEntry : NSObject {
+@interface DiskUUIDEntry : NSObject <NSSecureCoding> {
 
 	NSDate *lastAccessed;
 	CFUUIDRef uuidRef;

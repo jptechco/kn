@@ -24,12 +24,15 @@
 
 @class NotationPrefs;
 
-@interface FrozenNotation : NSObject <NSCoding> {
+@interface FrozenNotation : NSObject <NSSecureCoding> {
 	NSMutableArray *allNotes;
 	NSMutableSet *deletedNoteSet;
 	NSMutableData *notesData;
 	NotationPrefs *prefs;
 }
+//the secure-coding class list for the note payload, shared with the write-ahead log
++ (NSSet*)notesArchiveClasses;
+
 - (id)initWithNotes:(NSMutableArray*)notes deletedNotes:(NSMutableSet*)antiNotes prefs:(NotationPrefs*)prefs;
 
 + (NSData*)frozenDataWithExistingNotes:(NSMutableArray*)notes deletedNotes:(NSMutableSet*)antiNotes prefs:(NotationPrefs*)prefs;

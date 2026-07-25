@@ -22,17 +22,30 @@
 
 
 #import "FrozenNotation.h"
+#import "DeletedNoteObject.h"
+#import "KNSecureArchiving.h"
+#import "NoteObject.h"
 #import "PassphraseRetriever.h"
 #import "NSData_transformations.h"
 #import "NotationPrefs.h"
 
 @implementation FrozenNotation
 
++ (BOOL)supportsSecureCoding { return YES; }
+
++ (NSSet*)notesArchiveClasses {
+	//the class list for the inner archive: an array of notes, or -- in the WAL and in the deleted set
+	//-- the tombstones that stand in for them
+	return [NSSet setWithObjects:[NSArray class], [NSSet class], [NoteObject class], [DeletedNoteObject class], nil];
+}
+
 - (id)initWithCoder:(NSCoder*)decoder {
 	if ([decoder containsValueForKey:VAR_STR(prefs)]) {
-		prefs = [[decoder decodeObjectForKey:VAR_STR(prefs)] retain];
-		notesData = [[decoder decodeObjectForKey:VAR_STR(notesData)] retain];
-		deletedNoteSet = [[decoder decodeObjectForKey:VAR_STR(deletedNoteSet)] retain];
+		prefs = [[decoder decodeObjectOfClass:[NotationPrefs class] forKey:VAR_STR(prefs)] retain];
+		notesData = [[decoder decodeObjectOfClass:[NSData class] forKey:VAR_STR(notesData)] retain];
+		//the deleted set holds DeletedNoteObject tombstones and is not encrypted with the notes
+		deletedNoteSet = [[decoder decodeObjectOfClasses:[NSSet setWithObjects:[NSSet class], [DeletedNoteObject class], nil]
+												  forKey:VAR_STR(deletedNoteSet)] retain];
 	} else {
 		NSLog(@"FrozenNotation: decoding legacy %@", decoder);
 		prefs = [[decoder decodeObject] retain];
@@ -63,11 +76,8 @@
 	if ([super init]) {
 
 		notesData = [[NSMutableData alloc] init];
-		NSKeyedArchiver *archiver = [[NSKeyedArchiver alloc] initForWritingWithMutableData:notesData];
-		[archiver encodeObject:notes forKey:@"notes"];
-        [archiver finishEncoding];
-		[archiver release];
-		
+		if (!KNArchiveRootObject(notes, @"notes", notesData)) return nil;
+
 		prefs = [somePrefs retain];
 		deletedNoteSet = [antiNotes retain];		
 		
@@ -114,7 +124,7 @@
 	if (!frozenNotation)
 		return nil;
 	
-	NSData *encodedNotationData = [NSKeyedArchiver archivedDataWithRootObject:frozenNotation];
+	NSData *encodedNotationData = KNArchivedDataWithRootObject(frozenNotation);
 	[frozenNotation autorelease];
 	
 	return encodedNotationData;
@@ -144,10 +154,8 @@
 			NSLog(@"Error decompressing data");
 			return nil;
 		}
-		NSKeyedUnarchiver *unarchiver = [[NSKeyedUnarchiver alloc] initForReadingWithData:notesData];
-		allNotes = [[unarchiver decodeObjectForKey:@"notes"] retain];
-		[unarchiver autorelease];
-		
+		allNotes = [KNUnarchiveObjectOfClasses([FrozenNotation notesArchiveClasses], notesData, @"notes") retain];
+
 	} @catch (NSException *e) {
 		*err = kCoderErr;
 		NSLog(@"(VERIFY) Error unarchiving notes from data (%@, %@)", [e name], [e reason]);
@@ -202,17 +210,13 @@
 				NSLog(@"Error decompressing data");
 				return(nil);
 			}
-            BOOL keyedArchiveFailed = NO;
-            @try {
-                NSKeyedUnarchiver *unarchiver = [[NSKeyedUnarchiver alloc] initForReadingWithData:notesData];
-                allNotes = [[unarchiver decodeObjectForKey:@"notes"] retain];
-                [unarchiver autorelease];
-            } @catch (NSException *e) {
-                keyedArchiveFailed = YES;
-            }
-            
-            if (keyedArchiveFailed)
+            allNotes = [KNUnarchiveObjectOfClasses([FrozenNotation notesArchiveClasses], notesData, @"notes") retain];
+
+            if (!allNotes) {
+                //a database written before 2009 holds a non-keyed archive, which NSKeyedUnarchiver
+                //cannot read at all. NSUnarchiver is deprecated with no replacement, so this stays.
                 allNotes = [[NSUnarchiver unarchiveObjectWithData:notesData] retain];
+            }
 		} @catch (NSException *e) {
 			*err = kCoderErr;
 			NSLog(@"Error unarchiving notes from data (%@, %@)", [e name], [e reason]);

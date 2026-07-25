@@ -41,6 +41,8 @@
 	CFRelease(uuidRef);
 	[super dealloc];
 }
++ (BOOL)supportsSecureCoding { return YES; }
+
 - (void)encodeWithCoder:(NSCoder *)coder {
 	NSAssert([coder allowsKeyedCoding], @"keyed-encoding only!");
 	
@@ -55,7 +57,7 @@
 	
     if ([super init]) {
 
-		lastAccessed = [[decoder decodeObjectForKey:VAR_STR(lastAccessed)] retain];
+		lastAccessed = [[decoder decodeObjectOfClass:[NSDate class] forKey:VAR_STR(lastAccessed)] retain];
 		
 		NSUInteger decodedByteCount = 0;
 		const uint8_t *bytes = [decoder decodeBytesForKey:VAR_STR(uuidRef) returnedLength:&decodedByteCount];

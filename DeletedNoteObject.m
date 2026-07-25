@@ -22,6 +22,7 @@
 
 
 #import "DeletedNoteObject.h"
+#import "KNSecureArchiving.h"
 #import "NSString_NV.h"
 
 @implementation DeletedNoteObject
@@ -42,14 +43,18 @@
     return self;
 }
 
++ (BOOL)supportsSecureCoding { return YES; }
+
 - (id)initWithCoder:(NSCoder*)decoder {
     if ([super init]) {
-		
+
 		if ([decoder allowsKeyedCoding]) {
 			NSUInteger decodedByteCount;
 			const uint8_t *decodedBytes = [decoder decodeBytesForKey:VAR_STR(uniqueNoteIDBytes) returnedLength:&decodedByteCount];
 			memcpy(&uniqueNoteIDBytes, decodedBytes, MIN(decodedByteCount, sizeof(CFUUIDBytes)));
-			syncServicesMD = [[decoder decodeObjectForKey:VAR_STR(syncServicesMD)] retain];
+			//syncServicesMD is a dictionary of per-service dictionaries of plist values, so the leaf
+			//classes are all this can legitimately contain
+			syncServicesMD = [[decoder decodeObjectOfClasses:KNPropertyListClasses() forKey:VAR_STR(syncServicesMD)] retain];
 			logSequenceNumber = [decoder decodeInt32ForKey:VAR_STR(logSequenceNumber)];
 		} else {
 			[decoder decodeValueOfObjCType:@encode(CFUUIDBytes) at:&uniqueNoteIDBytes];
