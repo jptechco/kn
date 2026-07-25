@@ -67,9 +67,7 @@ CGFloat _perceptualDarkness(NSColor*a);
 	textFinder = [[[NSTextFinder alloc] init] retain];
  	[textFinder setClient:(id)self];
     [self setContinuousSpellCheckingEnabled:[prefsController checkSpellingAsYouType]];
-	if (IsSnowLeopardOrLater) {
-		[self setAutomaticTextReplacementEnabled:[prefsController useTextReplacement]];
-	}
+	[self setAutomaticTextReplacementEnabled:[prefsController useTextReplacement]];
 
     [prefsController registerWithTarget:self forChangesInSettings:
 	 @selector(setCheckSpellingAsYouType:sender:),
@@ -90,10 +88,8 @@ CGFloat _perceptualDarkness(NSColor*a);
 	[self updateTextColors];
 	
 	[[self window] setAcceptsMouseMovedEvents:YES];
-	if (IsLeopardOrLater) {
-        defaultIBeamCursorIMP = method_getImplementation(class_getClassMethod([NSCursor class], @selector(IBeamCursor)));
-        whiteIBeamCursorIMP = method_getImplementation(class_getClassMethod([NSCursor class], @selector(whiteIBeamCursor)));
-	}
+	defaultIBeamCursorIMP = method_getImplementation(class_getClassMethod([NSCursor class], @selector(IBeamCursor)));
+	whiteIBeamCursorIMP = method_getImplementation(class_getClassMethod([NSCursor class], @selector(whiteIBeamCursor)));
 
 	didRenderFully = NO;
 	[[self layoutManager] setDelegate:self];
@@ -114,10 +110,8 @@ CGFloat _perceptualDarkness(NSColor*a);
 		[self setContinuousSpellCheckingEnabled:[prefsController checkSpellingAsYouType]];
 		
 	} else if ([selectorString isEqualToString:SEL_STR(setUseTextReplacement:sender:)]) {
-		
-		if (IsSnowLeopardOrLater) {
-			[self setAutomaticTextReplacementEnabled:[prefsController useTextReplacement]];
-		}
+
+		[self setAutomaticTextReplacementEnabled:[prefsController useTextReplacement]];
     } else if ([selectorString isEqualToString:SEL_STR(setNoteBodyFont:sender:)]) {
 
 		[self setTypingAttributes:[prefsController noteBodyAttributes]];
@@ -170,9 +164,7 @@ CGFloat _perceptualDarkness(NSColor*a);
 }
 
 - (void)indicateRange:(NSValue*)rangeValue {
-	if (IsLeopardOrLater) {
-		[self showFindIndicatorForRange:[rangeValue rangeValue]];
-	}
+	[self showFindIndicatorForRange:[rangeValue rangeValue]];
 }
 
 - (BOOL)resignFirstResponder {
@@ -979,7 +971,7 @@ copyRTFType:
 
 - (void)fixCursorForBackgroundUpdatingMouseInside:(BOOL)setMouseInside {
 	
-	if (IsLeopardOrLater && whiteIBeamCursorIMP && defaultIBeamCursorIMP) {
+	if (whiteIBeamCursorIMP && defaultIBeamCursorIMP) {
 		if (setMouseInside)
 			mouseInside = [self mouse:[self convertPoint:[[self window] mouseLocationOutsideOfEventStream] fromView:nil] inRect:[self bounds]];
 		
@@ -1321,14 +1313,8 @@ static long (*GetGetScriptManagerVariablePointer())(short) {
 		id bulletIndicator = nil;
 		
 		//sometimes the temporary attributes are split across juxtaposing characters for some reason, so longest-effective-range is necessary
-		//unfortunately there is no such method on Tiger, and I'm not about to emulate its coalescing behavior here
-		if (IsLeopardOrLater) {
-			bulletIndicator = [[self layoutManager] temporaryAttribute:NVHiddenBulletIndentAttributeName atCharacterIndex:NSMaxRange(effectiveRange) 
-												 longestEffectiveRange:&effectiveRange inRange:aRange];
-		} else {
-			NSDictionary *dict = [[self layoutManager] temporaryAttributesAtCharacterIndex:NSMaxRange(effectiveRange) effectiveRange:&effectiveRange];
-			bulletIndicator = [dict objectForKey:NVHiddenBulletIndentAttributeName];
-		}
+		bulletIndicator = [[self layoutManager] temporaryAttribute:NVHiddenBulletIndentAttributeName atCharacterIndex:NSMaxRange(effectiveRange)
+											 longestEffectiveRange:&effectiveRange inRange:aRange];
 		if (bulletIndicator && NSEqualRanges(effectiveRange, aRange)) {
 			return YES;
 		}
@@ -1443,13 +1429,11 @@ static long (*GetGetScriptManagerVariablePointer())(short) {
 		
         NSMenu *editMenu = [[NSApp mainMenu] numberOfItems] > 2 ? [[[NSApp mainMenu] itemAtIndex:2] submenu] : nil;
 		
-		if (IsSnowLeopardOrLater) {
-			theMenuItem = [[NSMenuItem alloc] initWithTitle:NSLocalizedString(@"Use Automatic Text Replacement", "use-text-replacement command in the edit menu")
-													 action:@selector(toggleAutomaticTextReplacement:) keyEquivalent:@""];
-			[theMenuItem setTarget:self];
-			[editMenu addItem:theMenuItem];
-			[theMenuItem release];
-		}
+		theMenuItem = [[NSMenuItem alloc] initWithTitle:NSLocalizedString(@"Use Automatic Text Replacement", "use-text-replacement command in the edit menu")
+												 action:@selector(toggleAutomaticTextReplacement:) keyEquivalent:@""];
+		[theMenuItem setTarget:self];
+		[editMenu addItem:theMenuItem];
+		[theMenuItem release];
 		
 		[editMenu addItem:[NSMenuItem separatorItem]];
         
