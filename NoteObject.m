@@ -59,6 +59,7 @@ typedef NSRange NSRange32;
 static FSRef *noteFileRefInit(NoteObject* obj);
 static void setAttrModifiedDate(NoteObject *note, UTCDateTime *dateTime);
 static void setCatalogNodeID(NoteObject *note, UInt32 cnid);
+static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft);
 
 - (id)init {
     if ([super init]) {
@@ -1025,6 +1026,15 @@ force_inline id unifiedCellForNote(NotesTableView *tv, NoteObject *note, NSInteg
 	return [self _drawLabelBlocksInRect:aRect rightAlign:onRight highlighted:isHighlighted getSizeOnly:NULL];
 }
 
+static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
+	//draws img with its bottom edge at bottomLeft.y, which is what -compositeToPoint: did in the
+	//flipped table view this is called from. -respectFlipped: keeps the pill upright there.
+	NSSize size = [img size];
+	[img drawInRect:NSMakeRect(bottomLeft.x, bottomLeft.y - size.height, size.width, size.height)
+		   fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:1.0
+	 respectFlipped:YES hints:nil];
+}
+
 - (void)_drawLabelBlocksInRect:(NSRect)aRect rightAlign:(BOOL)onRight highlighted:(BOOL)isHighlighted getSizeOnly:(NSSize*)reqSize {
 	//used primarily by UnifiedCell, but also by LabelColumnCell, as well as to determine the width of all label-block-images for this note
 	//iterate over words in orderedLabelTitles, retrieving images via -[LabelsListController cachedLabelImageForWord:highlighted:]
@@ -1037,6 +1047,10 @@ force_inline id unifiedCellForNote(NotesTableView *tv, NoteObject *note, NSInteg
 	NSArray *words = [self orderedLabelTitles];
 	if (![words count]) goto returnSizeIfNecessary;
 	
+	//nextBoxPoint is the pill's *bottom* edge, not its top: both callers (UnifiedCell and
+	//LabelColumnCell) draw into a flipped NSTableView and compute aRect.origin.y accordingly,
+	//because the -compositeToPoint: this once used ran the image upward from the given point.
+	//drawPillImageAtBottomLeft() keeps that convention while dropping the deprecated call.
 	NSPoint nextBoxPoint = onRight ? NSMakePoint(NSMaxX(aRect), aRect.origin.y) : aRect.origin;
 	NSMutableArray *images = reqSize || !onRight ? nil : [NSMutableArray arrayWithCapacity:[words count]];
 	NSInteger i;
@@ -1050,7 +1064,7 @@ force_inline id unifiedCellForNote(NotesTableView *tv, NoteObject *note, NSInteg
 				if (onRight) {
 					[images addObject:img];
 				} else {
-					[img compositeToPoint:nextBoxPoint operation:NSCompositingOperationSourceOver];
+					drawPillImageAtBottomLeft(img, nextBoxPoint);
 					nextBoxPoint.x += [img size].width + 4.0;
 				}
 			} else {
@@ -1066,7 +1080,7 @@ force_inline id unifiedCellForNote(NotesTableView *tv, NoteObject *note, NSInteg
 			for (i = [images count] - 1; i>=0; i--) {
 				NSImage *img = [images objectAtIndex:i];
 				nextBoxPoint.x -= [img size].width + 4.0;
-				[img compositeToPoint:nextBoxPoint operation:NSCompositingOperationSourceOver];
+				drawPillImageAtBottomLeft(img, nextBoxPoint);
 			}
 		}
 	} else {
