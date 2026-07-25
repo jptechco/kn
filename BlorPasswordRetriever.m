@@ -57,7 +57,7 @@
 	
 	if (![[GlobalPrefs defaultPrefs] triedToImportBlor])
 		KNRunAlert(NSLocalizedString(@"Note Importing Cancelled", nil), 
-						NSLocalizedString(@"You can import your old notes at any time by choosing quotemarkImport...quotemark from the quotemarkNotequotemark menu and selecting your NotationalDatabase.blor file.",nil), 
+						NSLocalizedString(@"You can import your old notes at any time by choosing “Import...” from the “Note” menu and selecting your NotationalDatabase.blor file.",nil), 
 						NSLocalizedString(@"OK",nil), nil, nil);
 }
 

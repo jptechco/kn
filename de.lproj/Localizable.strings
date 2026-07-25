@@ -8,7 +8,7 @@
 "%.0lf KB received" = "%.0lf KB erhalten";
 
 /* No comment provided by engineer. */
-"A file named quotemark%@quotemark already exists." = "Eine Datei mit dem Namen “%@” existiert bereits.";
+"A file named “%@” already exists." = "Eine Datei mit dem Namen “%@” existiert bereits.";
 
 /* name of cancel button */
 "Cancel" = "Abbrechen";
@@ -35,7 +35,7 @@
 "Delete %d notes?" = "%d Notizen löschen?";
 
 /* alert title when asked to delete a note */
-"Delete the note titled quotemark%@quotemark?" = "Notiz mit dem Titel “%@” löschen?";
+"Delete the note titled “%@”?" = "Notiz mit dem Titel “%@” löschen?";
 
 /* name of undo-creating-a-note button */
 "Undo Note" = "Notiz wiederherstellen";
@@ -44,10 +44,10 @@
 "Undo adding %d notes?" = "Hinzufügen von %d Notizen widerrufen?";
 
 /* alert title when asked to undo the creation of a note */
-"Undo adding the note quotemark%@quotemark?" = "Hinzufügen der Notiz “%@” widerrufen?";
+"Undo adding the note “%@”?" = "Hinzufügen der Notiz “%@” widerrufen?";
 
 /* informational undo-this-note? text */
-"Undoing a note has the effect of deleting it. Use quotemarkRedoquotemark to re-add it." = "Das Widerrufen einer Notiz hat den gleichen Effekt wie diese zu löschen. Wähle “Wiederholen” um sie wieder hinzuzufügen.";
+"Undoing a note has the effect of deleting it. Use “Redo” to re-add it." = "Das Widerrufen einer Notiz hat den gleichen Effekt wie diese zu löschen. Wähle “Wiederholen” um sie wieder hinzuzufügen.";
 
 /* No comment provided by engineer. */
 "Does it still exist?" = "Existiert es noch?";
@@ -65,13 +65,13 @@
 "..." = "...";
 
 /* No comment provided by engineer. */
-"Error: the modification date of the file quotemark%@quotemark could not be compared because %@" = "Fehler: Das Änderungsdatum der Datei “%@” konnte nicht verglichen werden weil %@";
+"Error: the modification date of the file “%@” could not be compared because %@" = "Fehler: Das Änderungsdatum der Datei “%@” konnte nicht verglichen werden weil %@";
 
 /* No comment provided by engineer. */
-"Error: the modification date of the file quotemark%@quotemark could not be determined because %@" = "Fehler: Das Änderungsdatum der Datei “%@” konnte nicht ermittelt werden weil %@";
+"Error: the modification date of the file “%@” could not be determined because %@" = "Fehler: Das Änderungsdatum der Datei “%@” konnte nicht ermittelt werden weil %@";
 
 /* No comment provided by engineer. */
-"Error: unable to read the contents of the file quotemark%@.quotemark" = "Fehler: Die Inhalte der Datei “%@.” konnten nicht gelesen werden";
+"Error: unable to read the contents of the file “%@.”" = "Fehler: Die Inhalte der Datei “%@.” konnten nicht gelesen werden";
 
 /* title of button to export notes from folder selection dialog */
 "Export" = "Exportieren";
@@ -92,7 +92,7 @@
 "No notes were selected for exporting." = "Es wurden keine Notizen zum Exportieren ausgewählt.";
 
 /* No comment provided by engineer. */
-"Notational Velocity should assume the file quotemark%@quotemark was saved with the encoding:" = "Kinetic Notes soll voraussetzen, dass die Datei “%@” mit folgender Kodierung gespeichert wurde:";
+"Notational Velocity should assume the file “%@” was saved with the encoding:" = "Kinetic Notes soll voraussetzen, dass die Datei “%@” mit folgender Kodierung gespeichert wurde:";
 
 /* No comment provided by engineer. */
 "Note Importing Cancelled" = "Importieren der Notizen abgebrochen";
@@ -119,7 +119,7 @@
 "Please try another encoding." = "Please try another encoding.";
 
 /* alert title when converting from unicode */
-"quotemark%@quotemark is a Unicode file and not directly interpretable using plain text encodings." = "“%@” ist eine Unicode Datei und nicht direkt mit normaler Textkodierung interpretierbar.";
+"“%@” is a Unicode file and not directly interpretable using plain text encodings." = "“%@” ist eine Unicode Datei und nicht direkt mit normaler Textkodierung interpretierbar.";
 
 /* No comment provided by engineer. */
 "Replace" = "Ersetzen";
@@ -140,16 +140,16 @@
 "The file may no longer exist or has incorrect permissions." = "Die Datei existiert nicht mehr oder hat falsch gesetzte Berechtigungen.";
 
 /* No comment provided by engineer. */
-"The note quotemark%@quotemark couldn't be exported because %@." = "Die Notiz “%@” konnte nicht exportiert werden, weil %@.";
+"The note “%@” couldn't be exported because %@." = "Die Notiz “%@” konnte nicht exportiert werden, weil %@.";
 
 /* No comment provided by engineer. */
-"The note quotemark%@quotemark is newer than its file on disk." = "Die Notiz “%@” ist aktueller als deren Datei auf der Festplatte.";
+"The note “%@” is newer than its file on disk." = "Die Notiz “%@” ist aktueller als deren Datei auf der Festplatte.";
 
 /* No comment provided by engineer. */
-"The notes couldn't be exported because the directory quotemark%@quotemark couldn't be accessed." = "Die Notizen konnten nicht exportiert werden, weil auf das Verzeichnis “%@” nicht zugegriffen werden konnte.";
+"The notes couldn't be exported because the directory “%@” couldn't be accessed." = "Die Notizen konnten nicht exportiert werden, weil auf das Verzeichnis “%@” nicht zugegriffen werden konnte.";
 
 /* No comment provided by engineer. */
-"The URL quotemark%@quotemark could not be accessed: %@." = "Die URL “%@” konnte nicht aufgerufen werden: %@.";
+"The URL “%@” could not be accessed: %@." = "Die URL “%@” konnte nicht aufgerufen werden: %@.";
 
 /* No comment provided by engineer. */
 "This may be due to an error in the program or operating system." = "Dies kann durch einen Fehler im Programm oder Betriebssystem verursacht worden sein.";
@@ -167,7 +167,7 @@
 "Search or Create" = "Suchen oder Erstellen";
 
 /* No comment provided by engineer. */
-"You can import your old notes at any time by choosing quotemarkImport...quotemark from the quotemarkNotequotemark menu and selecting your NotationalDatabase.blor file." = "Du kannst deine alten Notizen jederzeit durch wählen des Menüeintrages “Importieren…” hinzufügen und indem du dann die NotationalDatabase.blor Datei auswählst.";
+"You can import your old notes at any time by choosing “Import...” from the “Note” menu and selecting your NotationalDatabase.blor file." = "Du kannst deine alten Notizen jederzeit durch wählen des Menüeintrages “Importieren…” hinzufügen und indem du dann die NotationalDatabase.blor Datei auswählst.";
 
 /* No comment provided by engineer. */
 "You may need to re-run the Mac OS X installer." = "Vielleicht muss das Mac OS X Installationsprogramm erneut ausgeführt werden.";
@@ -324,7 +324,7 @@
 "Couldn't move notes into the chosen folder because %@" = "Konnte Notizen nicht in das gewählte Verzeichnis verschieben, weil %@";
 
 /* undo action name for creating a single note */
-"Create Note quotemark%@quotemark" = "Notiz “%@” anlegen";
+"Create Note “%@”" = "Notiz “%@” anlegen";
 
 /* cut menu item title */
 "Cut" = "Auschschneiden";
@@ -336,7 +336,7 @@
 "Delete %d Notes" = "%d Notizen löschen";
 
 /* undo action name for deleting a single note */
-"Delete quotemark%@quotemark" = "“%@” Notiz löschen";
+"Delete “%@”" = "“%@” Notiz löschen";
 
 /* button title for disabling note encryption */
 "Disable Encryption" = "Verschlüsselung deaktivieren";

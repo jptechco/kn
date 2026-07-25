@@ -804,7 +804,7 @@ bail:
 		//NSLog(@"registering %s", _cmd);
 		[undoManager registerUndoWithTarget:self selector:@selector(removeNote:) object:note];
 		if (! [[self undoManager] isUndoing] && ! [[self undoManager] isRedoing])
-			[undoManager setActionName:[NSString stringWithFormat:NSLocalizedString(@"Create Note quotemark%@quotemark",@"undo action name for creating a single note"), titleOfNote(note)]];
+			[undoManager setActionName:[NSString stringWithFormat:NSLocalizedString(@"Create Note “%@”",@"undo action name for creating a single note"), titleOfNote(note)]];
 	}
     
 	[self resortAllNotes];
@@ -1133,7 +1133,7 @@ bail:
 - (void)_registerDeletionUndoForNote:(NoteObject*)aNote {	
 	[undoManager registerUndoWithTarget:self selector:@selector(addNewNote:) object:aNote];			
 	if (![undoManager isUndoing] && ![undoManager isRedoing])
-		[undoManager setActionName:[NSString stringWithFormat:NSLocalizedString(@"Delete quotemark%@quotemark",@"undo action name for deleting a single note"), titleOfNote(aNote)]];				
+		[undoManager setActionName:[NSString stringWithFormat:NSLocalizedString(@"Delete “%@”",@"undo action name for deleting a single note"), titleOfNote(aNote)]];				
 }			
 
 

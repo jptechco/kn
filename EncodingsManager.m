@@ -92,7 +92,7 @@ static const NSStringEncoding AllowedEncodings[] = {
 	
 	if (NSUnicodeStringEncoding == currentEncoding || NSUTF8StringEncoding == currentEncoding) {
 		
-		NSString * alertTitleString = NSLocalizedString(@"quotemark%@quotemark is a Unicode file and not directly interpretable using plain text encodings.", 
+		NSString * alertTitleString = NSLocalizedString(@"“%@” is a Unicode file and not directly interpretable using plain text encodings.", 
 													   @"alert title when converting from unicode");
 		if (KNRunAlert([NSString stringWithFormat:alertTitleString, filenameOfNote(note)],	
 							NSLocalizedString(@"If you wish to convert it, you must open and re-save the file in an external editor.", "alert description when converting from unicode"), 
@@ -128,7 +128,7 @@ static const NSStringEncoding AllowedEncodings[] = {
 	
 	[noteData release];
 	if (!(noteData = [[[note delegate] dataFromFileInNotesDirectory:&fsRef forFilename:filenameOfNote(note)] retain])) {
-		KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"Error: unable to read the contents of the file quotemark%@.quotemark",nil), filenameOfNote(aNote)], 
+		KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"Error: unable to read the contents of the file “%@.”",nil), filenameOfNote(aNote)], 
 						NSLocalizedString(@"The file may no longer exist or has incorrect permissions.",nil), NSLocalizedString(@"OK",nil), NULL, NULL);
 		return;
 	}
@@ -143,7 +143,7 @@ static const NSStringEncoding AllowedEncodings[] = {
 			}
 		}
 		
-		[helpStringField setStringValue:[NSString stringWithFormat:NSLocalizedString(@"Notational Velocity should assume the file quotemark%@quotemark was saved with the encoding:",nil), filenameOfNote(note)]];
+		[helpStringField setStringValue:[NSString stringWithFormat:NSLocalizedString(@"Notational Velocity should assume the file “%@” was saved with the encoding:",nil), filenameOfNote(note)]];
 		[encodingsPopUpButton setMenu:[self textConversionsMenu]];
 		
 		//setup panel for given note
@@ -252,7 +252,7 @@ static const NSStringEncoding AllowedEncodings[] = {
 	FSCatalogInfo info;
 	OSStatus err = noErr;
 	if ((err = [[note delegate] fileInNotesDirectory:&fsRef isOwnedByUs:NULL hasCatalogInfo:&info]) != noErr) {
-		KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"Error: the modification date of the file quotemark%@quotemark could not be determined because %@",nil), 
+		KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"Error: the modification date of the file “%@” could not be determined because %@",nil), 
 			filenameOfNote(note), [NSString reasonStringFromCarbonFSError:err]], NSLocalizedString(@"The file may no longer exist or has incorrect permissions.",nil), 
 						NSLocalizedString(@"OK",nil), NULL, NULL);
 		return NO;
@@ -264,7 +264,7 @@ static const NSStringEncoding AllowedEncodings[] = {
 		(err = (UCConvertUTCDateTimeToCFAbsoluteTime(&info.contentModDate, &timeOnDisk) == noErr))) {
 		
 		if (lastTime > timeOnDisk) {
-			int result = KNRunCriticalAlert([NSString stringWithFormat:NSLocalizedString(@"The note quotemark%@quotemark is newer than its file on disk.",nil), titleOfNote(note)], 
+			int result = KNRunCriticalAlert([NSString stringWithFormat:NSLocalizedString(@"The note “%@” is newer than its file on disk.",nil), titleOfNote(note)], 
 												 NSLocalizedString(@"If you update this note with re-interpreted data from the file, you may overwrite your changes.",nil), 
 												 NSLocalizedString(@"Don't Update", @"don't update the note from its file on disk"), 
 												 NSLocalizedString(@"Overwrite Note", @"...from file on disk"), NULL);
@@ -276,7 +276,7 @@ static const NSStringEncoding AllowedEncodings[] = {
 			}
 		}
     } else {
-		KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"Error: the modification date of the file quotemark%@quotemark could not be compared because %@",nil), 
+		KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"Error: the modification date of the file “%@” could not be compared because %@",nil), 
 			filenameOfNote(note), [NSString reasonStringFromCarbonFSError:err]], NSLocalizedString(@"This may be due to an error in the program or operating system.",nil), 
 						NSLocalizedString(@"OK",nil), NULL, NULL);
 		return NO;
