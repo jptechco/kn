@@ -58,7 +58,6 @@ typedef NSRange NSRange32;
 
 @implementation NoteObject
 
-static FSRef *noteFileRefInit(NoteObject* obj);
 static void setAttrModifiedDate(NoteObject *note, KNFileTime *dateTime);
 static void setCatalogNodeID(NoteObject *note, UInt32 cnid);
 static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft);
@@ -82,8 +81,6 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft);
 
 - (void)dealloc {
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
-	
-	[self invalidateFSRef];
 	
 	[tableTitleString release];
 	[titleString release];
@@ -122,13 +119,6 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft);
 		if (!tableTitleString && !didUnarchive) [self updateTablePreviewString];
 		if (!labelSet && !didUnarchive) [self updateLabelConnectionsAfterDecoding];
 	}
-}
-
-static FSRef *noteFileRefInit(NoteObject* obj) {
-	if (!(obj->noteFileRef)) {
-		obj->noteFileRef = (FSRef*)calloc(1, sizeof(FSRef));
-	}
-	return obj->noteFileRef;
 }
 
 static void setAttrModifiedDate(NoteObject *note, KNFileTime *dateTime) {
@@ -761,7 +751,7 @@ force_inline id unifiedCellForNote(NotesTableView *tv, NoteObject *note, NSInteg
 		//woe to the exporter who also left the note files in the notes directory after switching to a singledb format
 		//his note names might not be up-to-date
 		if ([delegate currentNoteStorageFormat] != SingleDatabaseFormat || 
-			![delegate notesDirectoryContainsFile:filename returningFSRef:noteFileRefInit(self)]) {
+			![delegate notesDirectoryContainsFile:filename]) {
 			
 			[self setFilenameFromTitle];
 		}
@@ -807,7 +797,7 @@ force_inline id unifiedCellForNote(NotesTableView *tv, NoteObject *note, NSInteg
 		filename = [aString copy];
 		
 		if (!externalTrigger) {
-			if ([delegate noteFileRenamed:noteFileRefInit(self) fromName:oldName toName:filename] != noErr) {
+			if ([delegate noteFileRenamedFromName:oldName toName:filename] != noErr) {
 				NSLog(@"Couldn't rename note %@", titleString);
 				
 				//revert name
@@ -1116,17 +1106,7 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 }
 
 - (NSString*)noteFilePath {
-	UniChar chars[256];
-	if ([delegate refreshFileRefIfNecessary:noteFileRefInit(self) withName:filename charsBuffer:chars] == noErr)
-		return [[NSFileManager defaultManager] pathWithFSRef:noteFileRefInit(self)];
-	return nil;
-}
-
-- (void)invalidateFSRef {
-	//bzero(&noteFileRef, sizeof(FSRef));
-	if (noteFileRef)
-		free(noteFileRef);
-	noteFileRef = NULL;
+	return [delegate pathInNotesDirectoryForFilename:filename];
 }
 
 - (BOOL)writeUsingCurrentFileFormatIfNecessary {
@@ -1139,9 +1119,8 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 
 - (BOOL)writeUsingCurrentFileFormatIfNonExistingOrChanged {
     BOOL fileWasCreated = NO;
-    BOOL fileIsOwned = NO;
 	
-    if ([delegate createFileIfNotPresentInNotesDirectory:noteFileRefInit(self) forFilename:filename fileWasCreated:&fileWasCreated] != noErr)
+    if ([delegate createFileIfNotPresentInNotesDirectory:filename fileWasCreated:&fileWasCreated] != noErr)
 		return NO;
     
     if (fileWasCreated) {
@@ -1149,9 +1128,8 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 		return [self writeUsingCurrentFileFormat];
     }
     
-	//createFileIfNotPresentInNotesDirectory: works by name, so if this file is not owned by us at this point, it was a race with moving it
     KNFileInfo info;
-    if ([delegate fileInNotesDirectory:noteFileRefInit(self) isOwnedByUs:&fileIsOwned hasFileInfo:&info] != noErr)
+    if ([delegate fileInNotesDirectory:filename hasFileInfo:&info] != noErr)
 		return NO;
     
     if (KNCFAbsoluteTimeFromFileTime(fileModifiedDate) > KNCFAbsoluteTimeFromFileTime(info.contentModDate)) {
@@ -1236,22 +1214,24 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 		//could offer to merge or revert changes
 		
 		OSStatus err = noErr;
-		if ((err = [delegate storeDataAtomicallyInNotesDirectory:formattedData withName:filename destinationRef:noteFileRefInit(self)]) != noErr) {
+		if ((err = [delegate storeDataAtomicallyInNotesDirectory:formattedData withName:filename]) != noErr) {
 			NSLog(@"Unable to save note file %@", filename);
 			
 			[delegate noteDidNotWrite:self errorCode:err];
 			return NO;
 		}
-		//if writing plaintext set the file encoding with setxattr
-		if (PlainTextFormat == formatID) {
-			(void)[self writeCurrentFileEncodingToFSRef:noteFileRefInit(self)];
+		NSString *path = [delegate pathInNotesDirectoryForFilename:filename];
+		if ([path length]) {
+			//if writing plaintext set the file encoding with setxattr
+			if (PlainTextFormat == formatID) {
+				(void)[self writeCurrentFileEncodingToPath:path];
+			}
+			[[NSFileManager defaultManager] setOpenMetaTags:[self orderedLabelTitles] atFSPath:[path fileSystemRepresentation]];
+
+			//always hide the file extension for all types
+			[[NSURL fileURLWithPath:path] setResourceValue:[NSNumber numberWithBool:YES] forKey:NSURLHasHiddenExtensionKey error:NULL];
 		}
-		NSFileManager *fileMan = [NSFileManager defaultManager];
-		[fileMan setOpenMetaTags:[self orderedLabelTitles] atFSPath:[[fileMan pathWithFSRef:noteFileRefInit(self)] fileSystemRepresentation]];
-		
-		//always hide the file extension for all types
-		LSSetExtensionHiddenForRef(noteFileRefInit(self), TRUE);
-		
+
 		if (!resetFilename) {
 			//NSLog(@"resetting the file name just because.");
 			[self setFilenameFromTitle];
@@ -1278,28 +1258,20 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 - (OSStatus)writeFileDatesAndUpdateTrackingInfo {
 	if (SingleDatabaseFormat == currentFormatID) return noErr;
 	
-	//sync the file's creation and modification date:
-	// if this method is called anywhere else, then use [delegate refreshFileRefIfNecessary:noteFileRefInit(self) withName:filename charsBuffer:chars]; instead
-	// for now, it is not called in any situations where the fsref might accidentally point to a moved file
+	//sync the file's creation and modification date
+	NSString *path = [delegate pathInNotesDirectoryForFilename:filename];
 	OSStatus err = noErr;
-	do {
-		if (noErr != err || IsZeros(noteFileRefInit(self), sizeof(FSRef))) {
-			if (![delegate notesDirectoryContainsFile:filename returningFSRef:noteFileRefInit(self)]) return fnfErr;
-		}
-		NSString *path = [[NSFileManager defaultManager] pathWithFSRef:noteFileRefInit(self)];
-		int posixErr = path ? KNSetFileDatesAtPath([path fileSystemRepresentation], createdDate, modifiedDate) : ENOENT;
-		err = posixErr ? (ENOENT == posixErr ? fnfErr : ioErr) : noErr;
-	} while (fnfErr == err);
+	int posixErr = path ? KNSetFileDatesAtPath([path fileSystemRepresentation], createdDate, modifiedDate) : ENOENT;
 
-	if (noErr != err) {
-		NSLog(@"could not set the file's dates: %d", err);
-		return err;
+	if (posixErr) {
+		NSLog(@"could not set the file's dates: %d", posixErr);
+		return KNOSStatusFromErrno(posixErr);
 	}
 	
 	//regardless of whether the dates were set successfully, the file mod date could still have changed
 	
 	KNFileInfo info;
-	if ((err = [delegate fileInNotesDirectory:noteFileRefInit(self) isOwnedByUs:NULL hasFileInfo:&info]) != noErr) {
+	if ((err = [delegate fileInNotesDirectory:filename hasFileInfo:&info]) != noErr) {
 		NSLog(@"Unable to get new modification date of file %@: %d", filename, err);
 		return err;
 	}
@@ -1311,18 +1283,14 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 	return noErr;
 }
 
-- (OSStatus)writeCurrentFileEncodingToFSRef:(FSRef*)fsRef {
-	NSAssert(fsRef, @"cannot write file encoding to a NULL FSRef");
-	//this is not the note's own fsRef; it could be anywhere
-	
-	NSMutableData *pathData = [NSMutableData dataWithLength:4 * 1024];
-	OSStatus err = noErr;
-	if ((err = FSRefMakePath(fsRef, [pathData mutableBytes], [pathData length])) == noErr) {
-		[[NSFileManager defaultManager] setTextEncodingAttribute:fileEncoding atFSPath:[pathData bytes]];
-	} else {
-		NSLog(@"%s: error getting path from FSRef: %d (IsZeros: %d)", _cmd, err, IsZeros(fsRef, sizeof(fsRef)));
+- (OSStatus)writeCurrentFileEncodingToPath:(NSString*)path {
+	//this is not necessarily the note's own file; it could be anywhere
+	if (![path length]) {
+		NSLog(@"%s: no path to write the file encoding to", _cmd);
+		return fnfErr;
 	}
-	return err;
+	[[NSFileManager defaultManager] setTextEncodingAttribute:fileEncoding atFSPath:[path fileSystemRepresentation]];
+	return noErr;
 }
 
 - (BOOL)upgradeToUTF8IfUsingSystemEncoding {
@@ -1375,11 +1343,7 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 		//a) to ensure -updateFromData: finds the right encoding when re-reading the file, and
 		//b) because the file is otherwise not being rewritten, and the extended attribute--if it existed--may have been different
 		
-		UniChar chars[256];
-		if ([delegate refreshFileRefIfNecessary:noteFileRefInit(self) withName:filename charsBuffer:chars] != noErr)
-			return NO;
-		
-		if ([self writeCurrentFileEncodingToFSRef:noteFileRefInit(self)] != noErr)
+		if ([self writeCurrentFileEncodingToPath:[delegate pathInNotesDirectoryForFilename:filename]] != noErr)
 			return NO;		
 		
 		if ((updated = [self updateFromFile])) {
@@ -1395,7 +1359,7 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 }
 
 - (BOOL)updateFromFile {
-    NSMutableData *data = [delegate dataFromFileInNotesDirectory:noteFileRefInit(self) forFilename:filename];
+    NSMutableData *data = [delegate dataFromFileInNotesDirectory:filename];
     if (!data) {
 		NSLog(@"Couldn't update note from file on disk");
 		return NO;
@@ -1403,7 +1367,7 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 	
     if ([self updateFromData:data inFormat:currentFormatID]) {
 		KNFileInfo info;
-		if ([delegate fileInNotesDirectory:noteFileRefInit(self) isOwnedByUs:NULL hasFileInfo:&info] == noErr) {
+		if ([delegate fileInNotesDirectory:filename hasFileInfo:&info] == noErr) {
 			fileModifiedDate = info.contentModDate;
 			setAttrModifiedDate(self, &info.attributeModDate);
 			setCatalogNodeID(self, (UInt32)info.nodeID);
@@ -1418,7 +1382,7 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 - (BOOL)updateFromCatalogEntry:(NoteCatalogEntry*)catEntry {
 	BOOL didRestoreLabels = NO;
 	
-    NSMutableData *data = [delegate dataFromFileInNotesDirectory:noteFileRefInit(self) forCatalogEntry:catEntry];
+    NSMutableData *data = [delegate dataFromFileInNotesDirectoryForCatalogEntry:catEntry];
     if (!data) {
 		NSLog(@"Couldn't update note from file on disk given catalog entry");
 		return NO;
@@ -1434,10 +1398,10 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
     setCatalogNodeID(self, catEntry->nodeID);
 	logicalSize = catEntry->logicalSize;
 	
-	NSMutableData *pathData = [NSMutableData dataWithLength:4 * 1024];
-	if (FSRefMakePath(noteFileRefInit(self), [pathData mutableBytes], [pathData length]) == noErr) {
+	NSString *path = [delegate pathInNotesDirectoryForFilename:filename];
+	if ([path length]) {
 		
-		NSArray *openMetaTags = [[NSFileManager defaultManager] getOpenMetaTagsAtFSPath:[pathData bytes]];
+		NSArray *openMetaTags = [[NSFileManager defaultManager] getOpenMetaTagsAtFSPath:[path fileSystemRepresentation]];
 		if (openMetaTags) {
 			//overwrite this note's labels with those from the file; merging may be the wrong thing to do here
 			if ([self _setLabelString:[openMetaTags componentsJoinedByString:@" "]])
@@ -1447,7 +1411,7 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 			//so if this note still has tags, then restore them now.
 			
 			NSLog(@"restoring lost tags for %@", titleString);
-			[[NSFileManager defaultManager] setOpenMetaTags:[self orderedLabelTitles] atFSPath:[pathData bytes]];
+			[[NSFileManager defaultManager] setOpenMetaTags:[self orderedLabelTitles] atFSPath:[path fileSystemRepresentation]];
 			didRestoreLabels = YES;
 		}
 	}
@@ -1459,7 +1423,7 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 		//or if this file has just been altered, grab its newly-changed modification dates
 		
 		KNFileInfo info;
-		if ([delegate fileInNotesDirectory:noteFileRefInit(self) isOwnedByUs:NULL hasFileInfo:&info] == noErr) {
+		if ([delegate fileInNotesDirectory:filename hasFileInfo:&info] == noErr) {
 			if (createdDate == 0.0) {
 				[self setDateAdded:KNCFAbsoluteTimeFromFileTime(info.createDate)];
 			}
@@ -1491,7 +1455,8 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 	    break;
 	case PlainTextFormat:
 		//try to merge/re-match attributes?
-	    if ((stringFromData = [NSMutableString newShortLivedStringFromData:data ofGuessedEncoding:&fileEncoding withPath:NULL orWithFSRef:noteFileRefInit(self)])) {
+	    if ((stringFromData = [NSMutableString newShortLivedStringFromData:data ofGuessedEncoding:&fileEncoding
+																	 withPath:[[delegate pathInNotesDirectoryForFilename:filename] fileSystemRepresentation]])) {
 			attributedStringFromData = [[NSMutableAttributedString alloc] initWithString:stringFromData 
 																			  attributes:[[GlobalPrefs defaultPrefs] noteBodyAttributes]];
 			[stringFromData release];
@@ -1557,7 +1522,7 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 
 - (void)moveFileToTrash {
 	OSStatus err = noErr;
-	if ((err = [delegate moveFileToTrash:noteFileRefInit(self) forFilename:filename]) != noErr) {
+	if ((err = [delegate moveFileToTrash:filename]) != noErr) {
 		NSLog(@"Couldn't move file to trash: %d", err);
 	} else {
 		//file's gone! don't assume it's not coming back. if the storage format was not single-db, this note better be removed
@@ -1568,7 +1533,7 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 - (void)removeFileFromDirectory {
 #if PERMADELETE
 	OSStatus err = noErr;
-	if ((err = [delegate deleteFileInNotesDirectory:noteFileRefInit(self) forFilename:filename]) != noErr) {
+	if ((err = [delegate deleteFileInNotesDirectory:filename]) != noErr) {
 		
 		if (err != fnfErr) {
 			//what happens if we wanted to undo the deletion? moveFileToTrash will now tell the note that it shouldn't look for the file
@@ -1630,7 +1595,7 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 	//so expect the delegate to know to schedule the same update itself
 }
 
-- (OSStatus)exportToDirectoryRef:(FSRef*)directoryRef withFilename:(NSString*)userFilename usingFormat:(int)storageFormat overwrite:(BOOL)overwrite {
+- (OSStatus)exportToDirectory:(NSString*)directoryPath withFilename:(NSString*)userFilename usingFormat:(int)storageFormat overwrite:(BOOL)overwrite {
 	
 	NSData *formattedData = nil;
 	NSError *error = nil;
@@ -1676,35 +1641,35 @@ static void drawPillImageAtBottomLeft(NSImage *img, NSPoint bottomLeft) {
 	//this will give them the same extension and cause an overwrite
 	NSString *newextension = [NotationPrefs pathExtensionForFormat:storageFormat];
 	NSString *newfilename = userFilename ? userFilename : [[filename stringByDeletingPathExtension] stringByAppendingPathExtension:newextension];
-	//one last replacing, though if the unique file-naming method worked this should be unnecessary
-	newfilename = [newfilename stringByReplacingOccurrencesOfString:@":" withString:@"/"];
-	
-	BOOL fileWasCreated = NO;
-	
-	FSRef fileRef;
-	OSStatus err = FSCreateFileIfNotPresentInDirectory(directoryRef, &fileRef, (CFStringRef)newfilename, (Boolean*)&fileWasCreated);
-	if (err != noErr) {
-		NSLog(@"FSCreateFileIfNotPresentInDirectory: %d", err);
-		return err;
+	//The File Manager took names in which '/' stood for the ':' a POSIX name actually holds, which is
+	//why a colon used to be swapped out here. Writing by path, the swap runs the other way -- and it
+	//also keeps a name containing a slash from being read as a subdirectory that does not exist.
+	newfilename = [newfilename stringByReplacingOccurrencesOfString:@"/" withString:@":"];
+
+	NSString *exportedPath = [directoryPath stringByAppendingPathComponent:newfilename];
+	int fileWasCreated = 0;
+	int posixErr = KNCreateFileIfNotPresentAtPath([exportedPath fileSystemRepresentation], &fileWasCreated);
+	if (posixErr) {
+		NSLog(@"could not create %@: %d", exportedPath, posixErr);
+		return KNOSStatusFromErrno(posixErr);
 	}
 	if (!fileWasCreated && !overwrite) {
 		NSLog(@"File already existed!");
 		return dupFNErr;
 	}
 	//yes, the file is probably not on the same volume as our notes directory
-	if ((err = FSRefWriteData(&fileRef, BlockSizeForNotation(delegate), [formattedData length], [formattedData bytes], 0, true)) != noErr) {
-		NSLog(@"error writing to temporary file: %d", err);
-		return err;
+	if ((posixErr = KNWriteDataAtPath([exportedPath fileSystemRepresentation], BlockSizeForNotation(delegate),
+									  [formattedData length], [formattedData bytes]))) {
+		NSLog(@"error writing the exported file: %d", posixErr);
+		return KNOSStatusFromErrno(posixErr);
     }
 	if (PlainTextFormat == storageFormat) {
-		(void)[self writeCurrentFileEncodingToFSRef:&fileRef];
+		(void)[self writeCurrentFileEncodingToPath:exportedPath];
 	}
-	NSFileManager *fileMan = [NSFileManager defaultManager];
-	[fileMan setOpenMetaTags:[self orderedLabelTitles] atFSPath:[[fileMan pathWithFSRef:&fileRef] fileSystemRepresentation]];
+	[[NSFileManager defaultManager] setOpenMetaTags:[self orderedLabelTitles] atFSPath:[exportedPath fileSystemRepresentation]];
 	
 	//also export the note's modification and creation dates
-	NSString *exportedPath = [fileMan pathWithFSRef:&fileRef];
-	if (exportedPath) (void)KNSetFileDatesAtPath([exportedPath fileSystemRepresentation], createdDate, modifiedDate);
+	(void)KNSetFileDatesAtPath([exportedPath fileSystemRepresentation], createdDate, modifiedDate);
 			
 	return noErr;
 }

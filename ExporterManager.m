@@ -70,10 +70,8 @@
 			}
 		}
 		
-		FSRef directoryRef;
-		CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (CFStringRef)directory, kCFURLPOSIXPathStyle, true);
-		[(id)url autorelease];
-		if (!url || !CFURLGetFSRef(url, &directoryRef)) {
+		BOOL isDirectory = NO;
+		if (![[NSFileManager defaultManager] fileExistsAtPath:directory isDirectory:&isDirectory] || !isDirectory) {
 			KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"The notes couldn't be exported because the directory “%@” couldn't be accessed.",nil),
 				[directory stringByAbbreviatingWithTildeInPath]], @"", NSLocalizedString(@"OK",nil), nil, nil);
 			return;
@@ -85,7 +83,7 @@
 			BOOL lastNote = i != [notes count] - 1;
 			NoteObject *note = [notes objectAtIndex:i];
 			
-			OSStatus err = [note exportToDirectoryRef:&directoryRef withFilename:filename usingFormat:storageFormat overwrite:overwriteNotes];
+			OSStatus err = [note exportToDirectory:directory withFilename:filename usingFormat:storageFormat overwrite:overwriteNotes];
 			
 			if (err == dupFNErr) {
 				//ask about overwriting
@@ -96,7 +94,7 @@
 										 NSLocalizedString(@"Replace",nil), NSLocalizedString(@"Don't Replace",nil), lastNote ? NSLocalizedString(@"Replace All",nil) : nil);
 				if (result == NSAlertFirstButtonReturn || result == NSAlertThirdButtonReturn) {
 					if (result == NSAlertThirdButtonReturn) overwriteNotes = YES;
-					err = [note exportToDirectoryRef:&directoryRef withFilename:filename usingFormat:storageFormat overwrite:YES];
+					err = [note exportToDirectory:directory withFilename:filename usingFormat:storageFormat overwrite:YES];
 				} else continue;
 			}
 			
@@ -113,7 +111,7 @@
 			}
 		}
 		
-		FNNotify(&directoryRef, kFNDirectoryModifiedMessage, kFNNoImplicitAllSubscription);
+		[[NSWorkspace sharedWorkspace] noteFileSystemChanged:directory];
 		
 		[notes release];
 	}

@@ -103,8 +103,8 @@
 	return YES;
 }
 
-//TODO: use volumeCapabilities in FSExchangeObjectsCompat.c to skip some work on volumes for which we know we would receive ENOTSUP
-//for +setTextEncodingAttribute:atFSPath: and +textEncodingAttributeOfFSPath: (test against VOL_CAP_INT_EXTENDED_ATTR)
+//TODO: check VOL_CAP_INT_EXTENDED_ATTR through getattrlist to skip some work on volumes for which we know
+//+setTextEncodingAttribute:atFSPath: and +textEncodingAttributeOfFSPath: would receive ENOTSUP
 
 - (BOOL)setTextEncodingAttribute:(NSStringEncoding)encoding atFSPath:(const char*)path {
 	if (!path) return NO;

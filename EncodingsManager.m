@@ -124,10 +124,8 @@ static const NSStringEncoding AllowedEncodings[] = {
 	[note release];
 	note = [aNote retain];
 	
-	bzero(&fsRef, sizeof(FSRef));
-	
 	[noteData release];
-	if (!(noteData = [[[note delegate] dataFromFileInNotesDirectory:&fsRef forFilename:filenameOfNote(note)] retain])) {
+	if (!(noteData = [[[note delegate] dataFromFileInNotesDirectory:filenameOfNote(note)] retain])) {
 		KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"Error: unable to read the contents of the file “%@.”",nil), filenameOfNote(aNote)], 
 						NSLocalizedString(@"The file may no longer exist or has incorrect permissions.",nil), NSLocalizedString(@"OK",nil), NULL, NULL);
 		return;
@@ -251,7 +249,7 @@ static const NSStringEncoding AllowedEncodings[] = {
 - (BOOL)shouldUpdateNoteFromDisk {
 	KNFileInfo info;
 	OSStatus err = noErr;
-	if ((err = [[note delegate] fileInNotesDirectory:&fsRef isOwnedByUs:NULL hasFileInfo:&info]) != noErr) {
+	if ((err = [[note delegate] fileInNotesDirectory:filenameOfNote(note) hasFileInfo:&info]) != noErr) {
 		KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"Error: the modification date of the file “%@” could not be determined because %@",nil), 
 			filenameOfNote(note), [NSString reasonStringFromCarbonFSError:err]], NSLocalizedString(@"The file may no longer exist or has incorrect permissions.",nil), 
 						NSLocalizedString(@"OK",nil), NULL, NULL);

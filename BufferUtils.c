@@ -24,6 +24,7 @@
 
 #include "BufferUtils.h"
 #include <string.h>
+#include <unistd.h>
 
 static const unsigned char gsToLowerMap[256] = {
 '\0', 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, '\t',
@@ -398,148 +399,14 @@ void CopyPerDiskInfoGroupsToOrder(PerDiskInfo **flippedGroups, unsigned int *exi
 
 CFStringRef CreateRandomizedFileName(void) {
     static int sequence = 0;
-    
+
     sequence++;
-    
-    ProcessSerialNumber psn;
-    OSStatus err = noErr;
-    if ((err = GetCurrentProcess(&psn)) != noErr) {
-	printf("error getting process serial number: %d\n", (int)err);
-	
-	//just use the location of our memory
-	psn.lowLongOfPSN = (unsigned long)&psn;
-    }
-    
-    CFStringRef name = CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR(".%lu%lu-%d-%d"), 
-						psn.highLongOfPSN, (NSUInteger)psn.lowLongOfPSN, (int)CFAbsoluteTimeGetCurrent(), sequence);
-    
+
+    //the shape of this name is load-bearing: -removeOrphanedTemporaryFiles recognizes a leftover
+    //scratch file by exactly ".<digits>-<digits>-<digits>", so the leading pair that used to be a
+    //process serial number's two halves is still written as two numbers run together.
+    CFStringRef name = CFStringCreateWithFormat(kCFAllocatorDefault, NULL, CFSTR(".%lu%lu-%d-%d"),
+						(unsigned long)0, (unsigned long)getpid(), (int)CFAbsoluteTimeGetCurrent(), sequence);
+
     return name;
-}
-
-OSStatus FSCreateFileIfNotPresentInDirectory(FSRef *directoryRef, FSRef *childRef, CFStringRef filename, Boolean *created) {
-	UniChar chars[256];
-    OSStatus result = noErr;
-	
-    if (created) *created = false;
-    
-    if ((result = FSRefMakeInDirectoryWithString(directoryRef, childRef, filename, chars))) {
-		if (result == fnfErr) {
-			if (created) *created = true;
-			
-			result = FSCreateFileUnicode(directoryRef, CFStringGetLength(filename), chars, kFSCatInfoNone, NULL, childRef, NULL);
-		}
-		return result;
-    }
-    
-    return noErr;	
-}
-
-OSStatus FSRefMakeInDirectoryWithString(FSRef *directoryRef, FSRef *childRef, CFStringRef filename, UniChar* charsBuffer) {
-    CFRange range;
-    range.location = 0;
-    range.length = CFStringGetLength(filename);
-	
-	if (range.length > 255)	return errFSNameTooLong;
-	
-    CFStringGetCharacters(filename, range, charsBuffer);
-
-    return FSMakeFSRefUnicode(directoryRef, range.length, charsBuffer, kTextEncodingDefaultFormat, childRef);
-}
-
-//use BlockSizeForNotation((NotationController *)delegate) for maximum read size
-//use noCacheMask for options if not expecting to read again
-OSStatus FSRefReadData(FSRef *fsRef, size_t maximumReadSize, UInt64 *bufferSize, void** newBuffer, UInt16 modeOptions) {
-    OSStatus err = noErr;
-	HFSUniStr255 dfName; //this is just NULL / 0, anyway
-    FSIORefNum refNum;
-    SInt64 forkSize;
-    ByteCount readActualCount = 0, totalReadBytes = 0;
-	
-	if (!bufferSize || !newBuffer || !fsRef) {
-		printf("FSRefReadData: NULL buffers or fsRef\n");
-		return paramErr;
-	}
-    
-    if ((err = FSGetDataForkName(&dfName)) != noErr) {
-		printf("FSGetDataForkName: error %d\n", (int)err);
-		return err;
-    }
-    
-	//FSOpenFork
-    //get vrefnum or whatever
-    //get fork size
-	//read data
-    if ((err = FSOpenFork(fsRef, dfName.length, dfName.unicode, fsRdPerm, &refNum)) != noErr) {
-		printf("FSRefReadData: FSOpenFork: error %d\n", (int)err);
-		return err;
-    }
-    if ((forkSize = *bufferSize) < 1) {
-		if ((err = FSGetForkSize(refNum, &forkSize)) != noErr) {
-			printf("FSGetForkSize: error %d\n", (int)err);
-			return err;
-		}
-    }
-    
-	size_t copyBufferSize = MIN(maximumReadSize, (size_t)forkSize);
-    void *fullSizeBuffer = (void*)valloc(forkSize);
-    
-    while (noErr == err && totalReadBytes < (ByteCount)forkSize) {
-		err = FSReadFork(refNum, fsAtMark + modeOptions, 0, copyBufferSize, fullSizeBuffer + totalReadBytes, &readActualCount);
-		totalReadBytes += readActualCount;
-    }
-    OSErr lastReadErr = err;
-	
-	if ((err = FSCloseFork(refNum)) != noErr)
-		printf("FSCloseFork: error %d\n", (int)err);
-    
-    *newBuffer = fullSizeBuffer;
-	//in case we read less than the expected size or the size was not initially known
-	*bufferSize = totalReadBytes;
-    
-    return (eofErr == lastReadErr ? noErr : lastReadErr);
-}
-
-OSStatus FSRefWriteData(FSRef *fsRef, size_t maximumWriteSize, UInt64 bufferSize, const void* buffer, UInt16 modeOptions, Boolean truncateFile) {
-	OSStatus err = noErr;
-	HFSUniStr255 dfName; //this is just NULL / 0, anyway
-    FSIORefNum refNum;
-    ByteCount writeActualCount = 0, totalWrittenBytes = 0;
-	
-	if (!buffer || !fsRef) {
-		printf("FSRefWriteData: NULL buffers or fsRef\n");
-		return paramErr;
-	}
-    
-    if ((err = FSGetDataForkName(&dfName)) != noErr) {
-		printf("FSGetDataForkName: error %d\n", (int)err);
-		return err;
-    }
-    
-	//FSOpenFork
-    //get vrefnum or whatever
-    if ((err = FSOpenFork(fsRef, dfName.length, dfName.unicode, fsWrPerm, &refNum)) != noErr) {
-		printf("FSRefWriteData: FSOpenFork: error %d\n", (int)err);
-		return err;
-    }
-    
-	ByteCount writeBufferSize = MIN(maximumWriteSize, bufferSize);
-    
-    while (noErr == err && totalWrittenBytes < bufferSize) {
-
-	err = FSWriteFork(refNum, fsAtMark + modeOptions, 0, 
-			  MIN(writeBufferSize, bufferSize - totalWrittenBytes),
-			  buffer + totalWrittenBytes, &writeActualCount);
-	totalWrittenBytes += writeActualCount;
-    }
-    OSErr writeError = err;
-	
-	if (truncateFile && (err = FSSetForkSize(refNum, fsFromStart, bufferSize))) {
-		printf("FSOpenFork: FSSetForkSize %d\n", (int)err);
-		return err;
-	}
-    
-	if ((err = FSCloseFork(refNum)) != noErr)
-		printf("FSCloseFork: error %d\n", (int)err);
-	
-    return writeError;
 }

@@ -66,14 +66,8 @@
 		sortedCatalogEntries = NULL;
 		catEntriesCount = totalCatEntriesCount = 0;
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
-		subscriptionCallback = NewFNSubscriptionUPP(NotesDirFNSubscriptionProc);
-		bzero(&noteDirSubscription, sizeof(FNSubscriptionRef));
-#endif
-		bzero(&noteDatabaseRef, sizeof(FSRef));
-		bzero(&noteDirectoryRef, sizeof(FSRef));
-		volumeSupportsExchangeObjects = -1;
-		
+		noteDirectoryPath = nil;
+
 		lastLayoutStyleGenerated = -1;
 		lastCheckedDateInHours = hoursFromAbsoluteTime(CFAbsoluteTimeGetCurrent());
 		blockSize = 0;
@@ -85,6 +79,9 @@
 }
 
 
+//The notes directory is still recorded in preferences as Alias Manager data, so resolving it is the
+//one place an FSRef is still made -- and the last: it is turned straight into a path, and everything
+//downstream addresses files by path. Both go away with the move to an NSURL bookmark.
 - (id)initWithAliasData:(NSData*)data error:(OSStatus*)err {
     OSStatus anErr = noErr;
     
@@ -94,12 +91,14 @@
 	Boolean changed;
 	
 	if ((anErr = FSResolveAliasWithMountFlags(NULL, aliasHandle, &targetRef, &changed, 0)) == noErr) {
-	    if ([self initWithDirectoryRef:&targetRef error:&anErr]) {
+	    NSString *targetPath = [[NSFileManager defaultManager] pathWithFSRef:&targetRef];
+	    if (targetPath && [self initWithDirectoryPath:targetPath error:&anErr]) {
 		aliasNeedsUpdating = changed;
 		*err = noErr;
 		
 		return self;
 	    }
+	    if (!targetPath) anErr = fnfErr;
 	}
     }
     
@@ -109,12 +108,12 @@
 }
 
 - (id)initWithDefaultDirectoryReturningError:(OSStatus*)err {
-    FSRef targetRef;
     
     OSStatus anErr = noErr;
-    if ((anErr = [NotationController getDefaultNotesDirectoryRef:&targetRef]) == noErr) {
+    NSString *targetPath = [NotationController defaultNotesDirectoryPathReturningError:&anErr];
+    if (targetPath) {
 		
-		if ([self initWithDirectoryRef:&targetRef error:&anErr]) {
+		if ([self initWithDirectoryPath:targetPath error:&anErr]) {
 			*err = noErr;
 			return self;
 		}
@@ -125,14 +124,19 @@
     return nil;
 }
 
-- (id)initWithDirectoryRef:(FSRef*)directoryRef error:(OSStatus*)err {
+- (id)initWithDirectoryPath:(NSString*)directoryPath error:(OSStatus*)err {
     
     *err = noErr;
+    
+    if (![directoryPath length]) {
+		*err = paramErr;
+		return nil;
+    }
     
     if ([self init]) {
 		aliasNeedsUpdating = YES; //we don't know if we have an alias yet
 		
-		noteDirectoryRef = *directoryRef;
+		noteDirectoryPath = [directoryPath copy];
 		
 		//check writable and readable perms, warning user if necessary
 		
@@ -219,18 +223,18 @@
 
 //used to ensure a newly-written Notes & Settings file is valid before finalizing the save
 //read the file back from disk, deserialize it, decrypt and decompress it, and compare the notes roughly to our current notes
-- (NSNumber*)verifyDataAtTemporaryFSRef:(NSValue*)fsRefValue withFinalName:(NSString*)filename {
+- (NSNumber*)verifyDataAtTemporaryPath:(NSString*)tempPath withFinalName:(NSString*)filename {
 	
 	NSDate *date = [NSDate date];
 	
 	NSAssert([filename isEqualToString:NotesDatabaseFileName], @"attempting to verify something other than the database");
 	
-	FSRef *notesFileRef = [fsRefValue pointerValue];
 	UInt64 fileSize = 0;
 	char *notesData = NULL;
 	OSStatus err = noErr, result = noErr;
-	if ((err = FSRefReadData(notesFileRef, BlockSizeForNotation(self), &fileSize, (void**)&notesData, forceReadMask)) != noErr)
-		return [NSNumber numberWithInt:err];
+	int posixErr = KNReadDataAtPath([tempPath fileSystemRepresentation], BlockSizeForNotation(self), &fileSize, (void**)&notesData, 0);
+	if (posixErr)
+		return [NSNumber numberWithInt:KNOSStatusFromErrno(posixErr)];
 	
 	FrozenNotation *frozenNotation = nil;
 	if (!fileSize) {
@@ -276,13 +280,15 @@ returnResult:
 - (OSStatus)_readAndInitializeSerializedNotes {
 
     OSStatus err = noErr;
-	if ((err = [self createFileIfNotPresentInNotesDirectory:&noteDatabaseRef forFilename:NotesDatabaseFileName fileWasCreated:nil]) != noErr)
+	if ((err = [self createFileIfNotPresentInNotesDirectory:NotesDatabaseFileName fileWasCreated:nil]) != noErr)
 		return err;
 	
 	UInt64 fileSize = 0;
 	char *notesData = NULL;
-	if ((err = FSRefReadData(&noteDatabaseRef, BlockSizeForNotation(self), &fileSize, (void**)&notesData, noCacheMask)) != noErr)
-		return err;
+	int posixErr = KNReadDataAtPath([[self pathInNotesDirectoryForFilename:NotesDatabaseFileName] fileSystemRepresentation],
+									BlockSizeForNotation(self), &fileSize, (void**)&notesData, 1);
+	if (posixErr)
+		return KNOSStatusFromErrno(posixErr);
 	
 	FrozenNotation *frozenNotation = nil;
 	
@@ -346,12 +352,10 @@ returnResult:
 
 - (BOOL)initializeJournaling {
     
-    const UInt32 maxPathSize = 8 * 1024;
-    UInt8 *convertedPath = (UInt8*)malloc(maxPathSize * sizeof(UInt8));
-    OSStatus err = noErr;
+    const char *convertedPath = [[self noteDirectoryPath] fileSystemRepresentation];
 	NSData *walSessionKey = [notationPrefs WALSessionKey];
 	
-    if ((err = FSRefMakePath(&noteDirectoryRef, convertedPath, maxPathSize)) == noErr) {
+    if (convertedPath) {
 		//initialize the journal if necessary
 		if (!(walWriter = [[WALStorageController alloc] initWithParentFSRep:(char*)convertedPath encryptionKey:walSessionKey])) {
 			//journal file probably already exists, so try to recover it
@@ -410,12 +414,11 @@ returnResult:
 		
 		return YES;
     } else {
-		NSLog(@"FSRefMakePath error: %d", err);
+		NSLog(@"the notes directory has no path");
 		goto bail;
     }
     
 bail:
-		free(convertedPath);	
     return NO;
 }
 
@@ -546,8 +549,8 @@ bail:
 		}
 		
 		//we should have all journal records on disk by now
-		if ([self storeDataAtomicallyInNotesDirectory:serializedData withName:NotesDatabaseFileName destinationRef:&noteDatabaseRef 
-								   verifyWithSelector:@selector(verifyDataAtTemporaryFSRef:withFinalName:) verificationDelegate:self] != noErr)
+		if ([self storeDataAtomicallyInNotesDirectory:serializedData withName:NotesDatabaseFileName
+								   verifyWithSelector:@selector(verifyDataAtTemporaryPath:withFinalName:) verificationDelegate:self] != noErr)
 			return NO;
 		
 		[notationPrefs setPreferencesAreStored];
@@ -652,7 +655,7 @@ bail:
 			[[[unwrittenNotes copy] autorelease] makeObjectsPerformSelector:@selector(writeUsingCurrentFileFormatIfNecessary)];
 			
 			//this always seems to call ourselves
-			FNNotify(&noteDirectoryRef, kFNDirectoryModifiedMessage, kFNNoImplicitAllSubscription);
+			[[NSWorkspace sharedWorkspace] noteFileSystemChanged:[self noteDirectoryPath]];
 		}
 		if (walWriter) {
 			//append unwrittenNotes to journal, if one exists
@@ -674,6 +677,21 @@ bail:
     }
 }
 
+//The notes directory is recorded in preferences as Alias Manager data, and the Alias Manager only
+//speaks FSRef, so this is where the last one is made from a path. It goes away together with
+//FSFindFolder and FSNewAlias when that recording becomes an NSURL bookmark.
+static Boolean KNFSRefFromPath(NSString *path, FSRef *outRef) {
+	if (![path length]) return false;
+	
+	CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (CFStringRef)path, kCFURLPOSIXPathStyle, true);
+	if (!url) return false;
+	
+	Boolean gotRef = CFURLGetFSRef(url, outRef);
+	CFRelease(url);
+	
+	return gotRef;
+}
+
 - (NSData*)aliasDataForNoteDirectory {
     NSData* theData = nil;
     
@@ -688,8 +706,13 @@ bail:
     }
 	
     //re-fill handle from fsref if necessary, storing path relative to user directory
-    if (aliasNeedsUpdating && FSNewAlias(relativeRef, &noteDirectoryRef, &aliasHandle ) != noErr)
-		return nil;
+    if (aliasNeedsUpdating) {
+		FSRef directoryRef;
+		if (!KNFSRefFromPath([self noteDirectoryPath], &directoryRef))
+			return nil;
+		if (FSNewAlias(relativeRef, &directoryRef, &aliasHandle) != noErr)
+			return nil;
+    }
 	
     if (aliasHandle != NULL) {
 		aliasNeedsUpdating = NO;
@@ -726,7 +749,7 @@ bail:
 - (void)checkIfNotationIsTrashed {
 	if ([self notesDirectoryIsTrashed]) {
 		
-		NSString *trashLocation = [[[NSFileManager defaultManager] pathWithFSRef:&noteDirectoryRef] stringByAbbreviatingWithTildeInPath];
+		NSString *trashLocation = [[self noteDirectoryPath] stringByAbbreviatingWithTildeInPath];
 		if (!trashLocation) trashLocation = @"unknown";
 		int result = KNRunCriticalAlert([NSString stringWithFormat:NSLocalizedString(@"Your notes directory (%@) appears to be in the Trash.",nil), trashLocation], 
 											 NSLocalizedString(@"If you empty the Trash now, you could lose your notes. Relocate the notes to a less volatile folder?",nil),
@@ -1557,9 +1580,6 @@ bail:
 	[notationPrefs setDelegate:nil];
 	[allNotes makeObjectsPerformSelector:@selector(setDelegate:) withObject:nil];
 
-#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
-    DisposeFNSubscriptionUPP(subscriptionCallback);
-#endif
     if (catalogEntries)
 		free(catalogEntries);
     if (sortedCatalogEntries)
@@ -1576,6 +1596,7 @@ bail:
 	[deletedNotes release];
 	[notationPrefs release];
 	[unwrittenNotes release];
+	[noteDirectoryPath release];
     
     [super dealloc];
 }

@@ -65,12 +65,6 @@
 	
 	NSMutableSet *deletedNotes;
     
-	int volumeSupportsExchangeObjects;
-
-#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
-	FNSubscriptionUPP subscriptionCallback;
-    FNSubscriptionRef noteDirSubscription;	
-#endif
 	FSEventStreamRef noteDirEventStreamRef;
 	BOOL eventStreamStarted;
 	    
@@ -83,7 +77,7 @@
 	struct statfs *statfsInfo;
 	unsigned int diskUUIDIndex;
 	CFUUIDRef diskUUID;
-    FSRef noteDirectoryRef, noteDatabaseRef;
+    NSString *noteDirectoryPath;
     AliasHandle aliasHandle;
     BOOL aliasNeedsUpdating;
     OSStatus lastWriteError;
@@ -98,7 +92,7 @@
 - (id)init;
 - (id)initWithAliasData:(NSData*)data error:(OSStatus*)err;
 - (id)initWithDefaultDirectoryReturningError:(OSStatus*)err;
-- (id)initWithDirectoryRef:(FSRef*)directoryRef error:(OSStatus*)err;
+- (id)initWithDirectoryPath:(NSString*)directoryPath error:(OSStatus*)err;
 - (void)setAliasNeedsUpdating:(BOOL)needsUpdate;
 - (BOOL)aliasNeedsUpdating;
 - (NSData*)aliasDataForNoteDirectory;
