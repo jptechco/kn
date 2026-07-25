@@ -169,8 +169,15 @@ static uint32_t KNReadBulkEntry(const char *field, NoteCatalogEntry *outEntry, i
 	CFStringRef name = NULL;
 	if (returned.commonattr & ATTR_CMN_NAME) {
 		const attrreference_t *ref = (const attrreference_t *)cursor;
-		name = CFStringCreateWithCString(kCFAllocatorDefault, ((const char *)ref) + ref->attr_dataoffset,
-										 kCFStringEncodingUTF8);
+		const char *nameBytes = ((const char *)ref) + ref->attr_dataoffset;
+
+		name = CFStringCreateWithCString(kCFAllocatorDefault, nameBytes, kCFStringEncodingUTF8);
+		if (!name) {
+			//The name the File Manager reported came back as UniChars and so could never fail to
+			//decode. Falling back to a single-byte encoding keeps that guarantee: an entry with no
+			//name is dropped from the catalog, and a note missing from the catalog reads as deleted.
+			name = CFStringCreateWithCString(kCFAllocatorDefault, nameBytes, kCFStringEncodingMacRoman);
+		}
 		cursor += sizeof(attrreference_t);
 	}
 	if (returned.commonattr & ATTR_CMN_OBJTYPE) {
