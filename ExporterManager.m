@@ -74,7 +74,7 @@
 		CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (CFStringRef)directory, kCFURLPOSIXPathStyle, true);
 		[(id)url autorelease];
 		if (!url || !CFURLGetFSRef(url, &directoryRef)) {
-			KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"The notes couldn't be exported because the directory quotemark%@quotemark couldn't be accessed.",nil),
+			KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"The notes couldn't be exported because the directory “%@” couldn't be accessed.",nil),
 				[directory stringByAbbreviatingWithTildeInPath]], @"", NSLocalizedString(@"OK",nil), nil, nil);
 			return;
 		}
@@ -91,7 +91,7 @@
 				//ask about overwriting
 				NSString *existingName = filename ? filename : filenameOfNote(note);
 				existingName = [[existingName stringByDeletingPathExtension] stringByAppendingPathExtension:[NotationPrefs pathExtensionForFormat:storageFormat]];
-				result = KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"A file named quotemark%@quotemark already exists.",nil), existingName],
+				result = KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"A file named “%@” already exists.",nil), existingName],
 										 NSLocalizedString(@"Replace its current contents with that of the note?", @"replace the file's contents?"),
 										 NSLocalizedString(@"Replace",nil), NSLocalizedString(@"Don't Replace",nil), lastNote ? NSLocalizedString(@"Replace All",nil) : nil);
 				if (result == NSAlertFirstButtonReturn || result == NSAlertThirdButtonReturn) {
@@ -101,7 +101,7 @@
 			}
 			
 			if (err != noErr) {
-				NSString *exportErrorTitleString = [NSString stringWithFormat:NSLocalizedString(@"The note quotemark%@quotemark couldn't be exported because %@.",nil), 
+				NSString *exportErrorTitleString = [NSString stringWithFormat:NSLocalizedString(@"The note “%@” couldn't be exported because %@.",nil), 
 					titleOfNote(note), [NSString reasonStringFromCarbonFSError:err]];
 				if (!lastNote) {
 					KNRunAlert(exportErrorTitleString, @"", NSLocalizedString(@"OK",nil), nil, nil);

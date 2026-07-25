@@ -8,7 +8,7 @@
 "%.0lf KB received" = "%.0lf KB 已下载";
 
 /* No comment provided by engineer. */
-"A file named quotemark%@quotemark already exists." = "已存在名为 “%@” 的文件。";
+"A file named “%@” already exists." = "已存在名为 “%@” 的文件。";
 
 /* name of cancel button */
 "Cancel" = "取消";
@@ -35,7 +35,7 @@
 "Delete %d notes?" = "删除 %d 条笔记?";
 
 /* alert title when asked to delete a note */
-"Delete the note titled quotemark%@quotemark?" = "删除标题为 “%@” 的笔记？";
+"Delete the note titled “%@”?" = "删除标题为 “%@” 的笔记？";
 
 /* name of undo-creating-a-note button */
 "Undo Note" = "撤销笔记";
@@ -44,10 +44,10 @@
 "Undo adding %d notes?" = "撤销添加 %d 条笔记？";
 
 /* alert title when asked to undo the creation of a note */
-"Undo adding the note quotemark%@quotemark?" = "撤销添加标题为 “%@” 的笔记？";
+"Undo adding the note “%@”?" = "撤销添加标题为 “%@” 的笔记？";
 
 /* informational undo-this-note? text */
-"Undoing a note has the effect of deleting it. Use quotemarkRedoquotemark to re-add it." = "撤销笔记会导致笔记删除，使用“重做”功能来添加它。";
+"Undoing a note has the effect of deleting it. Use “Redo” to re-add it." = "撤销笔记会导致笔记删除，使用“重做”功能来添加它。";
 
 /* No comment provided by engineer. */
 "Does it still exist?" = "文件是否存在？";
@@ -65,13 +65,13 @@
 "..." = "…";
 
 /* No comment provided by engineer. */
-"Error: the modification date of the file quotemark%@quotemark could not be compared because %@" = "错误: 无法比较文件 “%@” 的修改日期，因为%@";
+"Error: the modification date of the file “%@” could not be compared because %@" = "错误: 无法比较文件 “%@” 的修改日期，因为%@";
 
 /* No comment provided by engineer. */
-"Error: the modification date of the file quotemark%@quotemark could not be determined because %@" = "错误: 无法检测文件 “%@” 的修改日期，因为%@";
+"Error: the modification date of the file “%@” could not be determined because %@" = "错误: 无法检测文件 “%@” 的修改日期，因为%@";
 
 /* No comment provided by engineer. */
-"Error: unable to read the contents of the file quotemark%@.quotemark" = "错误: 无法读取文件 “%@.” 中的内容";
+"Error: unable to read the contents of the file “%@.”" = "错误: 无法读取文件 “%@.” 中的内容";
 
 /* title of button to export notes from folder selection dialog */
 "Export" = "导出";
@@ -92,7 +92,7 @@
 "No notes were selected for exporting." = "未选择要导出的笔记。";
 
 /* No comment provided by engineer. */
-"Notational Velocity should assume the file quotemark%@quotemark was saved with the encoding:" = "Kinetic Notes 假设文件 “%@” 使用的是下列编码：";
+"Notational Velocity should assume the file “%@” was saved with the encoding:" = "Kinetic Notes 假设文件 “%@” 使用的是下列编码：";
 
 /* No comment provided by engineer. */
 "Note Importing Cancelled" = "导入笔记已取消";
@@ -119,7 +119,7 @@
 "Please try another encoding." = "请尝试其他编码。";
 
 /* alert title when converting from unicode */
-"quotemark%@quotemark is a Unicode file and not directly interpretable using plain text encodings." = "“%@” 是 Unicode 编码文件，因此无法用纯文本编码直接编译。";
+"“%@” is a Unicode file and not directly interpretable using plain text encodings." = "“%@” 是 Unicode 编码文件，因此无法用纯文本编码直接编译。";
 
 /* No comment provided by engineer. */
 "Replace" = "替换";
@@ -140,16 +140,16 @@
 "The file may no longer exist or has incorrect permissions." = "文件不存在或权限错误。";
 
 /* No comment provided by engineer. */
-"The note quotemark%@quotemark couldn't be exported because %@." = "笔记 “%@” 无法被导出，因为%@。";
+"The note “%@” couldn't be exported because %@." = "笔记 “%@” 无法被导出，因为%@。";
 
 /* No comment provided by engineer. */
-"The note quotemark%@quotemark is newer than its file on disk." = "笔记 “%@” 与磁盘上的文件相比较新。";
+"The note “%@” is newer than its file on disk." = "笔记 “%@” 与磁盘上的文件相比较新。";
 
 /* No comment provided by engineer. */
-"The notes couldn't be exported because the directory quotemark%@quotemark couldn't be accessed." = "笔记无法被导出，因为目录 “%@” 无法访问。";
+"The notes couldn't be exported because the directory “%@” couldn't be accessed." = "笔记无法被导出，因为目录 “%@” 无法访问。";
 
 /* No comment provided by engineer. */
-"The URL quotemark%@quotemark could not be accessed: %@." = "链接 “%@” 无法访问: %@。";
+"The URL “%@” could not be accessed: %@." = "链接 “%@” 无法访问: %@。";
 
 /* No comment provided by engineer. */
 "This may be due to an error in the program or operating system." = "这可能是由于错误的程序或操作系统引起的。";
@@ -167,7 +167,7 @@
 "Search or Create" = "搜索或创建";
 
 /* No comment provided by engineer. */
-"You can import your old notes at any time by choosing quotemarkImport...quotemark from the quotemarkNotequotemark menu and selecting your NotationalDatabase.blor file." = "您可以在任何使用通过“笔记”菜单，“导入…”，并选贼 NotationalDatabase.blor 文件来导入您以前的笔记。";
+"You can import your old notes at any time by choosing “Import...” from the “Note” menu and selecting your NotationalDatabase.blor file." = "您可以在任何使用通过“笔记”菜单，“导入…”，并选贼 NotationalDatabase.blor 文件来导入您以前的笔记。";
 
 /* No comment provided by engineer. */
 "You may need to re-run the Mac OS X installer." = "您需要重新运行 Mac OS X 安装程序。";
@@ -324,7 +324,7 @@
 "Couldn't move notes into the chosen folder because %@" = "无法移动笔记到指定文件夹，因为%@";
 
 /* undo action name for creating a single note */
-"Create Note quotemark%@quotemark" = "创建笔记 “%@”";
+"Create Note “%@”" = "创建笔记 “%@”";
 
 /* cut menu item title */
 "Cut" = "剪切";
@@ -336,7 +336,7 @@
 "Delete %d Notes" = "删除 %d 条笔记";
 
 /* undo action name for deleting a single note */
-"Delete quotemark%@quotemark" = "删除 “%@”";
+"Delete “%@”" = "删除 “%@”";
 
 /* button title for disabling note encryption */
 "Disable Encryption" = "禁用加密";

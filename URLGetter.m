@@ -171,7 +171,7 @@ didFinishDownloadingToURL:(NSURL *)location {
 	if (error) {
 		NSString *reason = [error localizedDescription];
 		if (!reason) reason = NSLocalizedString(@"unknown error.", @"error description of last resort for why a URL couldn't be accessed");
-		KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"The URL quotemark%@quotemark could not be accessed: %@.", nil),
+		KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"The URL “%@” could not be accessed: %@.", nil),
 			[url absoluteString], reason], @"", NSLocalizedString(@"OK",nil), nil, nil);
 
 		[self endDownloadWithPath:nil];
