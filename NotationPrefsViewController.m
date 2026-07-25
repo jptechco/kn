@@ -223,12 +223,7 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
 - (void)updateRemoveKeychainItemStatus {
 	
 	if (![removeFromKeychainButton isHidden]) {
-		SecKeychainItemRef itemRef = [notationPrefs currentKeychainItem];
-		
-		[removeFromKeychainButton setEnabled:(itemRef != NULL)];
-		
-		if (itemRef)
-			CFRelease(itemRef);
+		[removeFromKeychainButton setEnabled:[notationPrefs hasKeychainItem]];
 	}
 }
 
