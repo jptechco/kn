@@ -16,6 +16,7 @@
 
 
 #import "ExporterManager.h"
+#import "KNAlert.h"
 #import "NoteObject.h"
 #import "NotationPrefs.h"
 #import "NSString_NV.h"
@@ -73,7 +74,7 @@
 		CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (CFStringRef)directory, kCFURLPOSIXPathStyle, true);
 		[(id)url autorelease];
 		if (!url || !CFURLGetFSRef(url, &directoryRef)) {
-			NSRunAlertPanel([NSString stringWithFormat:NSLocalizedString(@"The notes couldn't be exported because the directory quotemark%@quotemark couldn't be accessed.",nil),
+			KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"The notes couldn't be exported because the directory quotemark%@quotemark couldn't be accessed.",nil),
 				[directory stringByAbbreviatingWithTildeInPath]], @"", NSLocalizedString(@"OK",nil), nil, nil);
 			return;
 		}
@@ -90,11 +91,11 @@
 				//ask about overwriting
 				NSString *existingName = filename ? filename : filenameOfNote(note);
 				existingName = [[existingName stringByDeletingPathExtension] stringByAppendingPathExtension:[NotationPrefs pathExtensionForFormat:storageFormat]];
-				result = NSRunAlertPanel([NSString stringWithFormat:NSLocalizedString(@"A file named quotemark%@quotemark already exists.",nil), existingName],
+				result = KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"A file named quotemark%@quotemark already exists.",nil), existingName],
 										 NSLocalizedString(@"Replace its current contents with that of the note?", @"replace the file's contents?"),
-										 NSLocalizedString(@"Replace",nil), NSLocalizedString(@"Don't Replace",nil), lastNote ? NSLocalizedString(@"Replace All",nil) : nil, nil);
-				if (result == NSAlertDefaultReturn || result == NSAlertOtherReturn) {
-					if (result == NSAlertOtherReturn) overwriteNotes = YES;
+										 NSLocalizedString(@"Replace",nil), NSLocalizedString(@"Don't Replace",nil), lastNote ? NSLocalizedString(@"Replace All",nil) : nil);
+				if (result == NSAlertFirstButtonReturn || result == NSAlertThirdButtonReturn) {
+					if (result == NSAlertThirdButtonReturn) overwriteNotes = YES;
 					err = [note exportToDirectoryRef:&directoryRef withFilename:filename usingFormat:storageFormat overwrite:YES];
 				} else continue;
 			}
@@ -103,11 +104,11 @@
 				NSString *exportErrorTitleString = [NSString stringWithFormat:NSLocalizedString(@"The note quotemark%@quotemark couldn't be exported because %@.",nil), 
 					titleOfNote(note), [NSString reasonStringFromCarbonFSError:err]];
 				if (!lastNote) {
-					NSRunAlertPanel(exportErrorTitleString, @"", NSLocalizedString(@"OK",nil), nil, nil, nil);
+					KNRunAlert(exportErrorTitleString, @"", NSLocalizedString(@"OK",nil), nil, nil);
 				} else {
-					result = NSRunAlertPanel(exportErrorTitleString, NSLocalizedString(@"Continue exporting?", @"alert title for exporter interruption"), 
+					result = KNRunAlert(exportErrorTitleString, NSLocalizedString(@"Continue exporting?", @"alert title for exporter interruption"), 
 											 NSLocalizedString(@"Continue", @"(exporting notes?)"), NSLocalizedString(@"Stop Exporting", @"(notes?)"), nil);
-					if (result != NSAlertDefaultReturn) break;
+					if (result != NSAlertFirstButtonReturn) break;
 				}
 			}
 		}
@@ -156,7 +157,7 @@
 		[openPanel beginSheetForDirectory:nil file:nil types:nil modalForWindow:window modalDelegate:self 
 						   didEndSelector:@selector(exportPanelDidEnd:returnCode:contextInfo:) contextInfo:[notes retain]];
 	} else {
-		NSRunAlertPanel(NSLocalizedString(@"No notes were selected for exporting.",nil), 
+		KNRunAlert(NSLocalizedString(@"No notes were selected for exporting.",nil), 
 						NSLocalizedString(@"You must select at least one note to export.",nil), NSLocalizedString(@"OK",nil), NULL, NULL);
 	}
 }

@@ -78,7 +78,7 @@ static id _sharedKeyComboPanel = nil;
 	
 	[[self window] close];
 	
-	if (hotKey && returnCode == NSOKButton) {
+	if (hotKey && returnCode == NSModalResponseOK) {
         [hotKey setKeyCombo: [self keyCombo]];
 		[[PTHotKeyCenter sharedCenter] updateHotKey: hotKey];
 		if ([currentModalDelegate respondsToSelector:@selector(keyComboPanelEnded:)])
@@ -113,7 +113,7 @@ static id _sharedKeyComboPanel = nil;
     resultCode = [NSApp runModalForWindow: [self window]];
 	[[self window] orderOut:self];
     
-	if (resultCode == NSOKButton) {
+	if (resultCode == NSModalResponseOK) {
         [hotKey setKeyCombo: [self keyCombo]];
 		[[PTHotKeyCenter sharedCenter] updateHotKey: hotKey];
 	}
@@ -155,24 +155,24 @@ static id _sharedKeyComboPanel = nil;
 
 - (IBAction)ok: (id)sender {
 	if ([[self window] isModalPanel])
-		[NSApp stopModalWithCode:NSOKButton];
+		[NSApp stopModalWithCode:NSModalResponseOK];
 	else
-		[NSApp endSheet:[self window] returnCode:NSOKButton];
+		[NSApp endSheet:[self window] returnCode:NSModalResponseOK];
 		
 }
 
 - (IBAction)cancel: (id)sender {
 	if ([[self window] isModalPanel])
-		[NSApp stopModalWithCode:NSCancelButton];
+		[NSApp stopModalWithCode:NSModalResponseCancel];
 	else
-		[NSApp endSheet:[self window] returnCode:NSCancelButton];
+		[NSApp endSheet:[self window] returnCode:NSModalResponseCancel];
 }
 
 - (IBAction)clear: (id)sender
 {
     [self setKeyCombo: [PTKeyCombo clearKeyCombo]];
 	if ([[self window] isModalPanel])
-		[NSApp stopModalWithCode:NSOKButton];
+		[NSApp stopModalWithCode:NSModalResponseOK];
 }
 
 - (void)noteKeyBroadcast: (NSNotification*)note

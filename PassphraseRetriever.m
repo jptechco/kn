@@ -16,6 +16,7 @@
 
 
 #import "PassphraseRetriever.h"
+#import "KNAlert.h"
 #import "GlobalPrefs.h"
 #import "NotationPrefs.h"
 #import "NSData_transformations.h"
@@ -122,8 +123,8 @@
 		[window close];
 		
 	} else {
-		NSBeginAlertSheet(NSLocalizedString(@"Sorry, you entered an incorrect passphrase.",nil), NSLocalizedString(@"OK",nil), 
-						  nil, nil, window, nil, NULL, NULL, NULL, NSLocalizedString(@"Please try again.",nil));
+		KNBeginAlertSheet(window, NSLocalizedString(@"Sorry, you entered an incorrect passphrase.",nil),
+						  NSLocalizedString(@"Please try again.",nil), NSLocalizedString(@"OK",nil));
 		[passphraseField setStringValue:@""];
 		[self textDidChange:nil];
 	}	

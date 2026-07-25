@@ -22,6 +22,7 @@
 
 
 #import "NotationSyncServiceManager.h"
+#import "KNAlert.h"
 #import "SyncServiceSessionProtocol.h"
 #import "SyncSessionController.h"
 #import "NotationPrefs.h"
@@ -265,10 +266,10 @@
 	//this occurs via startCollectingAddedNotesWithEntries:mergingWithNotes:
 	if ([locallyAddedNotes count] && ([locallyAddedNotes count] == [allNotes count] || wasToldToMerge)) {	
 		if ([allNotes count] > 1 && !wasToldToMerge) {
-			if (NSRunAlertPanel([NSString stringWithFormat:NSLocalizedString(@"Add %u existing notes in the database to %@?", nil), 
+			if (KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"Add %u existing notes in the database to %@?", nil), 
 								 [allNotes count], [[syncSession class] localizedServiceTitle]],
 								NSLocalizedString(@"Notes will be merged, omitting entries duplicated on the server.", nil), 
-								NSLocalizedString(@"Add Notes", nil), NSLocalizedString(@"Turn Off Syncing", nil), nil) == NSAlertAlternateReturn) {
+								NSLocalizedString(@"Add Notes", nil), NSLocalizedString(@"Turn Off Syncing", nil), nil) == NSAlertSecondButtonReturn) {
 				[syncSessionController disableService:serviceName];
 				goto ended;
 			} else {
@@ -368,16 +369,16 @@ ended:
 	
 	//if foundNotes == 0, use a slightly different message -- maybe
 	
-	NSInteger res = NSAlertDefaultReturn;
+	NSInteger res = NSAlertFirstButtonReturn;
 	
 	if (!foundNotes) {
-		res = NSRunCriticalAlertPanel([NSString stringWithFormat:NSLocalizedString(@"The %@ server reports that no notes exist. Delete all %u notes in Notational Velocity to match it, or re-upload them now?", nil), serviceTitle, [allNotes count]],
+		res = KNRunCriticalAlert([NSString stringWithFormat:NSLocalizedString(@"The %@ server reports that no notes exist. Delete all %u notes in Notational Velocity to match it, or re-upload them now?", nil), serviceTitle, [allNotes count]],
 									  [NSString stringWithFormat:NSLocalizedString(@"If your %@ account is different, you may prefer to create a new database in Notational Velocity instead.", nil), serviceTitle],
 									  [NSString stringWithFormat:NSLocalizedString(@"Turn Off Syncing", nil), serviceTitle], 
 									  NSLocalizedString(@"Re-upload Notes", @"dialog button for uploading local notes when none exist remotely"), 
 									  NSLocalizedString(@"Remove All Notes", @"dialog button for deleting all notes when none exist remotely"));
 	} else {
-		res = NSRunCriticalAlertPanel([NSString stringWithFormat:NSLocalizedString(@"The %@ server holds a different set of notes. Replace all %u notes in Notational Velocity with the %u notes on the server, or merge both sets together?", nil), 
+		res = KNRunCriticalAlert([NSString stringWithFormat:NSLocalizedString(@"The %@ server holds a different set of notes. Replace all %u notes in Notational Velocity with the %u notes on the server, or merge both sets together?", nil), 
 									   serviceTitle, [allNotes count], foundNotes],
 									  [NSString stringWithFormat:NSLocalizedString(@"Replacing will remove all %u notes from Notational Velocity. Merging will upload all notes to %@, omitting duplicates.", nil), 
 									   [allNotes count], serviceTitle],
@@ -386,10 +387,10 @@ ended:
 									  NSLocalizedString(@"Replace All Notes", @"dialog button for deleting all notes"));
 	}
 	switch (res) {
-		case NSAlertDefaultReturn:
+		case NSAlertFirstButtonReturn:
 			[syncSessionController disableService:serviceName];
 			return YES;
-		case NSAlertAlternateReturn: //merge notes
+		case NSAlertSecondButtonReturn: //merge notes
 			
 			[undoManager removeAllActions];
 			
@@ -402,7 +403,7 @@ ended:
 			[(id)aSession performSelector:@selector(startFetchingListForFullSyncManual) withObject:nil afterDelay:0.0];
 			
 			return YES;
-		case NSAlertOtherReturn: //replace notes
+		case NSAlertThirdButtonReturn: //replace notes
 			//undoing past this point can create much confusion for the user
 			[undoManager removeAllActions];
 			

@@ -16,6 +16,7 @@
 
 
 #import "AppController.h"
+#import "KNAlert.h"
 #import "NoteObject.h"
 #import "GlobalPrefs.h"
 #import "AlienNoteImporter.h"
@@ -442,8 +443,8 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	    location = [location stringByAbbreviatingWithTildeInPath];
 	    NSString *reason = [NSString reasonStringFromCarbonFSError:err];
 		
-	    if (NSRunAlertPanel([NSString stringWithFormat:NSLocalizedString(@"Unable to initialize notes database in \n%@ because %@.",nil), location, reason], 
-							subMessage, NSLocalizedString(@"Choose another folder",nil),NSLocalizedString(@"Quit",nil),NULL) == NSAlertDefaultReturn) {
+	    if (KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"Unable to initialize notes database in \n%@ because %@.",nil), location, reason], 
+							subMessage, NSLocalizedString(@"Choose another folder",nil),NSLocalizedString(@"Quit",nil),NULL) == NSAlertFirstButtonReturn) {
 			//show nsopenpanel, defaulting to current default notes dir
 			FSRef notesDirectoryRef;
 		showOpenPanel:
@@ -721,7 +722,7 @@ terminateApp:
 
 	id retainedDeleteObj = (id)contextInfo;
 	
-	if (returnCode == NSAlertDefaultReturn) {
+	if (returnCode == NSAlertFirstButtonReturn) {
 		//delete! nil-msgsnd-checking
 		
 		//ensure that there are no pending edits in the tableview, 
@@ -756,12 +757,17 @@ terminateApp:
 			NSString *warnString = currentNote ? [NSString stringWithFormat:warningSingleFormatString, titleOfNote(currentNote)] : 
 			[NSString stringWithFormat:warningMultipleFormatString, [indexes count]];
 			
-			NSAlert *alert = [NSAlert alertWithMessageText:warnString defaultButton:NSLocalizedString(@"Delete", @"name of delete button")
-										   alternateButton:NSLocalizedString(@"Cancel", @"name of cancel button") otherButton:nil 
-								 informativeTextWithFormat:NSLocalizedString(@"Press Command-Z to undo this action later.", @"informational delete-this-note? text")];
+			NSAlert *alert = [[NSAlert alloc] init];
+			[alert setMessageText:warnString];
+			[alert setInformativeText:NSLocalizedString(@"Press Command-Z to undo this action later.", @"informational delete-this-note? text")];
+			[alert addButtonWithTitle:NSLocalizedString(@"Delete", @"name of delete button")];
+			[alert addButtonWithTitle:NSLocalizedString(@"Cancel", @"name of cancel button")];
 			[alert setShowsSuppressionButton:YES];
-			
-			[alert beginSheetModalForWindow:window modalDelegate:self didEndSelector:@selector(deleteAlertDidEnd:returnCode:contextInfo:) contextInfo:(void*)deleteObj];
+
+			[alert beginSheetModalForWindow:window completionHandler:^(NSModalResponse returnCode) {
+				[self deleteAlertDidEnd:alert returnCode:returnCode contextInfo:(void*)deleteObj];
+			}];
+			[alert release];
 		} else {
 			//just delete the notes outright			
 			[notationController performSelector:[indexes count] > 1 ? @selector(removeNotes:) : @selector(removeNote:) withObject:deleteObj];
@@ -868,7 +874,7 @@ terminateApp:
 				NSString *location = [[[NSFileManager defaultManager] pathCopiedFromAliasData:newData] stringByAbbreviatingWithTildeInPath];
 				NSString *oldLocation = [[[NSFileManager defaultManager] pathCopiedFromAliasData:oldData] stringByAbbreviatingWithTildeInPath]; 
 				NSString *reason = [NSString reasonStringFromCarbonFSError:err];
-				NSRunAlertPanel([NSString stringWithFormat:NSLocalizedString(@"Unable to initialize notes database in \n%@ because %@.",nil), location, reason], 
+				KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"Unable to initialize notes database in \n%@ because %@.",nil), location, reason], 
 								[NSString stringWithFormat:NSLocalizedString(@"Reverting to current location of %@.",nil), oldLocation], 
 								NSLocalizedString(@"OK",nil), NULL, NULL);
 			}
@@ -1895,7 +1901,7 @@ terminateApp:
 	//need this variable to allow overriding the wait
 	waitedForUncommittedChanges = YES;
 	NSString *errMsg = [[notationController syncSessionController] changeCommittingErrorMessage];
-	if ([errMsg length]) NSRunAlertPanel(NSLocalizedString(@"Changes could not be uploaded.", nil), errMsg, @"Quit", nil, nil);
+	if ([errMsg length]) KNRunAlert(NSLocalizedString(@"Changes could not be uploaded.", nil), errMsg, @"Quit", nil, nil);
 	
 	[NSApp terminate:nil];
 }

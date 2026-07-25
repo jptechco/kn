@@ -22,6 +22,7 @@
 
 
 #import "NotationFileManager.h"
+#import "KNAlert.h"
 #import "NotationPrefs.h"
 #import "NSString_NV.h"
 #import "NSFileManager_NV.h"
@@ -379,7 +380,7 @@ long BlockSizeForNotation(NotationController *controller) {
 		[openPanel setPrompt:NSLocalizedString(@"Select",nil)];
 		[openPanel setMessage:NSLocalizedString(@"Select a new location for your Notational Velocity notes.",nil)];
 		
-		if ([openPanel runModal] == NSOKButton) {
+		if ([openPanel runModal] == NSModalResponseOK) {
 			CFStringRef filename = (CFStringRef)[openPanel filename];
 			if (filename) {
 				
@@ -387,7 +388,7 @@ long BlockSizeForNotation(NotationController *controller) {
 				CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, filename, kCFURLPOSIXPathStyle, true);
 				[(id)url autorelease];
 				if (!url || !CFURLGetFSRef(url, &newParentRef)) {
-					NSRunAlertPanel(NSLocalizedString(@"Unable to create an FSRef from the chosen directory.",nil), 
+					KNRunAlert(NSLocalizedString(@"Unable to create an FSRef from the chosen directory.",nil), 
 									NSLocalizedString(@"Your notes were not moved.",nil), NSLocalizedString(@"OK",nil), NULL, NULL);
 					continue;
 				}
@@ -395,7 +396,7 @@ long BlockSizeForNotation(NotationController *controller) {
 				FSRef newNotesDirectory;
 				OSErr err = FSMoveObject(&noteDirectoryRef,  &newParentRef, &newNotesDirectory);
 				if (err != noErr) {
-					NSRunAlertPanel([NSString stringWithFormat:NSLocalizedString(@"Couldn't move notes into the chosen folder because %@",nil), 
+					KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"Couldn't move notes into the chosen folder because %@",nil), 
 						[NSString reasonStringFromCarbonFSError:err]], NSLocalizedString(@"Your notes were not moved.",nil), NSLocalizedString(@"OK",nil), NULL, NULL);
 					continue;
 				}
@@ -688,7 +689,7 @@ terminate:
 		NSLog(@"notifyOfChangedTrash: error getting trash: %d", err);
 	
 	 NSString *sillyDirectory = [NSTemporaryDirectory() stringByAppendingPathComponent:[(NSString*)CreateRandomizedFileName() autorelease]];
-	 [[NSFileManager defaultManager] createDirectoryAtPath:sillyDirectory attributes:nil];
+	 [[NSFileManager defaultManager] createDirectoryAtPath:sillyDirectory withIntermediateDirectories:NO attributes:nil error:NULL];
 	 NSInteger tag = 0;
 	 [[NSWorkspace sharedWorkspace] performFileOperation:NSWorkspaceRecycleOperation source:NSTemporaryDirectory() destination:@"" 
 												   files:[NSArray arrayWithObject:[sillyDirectory lastPathComponent]] tag:&tag];

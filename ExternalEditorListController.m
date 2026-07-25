@@ -263,7 +263,7 @@ static ExternalEditorListController* sharedInstance = nil;
     [openPanel setResolvesAliases:YES];
     [openPanel setAllowsMultipleSelection:NO];
     
-    if ([openPanel runModalForDirectory:@"/Applications" file:nil types:[NSArray arrayWithObject:@"app"]] == NSOKButton) {
+    if ([openPanel runModalForDirectory:@"/Applications" file:nil types:[NSArray arrayWithObject:@"app"]] == NSModalResponseOK) {
 		if (![openPanel filename]) goto errorReturn;
 		NSURL *appURL = [NSURL fileURLWithPath:[openPanel filename]];
 		if (!appURL) goto errorReturn;

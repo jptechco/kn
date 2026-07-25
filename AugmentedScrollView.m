@@ -29,7 +29,8 @@
 }
 
 - (void)drawRect:(NSRect)rect {
-	[dragImage compositeToPoint:rect.origin operation:NSCompositeCopy];
+	[dragImage drawInRect:NSMakeRect(rect.origin.x, rect.origin.y, [dragImage size].width, [dragImage size].height)
+				 fromRect:NSZeroRect operation:NSCompositingOperationCopy fraction:1.0 respectFlipped:YES hints:nil];
 
 }
 

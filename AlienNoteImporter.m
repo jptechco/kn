@@ -22,6 +22,7 @@
 
 
 #import "AlienNoteImporter.h"
+#import "KNAlert.h"
 #import "StickiesDocument.h"
 #import "BlorPasswordRetriever.h"
 #import "URLGetter.h"
@@ -136,7 +137,7 @@ NSString *ShouldImportCreationDates = @"ShouldImportCreationDates";
 			
 			//auto-detect based on bundle/extension/metadata
 			
-			NSDictionary *pathAttributes = [[NSFileManager defaultManager] fileAttributesAtPath:filename traverseLink:YES];
+			NSDictionary *pathAttributes = [[NSFileManager defaultManager] attributesOfItemAtPath:[filename stringByResolvingSymlinksInPath] error:NULL];
 			if ([[filename pathExtension] caseInsensitiveCompare:@"rtfd"] != NSOrderedSame &&
 				[[pathAttributes objectForKey:NSFileType] isEqualToString:NSFileTypeDirectory]) {
 				
@@ -207,14 +208,14 @@ NSString *ShouldImportCreationDates = @"ShouldImportCreationDates";
 	
 	if (delegate && [delegate respondsToSelector:@selector(noteImporter:importedNotes:)]) {
 		
-		if (returnCode == NSOKButton) {
+		if (returnCode == NSModalResponseOK) {
 			shouldGrabCreationDates = [grabCreationDatesButton state] == NSOnState;
 			[[NSUserDefaults standardUserDefaults] setBool:shouldGrabCreationDates forKey:ShouldImportCreationDates];
 			NSArray *notes = [self notesWithPaths:[panel filenames]];
 			if (notes && [notes count])
 				[delegate noteImporter:self importedNotes:notes];
 			else
-				NSRunAlertPanel(NSLocalizedString(@"None of the selected files could be imported.",nil), 
+				KNRunAlert(NSLocalizedString(@"None of the selected files could be imported.",nil), 
 								NSLocalizedString(@"Please choose other files.",nil), NSLocalizedString(@"OK",nil),nil,nil);
 		}
 	} else {
@@ -320,7 +321,7 @@ NSString *ShouldImportCreationDates = @"ShouldImportCreationDates";
 			NSString *path = [paths objectAtIndex:i];
 			NSArray *notes = nil;
 			
-			NSDictionary *pathAttributes = [fileMan fileAttributesAtPath:path traverseLink:YES];
+			NSDictionary *pathAttributes = [fileMan attributesOfItemAtPath:[path stringByResolvingSymlinksInPath] error:NULL];
 			if ([[path pathExtension] caseInsensitiveCompare:@"rtfd"] != NSOrderedSame &&
 				[[pathAttributes objectForKey:NSFileType] isEqualToString:NSFileTypeDirectory]) {
 				notes = [self notesInDirectory:path];
@@ -345,7 +346,7 @@ NSString *ShouldImportCreationDates = @"ShouldImportCreationDates";
 - (NoteObject*)noteWithFile:(NSString*)filename {
 	//RTF, Text, Word, HTML, and anything else we can do without too much effort
 	NSString *extension = [[filename pathExtension] lowercaseString];
-	NSDictionary *attributes = [[NSFileManager defaultManager] fileAttributesAtPath:filename traverseLink:YES];
+	NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:[filename stringByResolvingSymlinksInPath] error:NULL];
 	unsigned long fileType = [[attributes objectForKey:NSFileHFSTypeCode] unsignedLongValue];
 	NSString *sourceIdentifierString = nil;
 	
@@ -467,7 +468,7 @@ NSString *ShouldImportCreationDates = @"ShouldImportCreationDates";
 	
 	//recurse through all subdirectories calling notesInFile where appropriate and collecting arrays into one
 	//NSDirectoryEnumerator *enumerator  = [[NSFileManager defaultManager] enumeratorAtPath:filename];
-	NSArray *filenames = [[NSFileManager defaultManager] directoryContentsAtPath:filename];
+	NSArray *filenames = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:filename error:NULL];
 	NSEnumerator *enumerator = [filenames objectEnumerator];
 	
 	NSMutableArray *array = [NSMutableArray array];
@@ -479,7 +480,7 @@ NSString *ShouldImportCreationDates = @"ShouldImportCreationDates";
 		
 		NSString *itemPath = [filename stringByAppendingPathComponent:curObject];
 			
-		if ([[[fileMan fileAttributesAtPath:itemPath traverseLink:YES] objectForKey:NSFileType] isEqualToString:NSFileTypeRegular]) {
+		if ([[[fileMan attributesOfItemAtPath:[itemPath stringByResolvingSymlinksInPath] error:NULL] objectForKey:NSFileType] isEqualToString:NSFileTypeRegular]) {
 			NSArray *notes = [self notesInFile:itemPath];
 			if (notes)
 				[array addObjectsFromArray:notes];
@@ -576,7 +577,7 @@ NSString *ShouldImportCreationDates = @"ShouldImportCreationDates";
 						 forKey:PasswordWasRetrievedFromKeychainKey];
 	[documentSettings setObject:[retriever originalPasswordString] forKey:RetrievedPasswordKey];
 	
-	NSDictionary *dbAttrs = [[NSFileManager defaultManager] fileAttributesAtPath:filename traverseLink:YES];
+	NSDictionary *dbAttrs = [[NSFileManager defaultManager] attributesOfItemAtPath:[filename stringByResolvingSymlinksInPath] error:NULL];
 	NSDate *creationDate = [dbAttrs objectForKey:NSFileCreationDate];
 	NSDate *modificationDate = [dbAttrs objectForKey:NSFileModificationDate];
 	

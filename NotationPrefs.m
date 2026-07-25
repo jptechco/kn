@@ -627,7 +627,7 @@ NSMutableDictionary *ServiceAccountDictInit(NotationPrefs *prefs, NSString* serv
 	return (proposedFormat == SingleDatabaseFormat && notesStorageFormat != SingleDatabaseFormat && notesExist);
 }
 
-- (void)noteFilesCleanupSheetDidEnd:(NSWindow *)sheet returnCode:(int)returnCode contextInfo:(void *)contextInfo {
+- (void)noteFilesCleanupSheetDidEnd:(NSWindow *)sheet returnCode:(NSModalResponse)returnCode contextInfo:(void *)contextInfo {
 	
 	NSAssert(contextInfo, @"No contextInfo passed to noteFilesCleanupSheetDidEnd");
 	NSAssert([(id)contextInfo respondsToSelector:@selector(notesStorageFormatInProgress)],
@@ -635,11 +635,11 @@ NSMutableDictionary *ServiceAccountDictInit(NotationPrefs *prefs, NSString* serv
 
 	int newNoteStorageFormat = [(NotationPrefsViewController*)contextInfo notesStorageFormatInProgress];
 	
-	if (returnCode != NSAlertAlternateReturn)
+	if (returnCode != NSAlertSecondButtonReturn)
 		//didn't cancel
 		[self setNotesStorageFormat:newNoteStorageFormat];
 	
-	if (returnCode == NSAlertOtherReturn)
+	if (returnCode == NSAlertThirdButtonReturn)
 		//tell delegate to delete all its notes' files
 		[delegate trashRemainingNoteFilesInDirectory];
 	//but what if the files remain after switching to a single-db format--and then the user deletes a bunch of the files themselves?
@@ -648,7 +648,7 @@ NSMutableDictionary *ServiceAccountDictInit(NotationPrefs *prefs, NSString* serv
 	if ([(id)contextInfo respondsToSelector:@selector(notesStorageFormatDidChange)])
 		[(NotationPrefsViewController*)contextInfo notesStorageFormatDidChange];
 	
-	if (returnCode != NSAlertAlternateReturn) {
+	if (returnCode != NSAlertSecondButtonReturn) {
 		//run queued method
 		NSAssert([(id)contextInfo respondsToSelector:@selector(runQueuedStorageFormatChangeInvocation)],
 				 @"can't get runQueuedStorageFormatChangeInvocation method for changing");
