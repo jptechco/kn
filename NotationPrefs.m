@@ -23,6 +23,7 @@
 
 #import "NotationPrefs.h"
 #import "GlobalPrefs.h"
+#import "KNSecureArchiving.h"
 #import "NSString_NV.h"
 #import "NSCollection_utils.h"
 #import "NotationPrefsViewController.h"
@@ -170,6 +171,8 @@ NSMutableDictionary *ServiceAccountDictInit(NotationPrefs *prefs, NSString* serv
     return self;
 }
 
++ (BOOL)supportsSecureCoding { return YES; }
+
 - (id)initWithCoder:(NSCoder*)decoder {
     if ([super init]) {
 		NSAssert([decoder allowsKeyedCoding], @"Keyed decoding only!");
@@ -191,7 +194,7 @@ NSMutableDictionary *ServiceAccountDictInit(NotationPrefs *prefs, NSString* serv
 			keyLengthInBits = DEFAULT_KEY_LENGTH;
 		
 		@try {
-			baseBodyFont = [[decoder decodeObjectForKey:VAR_STR(baseBodyFont)] retain];
+			baseBodyFont = [[decoder decodeObjectOfClass:[NSFont class] forKey:VAR_STR(baseBodyFont)] retain];
 		} @catch (NSException *e) {
 			NSLog(@"Error trying to unarchive default base body font (%@, %@)", [e name], [e reason]);
 		}
@@ -203,7 +206,7 @@ NSMutableDictionary *ServiceAccountDictInit(NotationPrefs *prefs, NSString* serv
 		//foregroundColor does not receive the same treatment as basebodyfont; in the event of a discrepancy between global and per-db settings,
 		//the former is applied to the notes in the database, while the latter is restored from the database itself
 		@try {
-			foregroundColor = [[decoder decodeObjectForKey:VAR_STR(foregroundColor)] retain];
+			foregroundColor = [[decoder decodeObjectOfClass:[NSColor class] forKey:VAR_STR(foregroundColor)] retain];
 		} @catch (NSException *e) {
 			NSLog(@"Error trying to unarchive foreground text color (%@, %@)", [e name], [e reason]);
 		}
@@ -214,25 +217,31 @@ NSMutableDictionary *ServiceAccountDictInit(NotationPrefs *prefs, NSString* serv
 		
 		confirmFileDeletion = [decoder decodeBoolForKey:VAR_STR(confirmFileDeletion)];
 		
+		//arrays of the four-character type codes and path extensions, both plain strings
+		NSSet *stringArrayClasses = [NSSet setWithObjects:[NSArray class], [NSString class], nil];
+
 		unsigned int i;
 		for (i=0; i<4; i++) {
-			if (!(typeStrings[i] = [[decoder decodeObjectForKey:[VAR_STR(typeStrings) stringByAppendingFormat:@".%d",i]] retain]))
+			if (!(typeStrings[i] = [[decoder decodeObjectOfClasses:stringArrayClasses forKey:[VAR_STR(typeStrings) stringByAppendingFormat:@".%d",i]] retain]))
 				typeStrings[i] = [[NotationPrefs defaultTypeStringsForFormat:i] retain];
-			if (!(pathExtensions[i] = [[decoder decodeObjectForKey:[VAR_STR(pathExtensions) stringByAppendingFormat:@".%d",i]] retain]))
+			if (!(pathExtensions[i] = [[decoder decodeObjectOfClasses:stringArrayClasses forKey:[VAR_STR(pathExtensions) stringByAppendingFormat:@".%d",i]] retain]))
 				pathExtensions[i] = [[NotationPrefs defaultPathExtensionsForFormat:i] retain];
 			chosenExtIndices[i] = [decoder decodeIntForKey:[VAR_STR(chosenExtIndices) stringByAppendingFormat:@".%d",i]];
 		}
-		
-		if (!(syncServiceAccounts = [[decoder decodeObjectForKey:VAR_STR(syncServiceAccounts)] retain]))
+
+		//the persisted syncServiceAccounts shape is kept even though the Simplenote backend is gone:
+		//a dictionary of per-service dictionaries of plist values
+		if (!(syncServiceAccounts = [[decoder decodeObjectOfClasses:KNPropertyListClasses() forKey:VAR_STR(syncServiceAccounts)] retain]))
 			syncServiceAccounts = [[NSMutableDictionary alloc] init];
-		keychainDatabaseIdentifier = [[decoder decodeObjectForKey:VAR_STR(keychainDatabaseIdentifier)] retain];
-		
-		if (!(seenDiskUUIDEntries = [[decoder decodeObjectForKey:VAR_STR(seenDiskUUIDEntries)] retain]))
+		keychainDatabaseIdentifier = [[decoder decodeObjectOfClass:[NSString class] forKey:VAR_STR(keychainDatabaseIdentifier)] retain];
+
+		if (!(seenDiskUUIDEntries = [[decoder decodeObjectOfClasses:[NSSet setWithObjects:[NSArray class], [DiskUUIDEntry class], nil]
+															 forKey:VAR_STR(seenDiskUUIDEntries)] retain]))
 			seenDiskUUIDEntries = [[NSMutableArray alloc] init];
-		
-		masterSalt = [[decoder decodeObjectForKey:VAR_STR(masterSalt)] retain];
-		dataSessionSalt = [[decoder decodeObjectForKey:VAR_STR(dataSessionSalt)] retain];
-		verifierKey = [[decoder decodeObjectForKey:VAR_STR(verifierKey)] retain];
+
+		masterSalt = [[decoder decodeObjectOfClass:[NSData class] forKey:VAR_STR(masterSalt)] retain];
+		dataSessionSalt = [[decoder decodeObjectOfClass:[NSData class] forKey:VAR_STR(dataSessionSalt)] retain];
+		verifierKey = [[decoder decodeObjectOfClass:[NSData class] forKey:VAR_STR(verifierKey)] retain];
 		
 		doesEncryption = doesEncryption && verifierKey && masterSalt;
 		

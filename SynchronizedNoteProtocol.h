@@ -22,7 +22,7 @@
     along with Notational Velocity.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-@protocol SynchronizedNote <NSCoding, NSObject>
+@protocol SynchronizedNote <NSSecureCoding, NSObject>
 
 - (CFUUIDBytes *)uniqueNoteIDBytes;
 - (NSDictionary *)syncServicesMD;

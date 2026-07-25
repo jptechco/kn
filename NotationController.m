@@ -33,6 +33,7 @@
 #import "NotationPrefs.h"
 #import "NoteAttributeColumn.h"
 #import "FrozenNotation.h"
+#import "KNSecureArchiving.h"
 #import "AlienNoteImporter.h"
 #import "ODBEditor.h"
 #import "NotationFileManager.h"
@@ -240,7 +241,7 @@
 	}
 	NSData *archivedNotation = [[[NSData alloc] initWithBytesNoCopy:notesData length:fileSize freeWhenDone:NO] autorelease];
 	@try {
-		frozenNotation = [NSKeyedUnarchiver unarchiveObjectWithData:archivedNotation];
+		frozenNotation = KNUnarchiveObjectOfClass([FrozenNotation class], archivedNotation);
 	} @catch (NSException *e) {
 		NSLog(@"(VERIFY) Error unarchiving notes and preferences from data (%@, %@)", [e name], [e reason]);
 		result = kCoderErr;
@@ -290,7 +291,7 @@ returnResult:
 	if (fileSize > 0) {
 		NSData *archivedNotation = [[NSData alloc] initWithBytesNoCopy:notesData length:fileSize freeWhenDone:NO];
 		@try {
-			frozenNotation = [NSKeyedUnarchiver unarchiveObjectWithData:archivedNotation];
+			frozenNotation = KNUnarchiveObjectOfClass([FrozenNotation class], archivedNotation);
 		} @catch (NSException *e) {
 			NSLog(@"Error unarchiving notes and preferences from data (%@, %@)", [e name], [e reason]);
 			

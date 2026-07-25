@@ -23,6 +23,7 @@
 
 #import "NoteObject.h"
 #import "GlobalPrefs.h"
+#import "KNSecureArchiving.h"
 #import "LabelObject.h"
 #import "WALController.h"
 #import "NotationController.h"
@@ -325,9 +326,11 @@ force_inline id unifiedCellForNote(NotesTableView *tv, NoteObject *note, NSInteg
 //the overhead of the _decodeObject* C functions must be significantly greater than the objc_msgSend and argument passing overhead
 #define DECODE_INDIVIDUALLY 1
 
++ (BOOL)supportsSecureCoding { return YES; }
+
 - (id)initWithCoder:(NSCoder*)decoder {
 	if ([self init]) {
-		
+
 		if ([decoder allowsKeyedCoding]) {
 			//(hopefully?) no versioning necessary here
 			
@@ -360,12 +363,15 @@ force_inline id unifiedCellForNote(NotesTableView *tv, NoteObject *note, NSInteg
 			const uint8_t *decodedUUIDBytes = [decoder decodeBytesForKey:VAR_STR(uniqueNoteIDBytes) returnedLength:&decodedUUIDByteCount];
 			if (decodedUUIDBytes) memcpy(&uniqueNoteIDBytes, decodedUUIDBytes, MIN(decodedUUIDByteCount, sizeof(CFUUIDBytes)));
 			
-			syncServicesMD = [[decoder decodeObjectForKey:VAR_STR(syncServicesMD)] retain];
-			
-			titleString = [[decoder decodeObjectForKey:VAR_STR(titleString)] retain];
-			labelString = [[decoder decodeObjectForKey:VAR_STR(labelString)] retain];
-			contentString = [[decoder decodeObjectForKey:VAR_STR(contentString)] retain];
-			filename = [[decoder decodeObjectForKey:VAR_STR(filename)] retain];
+			//as in DeletedNoteObject: per-service dictionaries of plist values
+			syncServicesMD = [[decoder decodeObjectOfClasses:KNPropertyListClasses() forKey:VAR_STR(syncServicesMD)] retain];
+
+			titleString = [[decoder decodeObjectOfClass:[NSString class] forKey:VAR_STR(titleString)] retain];
+			labelString = [[decoder decodeObjectOfClass:[NSString class] forKey:VAR_STR(labelString)] retain];
+			//NSAttributedString covers the mutable subclass this is always encoded as, and decodes its
+			//own attribute values (fonts, colors, paragraph styles) through its own allowed list
+			contentString = [[decoder decodeObjectOfClass:[NSAttributedString class] forKey:VAR_STR(contentString)] retain];
+			filename = [[decoder decodeObjectOfClass:[NSString class] forKey:VAR_STR(filename)] retain];
 			
 		} else {
             NSRange32 range32;

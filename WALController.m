@@ -28,6 +28,8 @@
 #include <sys/stat.h>
 #import "NSData_transformations.h"
 #import "WALController.h"
+#import "FrozenNotation.h"
+#import "KNSecureArchiving.h"
 #import "DeletedNoteObject.h"
 #import "NSCollection_utils.h"
 #import "NSString_NV.h"
@@ -199,10 +201,8 @@ CFHashCode CFHashBytes(uint8_t *bytes, CFIndex length) {
 - (BOOL)writeNoteObject:(id<SynchronizedNote>)aNoteObject {
 	//this method serializes a note object, encrypts it, and writes it to the log
     NSMutableData *noteData = [NSMutableData data];
-	NSKeyedArchiver *archiver = [[[NSKeyedArchiver alloc] initForWritingWithMutableData:noteData] autorelease];
-	[archiver encodeObject:aNoteObject forKey:@"aNote"];
-	[archiver finishEncoding];
-	
+	KNArchiveRootObject(aNoteObject, @"aNote", noteData);
+
     if ([noteData length])
 		return [self _encryptAndWriteData:noteData];
     
@@ -505,9 +505,7 @@ CFHashCode CFHashBytes(uint8_t *bytes, CFIndex length) {
     
     id <SynchronizedNote> object = nil;
 	@try {
-		NSKeyedUnarchiver *unarchiver = [[NSKeyedUnarchiver alloc] initForReadingWithData:presumablySerializedData];
-		object = [unarchiver decodeObjectForKey:@"aNote"];
-		[unarchiver release];	
+		object = KNUnarchiveObjectOfClasses([FrozenNotation notesArchiveClasses], presumablySerializedData, @"aNote");
     } @catch (NSException *e) {
 		NSLog(@"recoverNextObject got an exception while unarchiving object: %@; returning NSNull to skip", [e reason]);
 		object = (id<SynchronizedNote>)[NSNull null];

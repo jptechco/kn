@@ -22,6 +22,7 @@
 
 
 #import "GlobalPrefs.h"
+#import "KNSecureArchiving.h"
 #import "NSData_transformations.h"
 #import "NotationPrefs.h"
 #import "BookmarksController.h"
@@ -87,6 +88,36 @@ NSString *NVPTFPboardType = @"Notational Velocity Poor Text Format";
 NSString *HotKeyAppToFrontName = @"bring Notational Velocity to the foreground";
 
 
+//The colors and the note body font live in NSUserDefaults as archived NSColor/NSFont blobs. NV wrote
+//them with NSArchiver, which was deprecated in 10.13 along with NSUnarchiver; these write keyed
+//archives instead and keep reading the old ones, since a database imported from NV -- or preferences
+//left by a Kinetic Notes build before this change -- still holds the non-keyed form. The first write
+//of any given key upgrades it in place.
+//
+//This does not disturb what -automaticallyManagesTextColors is for (see the comment on it below).
+//That switch is checked before either color is read at all, so in the default configuration the
+//archived value is never consulted, in whichever format it happens to be stored.
+
+static NSData *KNArchivedPrefsObject(id object) {
+	return KNArchivedDataWithRootObject(object);
+}
+
+static id KNUnarchivedPrefsObject(Class aClass, NSData *data) {
+	if (![data length]) return nil;
+
+	id object = KNUnarchiveObjectOfClass(aClass, data);
+	if (!object) {
+		//not a keyed archive: an NSArchiver blob written by NV or by an earlier build
+		@try {
+			object = [NSUnarchiver unarchiveObjectWithData:data];
+		} @catch (NSException *e) {
+			NSLog(@"KNUnarchivedPrefsObject: could not read archived %@ (%@, %@)", aClass, [e name], [e reason]);
+			return nil;
+		}
+	}
+	return [object isKindOfClass:aClass] ? object : nil;
+}
+
 @implementation GlobalPrefs
 
 static void sendCallbacksForGlobalPrefs(GlobalPrefs* self, SEL selector, id originalSender) {
@@ -131,14 +162,14 @@ static void sendCallbacksForGlobalPrefs(GlobalPrefs* self, SEL selector, id orig
 			[NSNumber numberWithDouble:0.0], LastScrollOffsetKey,
 			@"General", LastSelectedPreferencesPaneKey, 
 			
-			[NSArchiver archivedDataWithRootObject:
-			 [NSFont fontWithName:@"Helvetica" size:12.0f]], NoteBodyFontKey,
+			KNArchivedPrefsObject(
+			 [NSFont fontWithName:@"Helvetica" size:12.0f]), NoteBodyFontKey,
 			
-			[NSArchiver archivedDataWithRootObject:[NSColor textColor]], ForegroundTextColorKey,
-			[NSArchiver archivedDataWithRootObject:[NSColor textBackgroundColor]], BackgroundTextColorKey,
+			KNArchivedPrefsObject([NSColor textColor]), ForegroundTextColorKey,
+			KNArchivedPrefsObject([NSColor textBackgroundColor]), BackgroundTextColorKey,
 			
-			[NSArchiver archivedDataWithRootObject:
-			 [NSColor colorWithCalibratedRed:0.945 green:0.702 blue:0.702 alpha:1.0f]], SearchTermHighlightColorKey,
+			KNArchivedPrefsObject(
+			 [NSColor colorWithCalibratedRed:0.945 green:0.702 blue:0.702 alpha:1.0f]), SearchTermHighlightColorKey,
 			
 			[NSNumber numberWithFloat:[NSFont smallSystemFontSize]], TableFontSizeKey, 
 			[NSArray arrayWithObjects:NoteTitleColumnString, NoteDateModifiedColumnString, nil], NoteAttributesVisibleKey,
@@ -410,7 +441,7 @@ static void sendCallbacksForGlobalPrefs(GlobalPrefs* self, SEL selector, id orig
 		[searchTermHighlightAttributes release];
 		searchTermHighlightAttributes = nil;
 		
-		[defaults setObject:[NSArchiver archivedDataWithRootObject:color] forKey:SearchTermHighlightColorKey];
+		[defaults setObject:KNArchivedPrefsObject(color) forKey:SearchTermHighlightColorKey];
 		
 		SEND_CALLBACKS();
 	}
@@ -420,7 +451,7 @@ static void sendCallbacksForGlobalPrefs(GlobalPrefs* self, SEL selector, id orig
 	
 	NSData *theData = [defaults dataForKey:SearchTermHighlightColorKey];
 	if (theData) {
-		NSColor *color = (NSColor *)[NSUnarchiver unarchiveObjectWithData:theData];
+		NSColor *color = (NSColor *)KNUnarchivedPrefsObject([NSColor class], theData);
 		if (isRaw) return color;
 		if (color) {
 			//nslayoutmanager temporary attributes don't seem to like alpha components, so synthesize translucency using the bg color
@@ -495,7 +526,7 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2) {
 	[noteBodyAttributes release];
 	noteBodyAttributes = nil; //cause method to re-update
 	
-	[defaults setObject:[NSArchiver archivedDataWithRootObject:noteBodyFont] forKey:NoteBodyFontKey]; 
+	[defaults setObject:KNArchivedPrefsObject(noteBodyFont) forKey:NoteBodyFontKey]; 
 	
 	//restyle any PTF data on the clipboard to the new font
 	NSData *ptfData = [[NSPasteboard generalPasteboard] dataForType:NVPTFPboardType];
@@ -524,7 +555,7 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2) {
 	if (!noteBodyFont) {
 		retry:
 		@try {
-			noteBodyFont = [[NSUnarchiver unarchiveObjectWithData:[defaults objectForKey:NoteBodyFontKey]] retain];
+			noteBodyFont = [KNUnarchivedPrefsObject([NSFont class], [defaults dataForKey:NoteBodyFontKey]) retain];
 		} @catch (NSException *e) {
 			NSLog(@"Error trying to unarchive default note body font (%@, %@)", [e name], [e reason]);
 		}
@@ -601,9 +632,11 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2) {
 
 //YES (the default) means text colors follow the system light/dark appearance instead of a color the
 //user pinned. This is what keeps note text readable in Dark Mode: NV stored [NSColor textColor], but
-//the legacy NSUnarchiver flattens it to a static snapshot taken in whatever appearance was current
-//when it was archived, so a database first saved in Light Mode carries a static black that then
-//stays black on a dark background. Returning the live semantic colors instead lets them adapt.
+//archiving flattens it to a static snapshot taken in whatever appearance was current when it was
+//archived, so a database first saved in Light Mode carries a static black that then stays black on a
+//dark background. Returning the live semantic colors instead lets them adapt. Note that this check
+//comes first, before the archived color is read -- so it holds whether the stored blob is one of
+//NV's non-keyed NSArchiver ones or a keyed archive written here.
 - (BOOL)automaticallyManagesTextColors {
 	return [defaults boolForKey:AutomaticallyManagesTextColorsKey];
 }
@@ -623,7 +656,7 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2) {
 
 		//the user pinned a specific color, so stop following the system appearance
 		[defaults setBool:NO forKey:AutomaticallyManagesTextColorsKey];
-		[defaults setObject:[NSArchiver archivedDataWithRootObject:aColor] forKey:ForegroundTextColorKey];
+		[defaults setObject:KNArchivedPrefsObject(aColor) forKey:ForegroundTextColorKey];
 
 		SEND_CALLBACKS();
 	}
@@ -632,7 +665,7 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2) {
 - (NSColor*)foregroundTextColor {
 	if ([self automaticallyManagesTextColors]) return [NSColor textColor];
 	NSData *theData = [defaults dataForKey:ForegroundTextColorKey];
-	if (theData) return (NSColor *)[NSUnarchiver unarchiveObjectWithData:theData];
+	if (theData) return (NSColor *)KNUnarchivedPrefsObject([NSColor class], theData);
 	return [NSColor textColor];
 }
 
@@ -646,7 +679,7 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2) {
 		searchTermHighlightAttributes = nil;
 
 		[defaults setBool:NO forKey:AutomaticallyManagesTextColorsKey];
-		[defaults setObject:[NSArchiver archivedDataWithRootObject:aColor] forKey:BackgroundTextColorKey];
+		[defaults setObject:KNArchivedPrefsObject(aColor) forKey:BackgroundTextColorKey];
 
 		SEND_CALLBACKS();
 	}
@@ -657,7 +690,7 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2) {
 	if ([self automaticallyManagesTextColors]) return [NSColor textBackgroundColor];
 
 	NSData *theData = [defaults dataForKey:BackgroundTextColorKey];
-	if (theData) return (NSColor *)[NSUnarchiver unarchiveObjectWithData:theData];
+	if (theData) return (NSColor *)KNUnarchivedPrefsObject([NSColor class], theData);
 
 	return [NSColor textBackgroundColor];
 }
