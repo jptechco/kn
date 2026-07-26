@@ -16,6 +16,7 @@
 
 
 #import "PassphraseRetriever.h"
+#import "NotationFileManager.h"
 #import "KNAlert.h"
 #import "GlobalPrefs.h"
 #import "NotationPrefs.h"
@@ -59,12 +60,9 @@
 	}
 	
 	NSString *startingDirectory = NSLocalizedString(@"the current notes directory",nil);
-	FSRef notesDirectoryRef;
+	NSString *resolvedPath = [[notationPrefs delegate] noteDirectoryPath];
 	
-	if ([[[notationPrefs delegate] aliasDataForNoteDirectory] fsRefAsAlias:&notesDirectoryRef]) {
-		NSString *resolvedPath = [[NSFileManager defaultManager] pathWithFSRef:&notesDirectoryRef];
-		if (resolvedPath) startingDirectory = resolvedPath;
-    }
+	if ([resolvedPath length]) startingDirectory = resolvedPath;
 	[helpStringField setStringValue:[NSString stringWithFormat:NSLocalizedString(@"Please enter the passphrase to access notes in %@.",nil), 
 		[startingDirectory stringByAbbreviatingWithTildeInPath]]];	
 	

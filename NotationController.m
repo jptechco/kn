@@ -28,6 +28,7 @@
 #import "DeletedNoteObject.h"
 #import "NSString_NV.h"
 #import "NSFileManager_NV.h"
+#import "NSData_transformations.h"
 #import "BufferUtils.h"
 #import "GlobalPrefs.h"
 #import "NotationPrefs.h"
@@ -47,7 +48,7 @@
 
 - (id)init {
     if ([super init]) {
-		directoryChangesFound = notesChanged = aliasNeedsUpdating = NO;
+		directoryChangesFound = notesChanged = bookmarkNeedsUpdating = NO;
 		
 		allNotes = [[NSMutableArray alloc] init]; //<--the authoritative list of all memory-accessible notes
 		deletedNotes = [[NSMutableSet alloc] init];
@@ -79,27 +80,36 @@
 }
 
 
-//The notes directory is still recorded in preferences as Alias Manager data, so resolving it is the
-//one place an FSRef is still made -- and the last: it is turned straight into a path, and everything
-//downstream addresses files by path. Both go away with the move to an NSURL bookmark.
-- (id)initWithAliasData:(NSData*)data error:(OSStatus*)err {
-    OSStatus anErr = noErr;
+- (id)initWithBookmarkData:(NSData*)data error:(OSStatus*)err {
+    BOOL isStale = NO;
+    NSString *targetPath = [data pathFromBookmarkDataIsStale:&isStale];
+    OSStatus anErr = targetPath ? noErr : fnfErr;
     
-    if (data && (anErr = PtrToHand([data bytes], (Handle*)&aliasHandle, [data length])) == noErr) {
-	
-	FSRef targetRef;
-	Boolean changed;
-	
-	if ((anErr = FSResolveAliasWithMountFlags(NULL, aliasHandle, &targetRef, &changed, 0)) == noErr) {
-	    NSString *targetPath = [[NSFileManager defaultManager] pathWithFSRef:&targetRef];
-	    if (targetPath && [self initWithDirectoryPath:targetPath error:&anErr]) {
-		aliasNeedsUpdating = changed;
+    if (targetPath && [self initWithDirectoryPath:targetPath error:&anErr]) {
+		//a bookmark that resolved but no longer describes the directory exactly gets written again
+		bookmarkNeedsUpdating = isStale;
 		*err = noErr;
 		
 		return self;
-	    }
-	    if (!targetPath) anErr = fnfErr;
-	}
+    }
+    
+    *err = anErr;
+    
+    return nil;
+}
+
+//For a database last opened before the move to bookmarks. The location is still recorded as Alias
+//Manager data; resolving it is enough to open the notes, and marking the bookmark as needing an
+//update is what has -[AppController setNotationController:] record it in the new form.
+- (id)initWithLegacyAliasData:(NSData*)data error:(OSStatus*)err {
+    NSString *targetPath = [data pathFromLegacyAliasData];
+    OSStatus anErr = targetPath ? noErr : fnfErr;
+    
+    if (targetPath && [self initWithDirectoryPath:targetPath error:&anErr]) {
+		bookmarkNeedsUpdating = YES;
+		*err = noErr;
+		
+		return self;
     }
     
     *err = anErr;
@@ -134,7 +144,7 @@
     }
     
     if ([self init]) {
-		aliasNeedsUpdating = YES; //we don't know if we have an alias yet
+		bookmarkNeedsUpdating = YES; //we don't know if we have a bookmark yet
 		
 		noteDirectoryPath = [directoryPath copy];
 		
@@ -677,62 +687,16 @@ bail:
     }
 }
 
-//The notes directory is recorded in preferences as Alias Manager data, and the Alias Manager only
-//speaks FSRef, so this is where the last one is made from a path. It goes away together with
-//FSFindFolder and FSNewAlias when that recording becomes an NSURL bookmark.
-static Boolean KNFSRefFromPath(NSString *path, FSRef *outRef) {
-	if (![path length]) return false;
-	
-	CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (CFStringRef)path, kCFURLPOSIXPathStyle, true);
-	if (!url) return false;
-	
-	Boolean gotRef = CFURLGetFSRef(url, outRef);
-	CFRelease(url);
-	
-	return gotRef;
+- (NSData*)bookmarkDataForNoteDirectory {
+    return [NSData bookmarkDataForPath:[self noteDirectoryPath]];
 }
 
-- (NSData*)aliasDataForNoteDirectory {
-    NSData* theData = nil;
-    
-    FSRef userHomeFoundRef, *relativeRef = &userHomeFoundRef;
-    
-    if (aliasNeedsUpdating) {
-		OSErr err = FSFindFolder(kUserDomain, kCurrentUserFolderType, kCreateFolder, &userHomeFoundRef);
-		if (err != noErr) {
-			relativeRef = NULL;
-			NSLog(@"FSFindFolder error: %d", err);
-		}
-    }
-	
-    //re-fill handle from fsref if necessary, storing path relative to user directory
-    if (aliasNeedsUpdating) {
-		FSRef directoryRef;
-		if (!KNFSRefFromPath([self noteDirectoryPath], &directoryRef))
-			return nil;
-		if (FSNewAlias(relativeRef, &directoryRef, &aliasHandle) != noErr)
-			return nil;
-    }
-	
-    if (aliasHandle != NULL) {
-		aliasNeedsUpdating = NO;
-		
-		HLock((Handle)aliasHandle);
-		theData = [NSData dataWithBytes:*aliasHandle length:GetHandleSize((Handle) aliasHandle)];
-		HUnlock((Handle)aliasHandle);
-	    
-		return theData;
-    }
-    
-    return nil;
+- (void)setBookmarkNeedsUpdating:(BOOL)needsUpdate {
+	bookmarkNeedsUpdating = needsUpdate;
 }
 
-- (void)setAliasNeedsUpdating:(BOOL)needsUpdate {
-	aliasNeedsUpdating = needsUpdate;
-}
-
-- (BOOL)aliasNeedsUpdating {
-	return aliasNeedsUpdating;
+- (BOOL)bookmarkNeedsUpdating {
+	return bookmarkNeedsUpdating;
 }
 
 - (void)closeAllResources {

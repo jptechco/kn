@@ -408,9 +408,9 @@ long BlockSizeForNotation(NotationController *controller) {
 											 after.st_dev == before.st_dev && after.st_ino == before.st_ino;
 				if (!stillTheSameDirectory) {
 					//the notes crossed volumes, so what was recorded for them no longer names them
-					[self setAliasNeedsUpdating:YES];
-					NSData *aliasData = [self aliasDataForNoteDirectory];
-					if (aliasData) [[GlobalPrefs defaultPrefs] setAliasDataForDefaultDirectory:aliasData sender:self];
+					[self setBookmarkNeedsUpdating:YES];
+					NSData *bookmark = [self bookmarkDataForNoteDirectory];
+					if (bookmark) [[GlobalPrefs defaultPrefs] setBookmarkDataForDefaultDirectory:bookmark sender:self];
 					//we must quit now, as notes will very likely be re-initialized in the same place
 					goto terminate;
 				}

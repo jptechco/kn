@@ -215,45 +215,59 @@
 	return [url absoluteString];
 }
 
-- (BOOL)fsRefAsAlias:(FSRef*)fsRef {
++ (NSData*)bookmarkDataForPath:(NSString*)path {
+	if (![path length]) return nil;
+
+	NSError *error = nil;
+	NSData *bookmark = [[NSURL fileURLWithPath:path isDirectory:YES] bookmarkDataWithOptions:0
+															 includingResourceValuesForKeys:nil
+																			  relativeToURL:nil error:&error];
+	if (!bookmark) NSLog(@"could not record a bookmark for %@: %@", path, error);
+
+	return bookmark;
+}
+
+//*outIsStale reports that the bookmark still resolved but should be written again, which is how a
+//directory that has been moved or renamed gets its recorded location brought back up to date.
+- (NSString*)pathFromBookmarkDataIsStale:(BOOL*)outIsStale {
+	if (outIsStale) *outIsStale = NO;
+	if (![self length]) return nil;
+
+	BOOL isStale = NO;
+	NSURL *url = [NSURL URLByResolvingBookmarkData:self options:NSURLBookmarkResolutionWithoutUI
+									 relativeToURL:nil bookmarkDataIsStale:&isStale error:NULL];
+	if (!url) return nil;
+
+	if (outIsStale) *outIsStale = isStale;
+
+	return [url path];
+}
+
+//Alias Manager data, which is what Notational Velocity records and what this program recorded before
+//the move to bookmarks. FSCopyAliasInfo is unreliable for this -- Notational Velocity's own code says
+//as much -- so the alias is resolved to a reference and the path taken from that.
+- (NSString*)pathFromLegacyAliasData {
     AliasHandle aliasHandle;
+    FSRef targetRef;
     Boolean changedThrownAway;
-    
-    if (self && PtrToHand([self bytes], (Handle*)&aliasHandle, [self length]) == noErr) {
-		
-		if (FSResolveAliasWithMountFlags(NULL, aliasHandle, fsRef, &changedThrownAway, kResolveAliasFileNoUI) == noErr)
-			return YES;
-    }
-	
-    return NO;
+
+    if (![self length] || PtrToHand([self bytes], (Handle*)&aliasHandle, [self length]) != noErr)
+		return nil;
+
+    OSStatus err = FSResolveAliasWithMountFlags(NULL, aliasHandle, &targetRef, &changedThrownAway, kResolveAliasFileNoUI);
+    DisposeHandle((Handle)aliasHandle);
+    if (err != noErr) return nil;
+
+    UInt8 path[PATH_MAX];
+    if (FSRefMakePath(&targetRef, path, sizeof(path)) != noErr)
+		return nil;
+
+    return [[NSFileManager defaultManager] stringWithFileSystemRepresentation:(char*)path length:strlen((char*)path)];
 }
 
 + (NSData*)uncachedDataFromFile:(NSString*)filename {
 			
 	return [NSData dataWithContentsOfFile:filename options:NSUncachedRead error:NULL];
-}
-
-+ (NSData*)aliasDataForFSRef:(FSRef*)fsRef {
-    
-    FSRef userHomeFoundRef, *relativeRef = &userHomeFoundRef;
-    
-    OSErr err = FSFindFolder(kUserDomain, kCurrentUserFolderType, kCreateFolder, &userHomeFoundRef);
-    if (err != noErr) {
-		relativeRef = NULL;
-		NSLog(@"FSFindFolder error: %d", err);
-    }
-    
-    AliasHandle aliasHandle;
-    NSData *theData = nil;
-    
-    //fill handle from fsref, storing path relative to user directory
-    if (FSNewAlias(relativeRef, fsRef, &aliasHandle) == noErr && aliasHandle != NULL) {
-		HLock((Handle)aliasHandle);
-		theData = [NSData dataWithBytes:*aliasHandle length:GetHandleSize((Handle) aliasHandle)];
-		HUnlock((Handle)aliasHandle);
-    }
-    
-    return theData;
 }
 
 //yes, to do the same encoding detection we could use something like initWithContentsOfFile: or 
