@@ -1,17 +1,23 @@
 # Kinetic Notes
 
-A modern fork of [Notational Velocity](https://notational.net/) — the fast, keyboard-driven
+A modern fork of Notational Velocity — the fast, keyboard-driven
 note-taking app for macOS that does searching and creating in a single field.
 
-Notational Velocity's last release was in 2011. That build ships `ppc`, `i386` and `x86_64` code
+[Notational Velocity's last release](https://notational.net/) was in 2011. That build ships `ppc`, `i386` and `x86_64` code
 and has no Apple Silicon slice, so on modern Macs it runs only under Rosetta 2 — and Rosetta 2 is
 being withdrawn after macOS 26 Tahoe. Kinetic Notes is that application rebuilt to run natively,
 with its dead and Intel-only dependencies replaced, and nothing removed that anyone was using.
 
-**Status: 1.5 beta — feature complete, in testing.** The current stable release is **1.1**.
+### Status
+**Version: 1.5 beta — feature complete, in testing.**
+The current stable release is **1.1**.
+
 1.5 replaces the application's Carbon-era internals; the storage formats are unchanged and verified
 compatible in both directions, but the file-handling code underneath them is new, so it is going out
-as a beta first. See the [changelog](CHANGELOG.md) for what has landed in each version.
+as a beta first.
+
+### Changelog
+If you're curious, check out the [changelog](CHANGELOG.md) to see what's changed in each version.
 
 ---
 
@@ -99,14 +105,14 @@ output and cannot be edited at all.
 Kinetic Notes is free software under the **GNU General Public License v3**, the same licence as
 Notational Velocity. The full text is in [COPYING.txt](COPYING.txt).
 
-- **Notational Velocity** is copyright © 2009–2011 Zachary Schneirov. Kinetic Notes exists only
-  because of that work.
+- **Notational Velocity** was created by Zachary Schneirov. Kinetic Notes exists only
+  because of his work.
 - Third-party components retained from the original are credited in
   [Acknowledgments.txt](Acknowledgments.txt), including PTHotKeys (Quentin D. Carnicelli),
   RBSplitView, and ODBEditor.
 - The original Notational Velocity application icon by Taylor Carrigan is **not** used here and
-  is not part of this repository; its licence does not permit commercial use. Kinetic Notes ships
-  its own icon.
+  is not part of this repository; its licence did not permit commercial use. Kinetic Notes ships
+  its own icon, also copyrighted by JPTech.
 
 ### Translations
 
@@ -121,3 +127,5 @@ to the people who wrote them:
 | German | Benedikt Hopmann |
 | Chinese (Simplified) | Tunghsiao Liu |
 | Italian | Paolo Tramannoni |
+
+**Interested in adding another translation?**  Post the details in [issues](https://github.com/jptechco/kn/issues)
