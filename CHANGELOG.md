@@ -18,6 +18,9 @@ version heading when that release is cut.
 
 ## Unreleased
 
+- **build 21** — Reserve the application icon outside the GPL, stop shipping Notational Velocity's
+  icon, and correct `Acknowledgments.txt` so it describes what the application actually contains.
+  ([#21](https://github.com/jptechco/kn/pull/21))
 - **build 20** — Split this changelog out of the README and settle the versioning scheme above;
   the application now reports its development version and build in the About box.
   ([#20](https://github.com/jptechco/kn/pull/20))

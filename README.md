@@ -102,17 +102,20 @@ output and cannot be edited at all.
 
 ## License and credit
 
-Kinetic Notes is free software under the **GNU General Public License v3**, the same licence as
-Notational Velocity. The full text is in [COPYING.txt](COPYING.txt).
+Kinetic Notes' **source code** is free software under the **GNU General Public License v3**, the
+same licence as Notational Velocity. The full text is in [COPYING.txt](COPYING.txt).
+
+**The application icon is not covered by that licence.** `Images/kinetic.icns` and
+`Images/kinetic.iconset` are © 2026 jptechco, all rights reserved. The code may be forked freely;
+a fork must ship its own icon.
 
 - **Notational Velocity** was created by Zachary Schneirov. Kinetic Notes exists only
   because of his work.
 - Third-party components retained from the original are credited in
   [Acknowledgments.txt](Acknowledgments.txt), including PTHotKeys (Quentin D. Carnicelli),
   RBSplitView, and ODBEditor.
-- The original Notational Velocity application icon by Taylor Carrigan is **not** used here and
-  is not part of this repository; its licence did not permit commercial use. Kinetic Notes ships
-  its own icon, also copyrighted by jptechco.
+- The original Notational Velocity application icon by Taylor Carrigan is not used and is not
+  part of this repository; its licence did not permit commercial use.
 
 ### Translations
 
