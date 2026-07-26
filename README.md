@@ -8,8 +8,10 @@ and has no Apple Silicon slice, so on modern Macs it runs only under Rosetta 2 �
 being withdrawn after macOS 26 Tahoe. Kinetic Notes is that application rebuilt to run natively,
 with its dead and Intel-only dependencies replaced, and nothing removed that anyone was using.
 
-**Status: 1.1 — production ready, development ongoing.** See [Version history](#version-history)
-for what has landed.
+**Status: 1.5 beta — feature complete, in testing.** 1.5 replaces the application's Carbon-era
+internals; the storage formats are unchanged and verified byte-compatible in both directions, but
+the file-handling code underneath them is new, so it is going out as a beta first. 1.1 remains the
+current production release. See [Version history](#version-history) for what has landed.
 
 ---
 
@@ -54,14 +56,71 @@ deliberately a separate application, not an upgrade in place:
 
 You can keep both installed indefinitely.
 
-> **Note:** the first-run import assistant, which copies your Notational Velocity notes into
-> Kinetic Notes' own store, is still in development. Until it ships, Kinetic Notes starts with an
-> empty database. When it does ship it will *copy*, never move, and will not write to Notational
-> Velocity's data at any point — including when the source database is encrypted.
+> On a genuine first launch, Kinetic Notes offers to import an existing Notational Velocity notes
+> directory, encrypted ones included. It *copies*, never moves, and does not write to Notational
+> Velocity's data at any point.
 
 ---
 
 ## Version history
+
+### 1.5 beta
+
+**The Carbon File Manager is gone from the way notes are stored.** Notational Velocity read and
+wrote every note through it — an API Apple deprecated in 2012. 1.5 replaces it, along with the
+other Mac OS X-era interfaces the application still depended on.
+
+Two Carbon calls are kept on purpose, both measured rather than assumed: resolving the Alias
+Manager record that Notational Velocity writes for its notes folder, and reading a volume's
+creation date, which is used to identify a disk and which no modern API reports the same way on
+APFS. Changing either would break something real — the first-run import in one case, and, in the
+other, every note in an existing database appearing to have been edited elsewhere.
+
+This release changes no file formats. Databases, note files, preferences and Keychain entries stay
+compatible with 1.1 in **both** directions, which was the constraint every change below was built
+and tested against.
+
+*Files and storage*
+- **Note files are addressed by path.** Every note was previously tracked by an `FSRef`, an opaque
+  handle the File Manager resolved. Reading a note's metadata now takes a single `getattrlist(2)`
+  call, closing a window in which a note edited in an external editor at exactly the wrong moment
+  could be misread.
+- **Saving is atomic in one step.** A note is written to a scratch file and renamed into place;
+  the rename replaces the old file and removes the scratch file together, so an interrupted save
+  can no longer leave anything behind. Notational Velocity's exchange-then-delete could, and did —
+  it accumulated hundreds of stray files over the years. Any that already exist are swept at
+  launch.
+- **Directory scanning uses `getattrlistbulk(2)`,** which reads a whole notes folder in one or two
+  calls. Filenames that fail to decode are no longer dropped from the catalog.
+- **The notes folder location is recorded as an `NSURL` bookmark.** The Alias Manager record a
+  previous version wrote is still read, and is converted the first time 1.5 opens the database.
+  Notational Velocity's own record is read exactly as before, so the first-run import assistant is
+  unaffected — and it has to be, because Notational Velocity will never write anything else.
+- Moving to the Trash, revealing in the Finder, folder icons and application icons all go through
+  current APIs.
+
+*Data and security*
+- **Archiving moved to `NSSecureCoding`.** Every archive written is byte-identical to what 1.1
+  wrote; reading the real notes database and re-freezing it reproduces the original file exactly.
+- **Keychain access moved to `SecItem`.** Existing passphrases keep working: the items stay in the
+  same login keychain the previous calls used, so no one is asked for a passphrase again.
+
+*Interface*
+- **Every alert rebuilt on `NSAlert`** — 38 call sites across 15 files — with identical wording and
+  button order. This also removed a latent crash: several inherited call sites passed
+  already-formatted text through a second `printf` pass.
+- Deprecated drawing and window APIs retired outside `RBSplitView`, which is left alone
+  deliberately.
+- **Typographic quotes restored.** Fourteen alerts and undo names read `quotemark%@quotemark`
+  where curly quotes belong — upstream damage from a find/replace in Notational Velocity's own
+  history, fixed in the sources and in all seven localizations.
+- **The welcome notes are rebranded in every language.** 1.1 had done this for English only; the
+  other six locales still carried Notational Velocity branding, dead links and translators'
+  personal email addresses. Translator credits are kept; no translation was invented.
+
+*Housekeeping*
+- Deleted the `IsLeopardOrLater` / `IsSnowLeopardOrLater` runtime checks. At a macOS 13 floor both
+  were unconditionally true, so ~30 sites across 13 files were guarding dead pre-2009 branches.
 
 ### 1.1
 

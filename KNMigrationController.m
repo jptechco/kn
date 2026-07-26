@@ -57,7 +57,7 @@ static NSString *KNStagedImportDirectoryName = @"Kinetic Notes (importing)";
 
 + (NSString*)kineticNotesDirectory {
 
-	//must match the directory +[NotationController getDefaultNotesDirectoryRef:] creates
+	//must match the directory +[NotationController defaultNotesDirectoryPathReturningError:] creates
 	return [[self applicationSupportDirectory] stringByAppendingPathComponent:@"Kinetic Notes"];
 }
 
@@ -84,8 +84,11 @@ static NSString *KNStagedImportDirectoryName = @"Kinetic Notes (importing)";
 
 + (BOOL)isFirstRun {
 
-	//the presence of our own defaults means we have run before even if the directory was since moved
-	if ([[NSUserDefaults standardUserDefaults] objectForKey:@"DirectoryAlias"]) return NO;
+	//the presence of our own defaults means we have run before even if the directory was since moved.
+	//Both keys have to be checked: the notes directory is recorded as a bookmark now, but a database
+	//last opened by an earlier version still has only the alias until its next quit.
+	NSUserDefaults *ourDefaults = [NSUserDefaults standardUserDefaults];
+	if ([ourDefaults objectForKey:@"DirectoryBookmark"] || [ourDefaults objectForKey:@"DirectoryAlias"]) return NO;
 
 	return ![self directoryHoldsNotesDatabase:[self kineticNotesDirectory]];
 }
@@ -102,17 +105,11 @@ static NSString *KNStagedImportDirectoryName = @"Kinetic Notes (importing)";
 	return NO;
 }
 
-//NV stores its notes directory as Alias Manager data, not as an NSURL bookmark. FSCopyAliasInfo is
-//unreliable for this (NV's own code says as much), so resolve to an FSRef and take the path from
-//that, which is the chain AppController uses when reporting the location of a database it can't open.
+//NV stores its notes directory as Alias Manager data and always will, so this keeps resolving it
+//however this program comes to record its own.
 + (NSString*)directoryFromNotationalVelocityAliasData:(NSData*)aliasData {
 
-	if (![aliasData length]) return nil;
-
-	FSRef directoryRef;
-	if (![aliasData fsRefAsAlias:&directoryRef]) return nil;
-
-	return [[NSFileManager defaultManager] pathWithFSRef:&directoryRef];
+	return [aliasData pathFromLegacyAliasData];
 }
 
 + (NSString*)detectedNotationalVelocityDirectory {

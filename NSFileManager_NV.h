@@ -33,10 +33,8 @@
 - (id)getOpenMetaTagsAtFSPath:(const char*)path;
 - (BOOL)setOpenMetaTags:(id)plistObject atFSPath:(const char*)path;
 
-- (NSString*)pathCopiedFromAliasData:(NSData*)aliasData;
 - (BOOL)setTextEncodingAttribute:(NSStringEncoding)encoding atFSPath:(const char*)path;
 - (NSStringEncoding)textEncodingAttributeOfFSPath:(const char*)path;
 - (NSString*)pathFromFSPath:(char*)path;
-- (NSString*)pathWithFSRef:(FSRef*)fsRef;
 
 @end

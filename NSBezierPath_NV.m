@@ -58,29 +58,15 @@
 
 @implementation NSImage (NV)
 
-+ (NSImage*)smallIconForFSRef:(FSRef*)fsRef {
-    OSStatus err = noErr;
-    
-    if (!fsRef)
++ (NSImage*)smallIconForFileAtPath:(NSString*)path {
+    if (![path length])
 		return nil;
-    
-    IconRef iconRef;
-    if ((err = GetIconRefFromFileInfo(fsRef, 0, NULL, 0, NULL, kIconServicesNormalUsageFlag, &iconRef, NULL)) == noErr) {
-		
-		NSImage *image = [[[NSImage alloc] initWithSize:NSMakeSize(16.0f, 16.0f)] autorelease];
-		NSRect frame = NSMakeRect(0.0f,0.0f,16.0f,16.0f);
-		
-		[image lockFocus];
-		err = PlotIconRefInContext([[NSGraphicsContext currentContext] graphicsPort], (CGRect *)&frame, 0, 0, nil, 0, iconRef);
-		[image unlockFocus];
-		
-		if (err == noErr)
-			return image;
-    }
-    
-    NSLog(@"smallIconForFSRef error: %d", err);
-    
-    return nil;
+
+    //-iconForFile: hands back the shared icon, which must not be resized in place
+    NSImage *icon = [[[[NSWorkspace sharedWorkspace] iconForFile:path] copy] autorelease];
+    [icon setSize:NSMakeSize(16.0f, 16.0f)];
+
+    return icon;
 }
 
 

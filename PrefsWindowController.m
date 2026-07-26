@@ -26,6 +26,7 @@
 #import "NSBezierPath_NV.h"
 #import "NotationPrefs.h"
 #import "GlobalPrefs.h"
+#include <sys/stat.h>
 
 #define SYSTEM_LIST_FONT_SIZE 12.0f
 
@@ -258,14 +259,12 @@
 - (NSMenu*)directorySelectionMenu {
     NSMenu *theMenu = [[[NSMenu alloc] initWithTitle:@"Note Directory Menu"] autorelease];
     
-    FSRef targetRef = {{0}};
-    NSString *name = [prefsController displayNameForDefaultDirectoryWithFSRef:&targetRef];
+    NSString *directoryPath = [prefsController pathForDefaultDirectoryIsStale:NULL];
+    NSString *name = [prefsController displayNameForDefaultDirectory];
     if (!name)
 		name = NSLocalizedString(@"<Directory unknown>", nil);
 	
-	NSImage *iconImage = nil;
-	if (!IsZeros(&targetRef, sizeof(FSRef)) || [[prefsController aliasDataForDefaultDirectory] fsRefAsAlias:&targetRef])
-		iconImage = [NSImage smallIconForFSRef:&targetRef];
+	NSImage *iconImage = [directoryPath length] ? [NSImage smallIconForFileAtPath:directoryPath] : nil;
 	
     NSMenuItem *theMenuItem = [[[NSMenuItem alloc] initWithTitle:name action:nil keyEquivalent:@""] autorelease];
     
@@ -284,21 +283,31 @@
     return theMenu;
 }
 
-- (void)changeDefaultDirectory {
-	FSRef notesDirectoryRef;
-	NSData *aliasData = nil;
-	NSString *directoryPath = nil;
+//Two paths name the same directory when they name the same object on disk, which a string comparison
+//would miss across a symlink or a differently-spelled but equivalent path.
+static BOOL KNPathsAreSameDirectory(NSString *one, NSString *two) {
+	struct stat a, b;
 
-	if ([self getNewNotesRefFromOpenPanel:&notesDirectoryRef returnedPath:&directoryPath]) {
+	if (![one length] || ![two length]) return NO;
+	if (stat([one fileSystemRepresentation], &a) != 0) return NO;
+	if (stat([two fileSystemRepresentation], &b) != 0) return NO;
+
+	return a.st_dev == b.st_dev && a.st_ino == b.st_ino;
+}
+
+- (void)changeDefaultDirectory {
+	NSString *directoryPath = [self newNotesDirectoryFromOpenPanel];
+
+	if (directoryPath) {
 		
 		//make sure we're not choosing the same folder as what we started with, because:
-		//-[NotationController initWithAliasData:] might attempt to initialize journaling, which will already be in use
-		FSRef currentNotesDirectoryRef;
-		[[prefsController aliasDataForDefaultDirectory] fsRefAsAlias:&currentNotesDirectoryRef];
-		if (FSCompareFSRefs(&notesDirectoryRef, &currentNotesDirectoryRef) != noErr) {
+		//-[NotationController initWithBookmarkData:] might attempt to initialize journaling, which will already be in use
+		NSString *currentPath = [prefsController pathForDefaultDirectoryIsStale:NULL];
+		if (!currentPath || !KNPathsAreSameDirectory(currentPath, directoryPath)) {
 			
-			if ((aliasData = [NSData aliasDataForFSRef:&notesDirectoryRef])) {
-				[prefsController setAliasDataForDefaultDirectory:aliasData sender:self];
+			NSData *bookmark = [NSData bookmarkDataForPath:directoryPath];
+			if (bookmark) {
+				[prefsController setBookmarkDataForDefaultDirectory:bookmark sender:self];
 				
 				//check for potential synchronization problems; (e.g., simplenote w/ dropbox or writeroom):
 				[[prefsController notationPrefs] checkForKnownRedundantSyncConduitsAtPath:directoryPath];
@@ -315,20 +324,8 @@
 		[folderLocationsMenuButton selectItemAtIndex:0];
 }
 
-- (BOOL)getNewNotesRefFromOpenPanel:(FSRef*)notesDirectoryRef returnedPath:(NSString**)path {
-    NSString *startingDirectory = nil;
-	
-    if (!notesDirectoryRef) {
-		NSLog(@"notesDirectoryRef is NULL!");
-		return NO;
-    }
-    
-    FSRef currentNotesDirectoryRef;
-    //resolve alias to fsref; get path from fsref
-    if ([[prefsController aliasDataForDefaultDirectory] fsRefAsAlias:&currentNotesDirectoryRef]) {
-		NSString *resolvedPath = [[NSFileManager defaultManager] pathWithFSRef:&currentNotesDirectoryRef];
-		if (resolvedPath) startingDirectory = resolvedPath;
-    }
+- (NSString*)newNotesDirectoryFromOpenPanel {
+    NSString *startingDirectory = [prefsController pathForDefaultDirectoryIsStale:NULL];
     
     NSOpenPanel *openPanel = [NSOpenPanel openPanel];
     [openPanel setCanCreateDirectories:YES];
@@ -341,24 +338,10 @@
     [openPanel setPrompt:NSLocalizedString(@"Select", @"title of open panel button to select a folder")];
     [openPanel setMessage:NSLocalizedString(@"Select the folder that Notational Velocity should use for reading and storing notes.",nil)];
     
-    if ([openPanel runModalForDirectory:startingDirectory file:@"Notational Data" types:nil] == NSModalResponseOK) {
-		CFStringRef filename = (CFStringRef)[openPanel filename];
-		if (!filename)
-			return NO;
-		
-		if (path)
-			*path = [[[openPanel filename] copy] autorelease];
-		
-		//yes, I know that navigation services uses uses FSRefs, but NSSavePanel saves us much more work
-		CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, filename, kCFURLPOSIXPathStyle, true);
-		[(id)url autorelease];
-		if (!url || !CFURLGetFSRef(url, notesDirectoryRef))
-			return NO;
-		
-		return YES;
-    }
+    if ([openPanel runModalForDirectory:startingDirectory file:@"Notational Data" types:nil] == NSModalResponseOK)
+		return [[[openPanel filename] copy] autorelease];
     
-    return NO;
+    return nil;
 }
 
 - (NotationPrefsViewController*)notationPrefsViewController {

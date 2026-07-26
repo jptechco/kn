@@ -78,8 +78,7 @@
 	unsigned int diskUUIDIndex;
 	CFUUIDRef diskUUID;
     NSString *noteDirectoryPath;
-    AliasHandle aliasHandle;
-    BOOL aliasNeedsUpdating;
+    BOOL bookmarkNeedsUpdating;
     OSStatus lastWriteError;
     
     WALStorageController *walWriter;
@@ -90,12 +89,13 @@
 }
 
 - (id)init;
-- (id)initWithAliasData:(NSData*)data error:(OSStatus*)err;
+- (id)initWithBookmarkData:(NSData*)data error:(OSStatus*)err;
+- (id)initWithLegacyAliasData:(NSData*)data error:(OSStatus*)err;
 - (id)initWithDefaultDirectoryReturningError:(OSStatus*)err;
 - (id)initWithDirectoryPath:(NSString*)directoryPath error:(OSStatus*)err;
-- (void)setAliasNeedsUpdating:(BOOL)needsUpdate;
-- (BOOL)aliasNeedsUpdating;
-- (NSData*)aliasDataForNoteDirectory;
+- (void)setBookmarkNeedsUpdating:(BOOL)needsUpdate;
+- (BOOL)bookmarkNeedsUpdating;
+- (NSData*)bookmarkDataForNoteDirectory;
 - (OSStatus)_readAndInitializeSerializedNotes;
 - (void)processRecoveredNotes:(NSDictionary*)dict;
 - (BOOL)initializeJournaling;

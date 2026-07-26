@@ -158,36 +158,9 @@ errorReturn:
 	return 0;
 }
 
-- (NSString*)pathCopiedFromAliasData:(NSData*)aliasData {
-    AliasHandle inAlias;
-    CFStringRef path = NULL;
-	FSAliasInfoBitmap whichInfo = kFSAliasInfoNone;
-	FSAliasInfo info;
-    if (aliasData && PtrToHand([aliasData bytes], (Handle*)&inAlias, [aliasData length]) == noErr && 
-		FSCopyAliasInfo(inAlias, NULL, NULL, &path, &whichInfo, &info) == noErr) {
-		//this method doesn't always seem to work	
-		return [(NSString*)path autorelease];
-    }
-    
-    return nil;
-}
-
 - (NSString*)pathFromFSPath:(char*)path {
 	DebugPath(path);
 	return [self stringWithFileSystemRepresentation:path length:strlen(path)];
-}
-
-- (NSString*)pathWithFSRef:(FSRef*)fsRef {
-	NSString *path = nil;
-	
-	const UInt32 maxPathSize = 4 * 1024;
-	UInt8 *convertedPath = (UInt8*)malloc(maxPathSize * sizeof(UInt8));
-	if (FSRefMakePath(fsRef, convertedPath, maxPathSize) == noErr) {
-		path = [self stringWithFileSystemRepresentation:(char*)convertedPath length:strlen((char*)convertedPath)];
-	}
-	free(convertedPath);
-	
-	return path;
 }
 
 

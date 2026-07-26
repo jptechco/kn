@@ -409,7 +409,8 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	
 	OSStatus err = noErr;
 	NotationController *newNotation = nil;
-	NSData *aliasData = [prefsController aliasDataForDefaultDirectory];
+	NSData *bookmarkData = [prefsController bookmarkDataForDefaultDirectory];
+	NSData *legacyAliasData = bookmarkData ? nil : [prefsController legacyAliasDataForDefaultDirectory];
 	
 	NSString *subMessage = @"";
 	
@@ -418,8 +419,12 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 		goto showOpenPanel;
 	}
 	
-	if (aliasData) {
-	    newNotation = [[NotationController alloc] initWithAliasData:aliasData error:&err];
+	if (bookmarkData) {
+	    newNotation = [[NotationController alloc] initWithBookmarkData:bookmarkData error:&err];
+	    subMessage = NSLocalizedString(@"Please choose a different folder in which to store your notes.",nil);
+	} else if (legacyAliasData) {
+	    //recorded before the move to bookmarks; opening it is what converts it
+	    newNotation = [[NotationController alloc] initWithLegacyAliasData:legacyAliasData error:&err];
 	    subMessage = NSLocalizedString(@"Please choose a different folder in which to store your notes.",nil);
 	} else {
 	    newNotation = [[NotationController alloc] initWithDefaultDirectoryReturningError:&err];
@@ -429,15 +434,9 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	if (err == kPassCanceledErr)
 		goto showOpenPanel;
 	
-	NSString *location = (aliasData ? [[NSFileManager defaultManager] pathCopiedFromAliasData:aliasData] : NSLocalizedString(@"your Application Support directory",nil));
-	if (!location) { //fscopyaliasinfo sucks
-		FSRef locationRef;
-		if ([aliasData fsRefAsAlias:&locationRef] && LSCopyDisplayNameForRef(&locationRef, (CFStringRef*)&location) == noErr) {
-			[location autorelease];
-		} else {
-			location = NSLocalizedString(@"its current location",nil);
-		}
-	}
+	NSString *location = (bookmarkData || legacyAliasData) ? [prefsController pathForDefaultDirectoryIsStale:NULL]
+														   : NSLocalizedString(@"your Application Support directory",nil);
+	if (!location) location = NSLocalizedString(@"its current location",nil);
 	
 	while (!newNotation) {
 	    location = [location stringByAbbreviatingWithTildeInPath];
@@ -446,14 +445,13 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	    if (KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"Unable to initialize notes database in \n%@ because %@.",nil), location, reason], 
 							subMessage, NSLocalizedString(@"Choose another folder",nil),NSLocalizedString(@"Quit",nil),NULL) == NSAlertFirstButtonReturn) {
 			//show nsopenpanel, defaulting to current default notes dir
-			FSRef notesDirectoryRef;
 		showOpenPanel:
-			if (![prefsWindowController getNewNotesRefFromOpenPanel:&notesDirectoryRef returnedPath:&location]) {
-				//they cancelled the open panel, or it was unable to get the path/FSRef of the file
+			if (!(location = [prefsWindowController newNotesDirectoryFromOpenPanel])) {
+				//they cancelled the open panel, or it was unable to get the path of the folder
 				goto terminateApp;
 			} else if ((newNotation = [[NotationController alloc] initWithDirectoryPath:location error:&err])) {
-				//have to make sure alias data is saved from setNotationController
-				[newNotation setAliasNeedsUpdating:YES];
+				//have to make sure the bookmark is saved from setNotationController
+				[newNotation setBookmarkNeedsUpdating:YES];
 				break;
 			}
 	    } else {
@@ -482,7 +480,7 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	
 	//tell us..
 	[prefsController registerWithTarget:self forChangesInSettings:
-	 @selector(setAliasDataForDefaultDirectory:sender:),  //when someone wants to load a new database
+	 @selector(setBookmarkDataForDefaultDirectory:sender:),  //when someone wants to load a new database
 	 @selector(setSortedTableColumnKey:reversed:sender:),  //when sorting prefs changed
 	 @selector(setNoteBodyFont:sender:),  //when to tell notationcontroller to restyle its notes
 	 @selector(setForegroundTextColor:sender:),  //ditto
@@ -552,8 +550,8 @@ terminateApp:
 		[[window undoManager] removeAllActions];
 		[notationController setUndoManager:[window undoManager]];
 		
-		if ([notationController aliasNeedsUpdating]) {
-			[prefsController setAliasDataForDefaultDirectory:[notationController aliasDataForNoteDirectory] sender:self];
+		if ([notationController bookmarkNeedsUpdating]) {
+			[prefsController setBookmarkDataForDefaultDirectory:[notationController bookmarkDataForNoteDirectory] sender:self];
 		}
 		if ([prefsController tableColumnsShowPreview] || [prefsController horizontalLayout]) {
 			[self _forceRegeneratePreviewsForTitleColumn];
@@ -853,26 +851,26 @@ terminateApp:
 }
 
 - (void)settingChangedForSelectorString:(NSString*)selectorString {
-    if ([selectorString isEqualToString:SEL_STR(setAliasDataForDefaultDirectory:sender:)]) {
+    if ([selectorString isEqualToString:SEL_STR(setBookmarkDataForDefaultDirectory:sender:)]) {
 		//defaults changed for the database location -- load the new one!
 		
 		OSStatus err = noErr;
 		NotationController *newNotation = nil;
-		NSData *newData = [prefsController aliasDataForDefaultDirectory];
+		NSData *newData = [prefsController bookmarkDataForDefaultDirectory];
 		if (newData) {
-			if ((newNotation = [[NotationController alloc] initWithAliasData:newData error:&err])) {
+			if ((newNotation = [[NotationController alloc] initWithBookmarkData:newData error:&err])) {
 				[self setNotationController:newNotation];
 				[newNotation release];
 				
 			} else {
 				
-				//set alias data back
-				NSData *oldData = [notationController aliasDataForNoteDirectory];
-				[prefsController setAliasDataForDefaultDirectory:oldData sender:self];
+				//set the recorded location back
+				NSData *oldData = [notationController bookmarkDataForNoteDirectory];
+				[prefsController setBookmarkDataForDefaultDirectory:oldData sender:self];
 				
 				//display alert with err--could not set notation directory 
-				NSString *location = [[[NSFileManager defaultManager] pathCopiedFromAliasData:newData] stringByAbbreviatingWithTildeInPath];
-				NSString *oldLocation = [[[NSFileManager defaultManager] pathCopiedFromAliasData:oldData] stringByAbbreviatingWithTildeInPath]; 
+				NSString *location = [[newData pathFromBookmarkDataIsStale:NULL] stringByAbbreviatingWithTildeInPath];
+				NSString *oldLocation = [[oldData pathFromBookmarkDataIsStale:NULL] stringByAbbreviatingWithTildeInPath]; 
 				NSString *reason = [NSString reasonStringFromCarbonFSError:err];
 				KNRunAlert([NSString stringWithFormat:NSLocalizedString(@"Unable to initialize notes database in \n%@ because %@.",nil), location, reason], 
 								[NSString stringWithFormat:NSLocalizedString(@"Reverting to current location of %@.",nil), oldLocation], 

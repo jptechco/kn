@@ -101,16 +101,18 @@ NSString *ExternalEditorsChangedNotification = @"ExternalEditorsChanged";
 
 - (NSImage*)iconImage {
 	if (!iconImg) {
-		FSRef appRef;
-		if (CFURLGetFSRef((CFURLRef)[self resolvedURL], &appRef))
-			iconImg = [[NSImage smallIconForFSRef:&appRef] retain];
+		NSString *appPath = [[self resolvedURL] path];
+		if ([appPath length])
+			iconImg = [[NSImage smallIconForFileAtPath:appPath] retain];
 	}
 	return iconImg;
 }
 
 - (NSString*)displayName {
 	if (!displayName) {
-		LSCopyDisplayNameForURL((CFURLRef)[self resolvedURL], (CFStringRef*)&displayName);
+		NSString *localizedName = nil;
+		if ([[self resolvedURL] getResourceValue:&localizedName forKey:NSURLLocalizedNameKey error:NULL])
+			displayName = [localizedName copy];
 	}
 	return displayName;
 }

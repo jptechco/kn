@@ -34,5 +34,5 @@
 
 @interface NSImage (NV)
 
-+ (NSImage*)smallIconForFSRef:(FSRef*)fsRef;
++ (NSImage*)smallIconForFileAtPath:(NSString*)path;
 @end

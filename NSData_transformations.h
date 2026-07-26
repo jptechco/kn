@@ -26,8 +26,12 @@
 
 - (NSString*)pathURLFromWebArchive;
 
-- (BOOL)fsRefAsAlias:(FSRef*)fsRef;
-+ (NSData*)aliasDataForFSRef:(FSRef*)fsRef;
+//The notes directory is recorded as an NSURL bookmark. Databases pointed at before that recorded
+//Alias Manager data instead, and Notational Velocity's own preferences will never record anything
+//else, so -pathFromLegacyAliasData stays indefinitely -- it is the last Alias Manager call left.
++ (NSData*)bookmarkDataForPath:(NSString*)path;
+- (NSString*)pathFromBookmarkDataIsStale:(BOOL*)outIsStale;
+- (NSString*)pathFromLegacyAliasData;
 - (NSMutableString*)newStringUsingBOMReturningEncoding:(NSStringEncoding*)encoding;
 + (NSData*)uncachedDataFromFile:(NSString*)filename;
 

@@ -503,17 +503,10 @@ BOOL IsHardLineBreakUnichar(unichar uchar, NSString *str, unsigned charIndex) {
 
 - (BOOL)UTIOfFileConformsToType:(NSString*)type {
 	
-	CFStringRef fileUTI = NULL;
-	FSRef fileRef;
-	if (FSPathMakeRef((const UInt8 *)[self fileSystemRepresentation], &fileRef, NULL) == noErr) {
-		if (LSCopyItemAttribute(&fileRef, kLSRolesAll, kLSItemContentType, (CFTypeRef*)&fileUTI) == noErr) {
-			if (fileUTI) {
-				BOOL conforms = UTTypeConformsTo(fileUTI, (CFStringRef)type);
-				CFRelease(fileUTI);
-				return conforms;
-			}
-		}
-	}
+	NSString *fileUTI = nil;
+	if ([[NSURL fileURLWithPath:self] getResourceValue:&fileUTI forKey:NSURLTypeIdentifierKey error:NULL] && fileUTI)
+		return UTTypeConformsTo((CFStringRef)fileUTI, (CFStringRef)type);
+
 	return NO;
 }
 
