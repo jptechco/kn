@@ -1,23 +1,20 @@
-Notational Velocity is copyright 2009, 2010, 2011 by Zachary Schneirov 
-and is distributed under the GNU public license, found in the file COPYING.txt.
-Please email me at scrod@notational.net if you would like to use any portion of the 
-project under separate terms in a non-GPL-licensed application.
+Kinetic Notes is a fork of Notational Velocity. Its source code is distributed under the GNU
+General Public License v3, found in the file COPYING.txt.
+
+Notational Velocity is copyright 2009, 2010, 2011 by Zachary Schneirov. The offer below is his
+own to make, as the copyright holder of the original work:
+
+    Please email me at scrod@notational.net if you would like to use any portion of the
+    project under separate terms in a non-GPL-licensed application.
+
+The Kinetic Notes application icon is NOT covered by the GNU General Public License; see its
+entry below.
 
 
-Portions of Notational Velocity also contain the following copyrighted materials, the use of which is hereby acknowledged.
-
---
-
-Notational Velocity Icon
-
-Copyright (c) 2011 Taylor Carrigan. All rights reserved.
-
-http://taylorcarrigan.com/
-
-This icon may not be used for commercial purposes.
+Kinetic Notes contains the following copyrighted materials, the use of which is hereby
+acknowledged.
 
 --
-
 Notational Velocity Interface Localizations
 
 Spanish - Iago Ramos, OpenAI
@@ -28,38 +25,11 @@ Chinese (Simplified) - Tunghsiao Liu
 Italian - Paolo Tramannoni
 
 --
-
-Sparkle Framework
-
-Copyright (c) 2006 Andy Matuschak
- 
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be included
-in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
---
-
 HotKeys
 
 Copyright (c) 2003 Quentin D. Carnicelli. All rights reserved.
 
 --
-
 RBSplitView
 
 Created by Rainer Brockerhoff on 19/11/2004.
@@ -68,7 +38,6 @@ Some Rights Reserved under the Creative Commons Attribution License,
 version 2.5, and/or the MIT License.
 
 --
-
 CiphSafe NSData compression category methods
 
 Copyright © 2003, Bryan L Blackburn.  All rights reserved.
@@ -102,13 +71,11 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --
-
 TextExtras
 
 Copyright © 1996-2006, Mike Ferris. All rights reserved.
 
 --
-
 IDEA encryption algorithm:
 
 IDEA(tm) is a trademark of Ascom Systec AG. There is no license fee 
@@ -118,7 +85,6 @@ IDEA(tm) is a trademark of Ascom Systec AG. There is no license fee
         fax: ++41 64 56 59 54
 
 --
-
 Smultron version 3.1.2, 2007-07-16
 Written by Peter Borg, pgw3@mac.com
 Find the latest version at http://smultron.sourceforge.net
@@ -138,33 +104,12 @@ License for the specific language governing permissions and limitations
 under the License.
 
 --
+OpenSSL License (applies to idea_ossl.c)
+----------------------------------------
 
-BSJSONAdditions
-
-Created by Blake Seely on 2009/03/24.
-Copyright 2006 Blake Seely - http://www.blakeseely.com  All rights reserved.
-Permission to use this code:
-
-Feel free to use this code in your software, either as-is or 
-in a modified form. Either way, please include a credit in 
-your software's "About" box or similar, mentioning at least 
-my name (Blake Seely).
-
-Permission to redistribute this code:
-
-You can redistribute this code, as long as you keep these 
-comments. You can also redistribute modified versions of the 
-code, as long as you add comments to say that you've made 
-modifications (keeping these original comments too).
-
-If you do use or redistribute this code, an email would be 
-appreciated, just to let me know that people are finding my 
-code useful. You can reach me at blakeseely@mac.com
-
---
-
-OpenSSL License
----------------
+Kinetic Notes no longer links OpenSSL -- encryption and hashing come from CommonCrypto.
+The IDEA implementation in idea_ossl.c is still derived from OpenSSL, so its licence is
+retained here.
 
 ====================================================================
 Copyright (c) 1998-2008 The OpenSSL Project.  All rights reserved.
@@ -279,7 +224,6 @@ copied and put under another distribution licence
 [including the GNU Public Licence.]
 
 --
-
 sha1.c - Functions to compute SHA1 message digest of files or
 memory blocks according to the NIST specification FIPS-180-1.
 
@@ -305,7 +249,6 @@ Credits:
 Robert Klep <robert@ilse.nl>  -- Expansion function fix
 
 --
-
 hmac-sha1.c -- hashed message authentication codes
 Copyright (C) 2005, 2006 Free Software Foundation, Inc.
 
@@ -326,7 +269,6 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
 Written by Simon Josefsson.
 
 --
-
 stringencoders
 
 Copyright 2005, 2006, 2007
@@ -365,49 +307,38 @@ http://www.opensource.org/licenses/bsd-license.php
 
 --
 
-AutoHyperlinks framework
+Kinetic Notes Icon
 
-(c) 2004-2008 by the following:
+Copyright (c) 2026 jptechco. All rights reserved.
 
-Colin Barrett
-Graham Booker
-Jorge Salvador Caffarena
-Evan Schoenberg
-Augie Fackler
-Stephen Holt
-Peter Hosey
-Adam Iser
-Jeffrey Melloy
-Toby Peterson
-Eric Richie
-David Smith
+This icon is not covered by the GNU General Public License that applies to the
+rest of Kinetic Notes. Forks and derivative works must supply their own icon.
 
-/*
- * The AutoHyperlinks Framework is the legal property of its developers (DEVELOPERS), whose names are listed in the
- * copyright file included with this source distribution.
- *
- * Copyright (c) 2004-2008
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the AutoHyperlinks Framework nor the
- *       names of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY ITS DEVELOPERS ``AS IS'' AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL ITS DEVELOPERS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+--
+
+ODBEditor
+
+ODB Editor Suite constants (ODBEditorSuite.h):
+Copyright (c) 2000, Bare Bones Software, Inc.
+http://www.barebones.com/developer/
+
+The ODBEditor implementation originated in B-Quartic by Gus Mueller,
+http://gusmueller.com/odb/, with contributions from Eric Blair.
+
+--
+
+hashcash
+
+Written by Adam Back <adam@cypherspace.org>, from the hashcash project.
+
+hashcash/sha1.h declares the SHA-1 interface used by hmacsha1.c and pbkdf2.c;
+hashcash/libsha1.c is its speed-optimised implementation, retained but not compiled.
+
+--
+
+MD5 implementation (broken_md5.c)
+
+Written by Colin Plumb in 1993. No copyright is claimed; the code is in the
+public domain.
+
+--

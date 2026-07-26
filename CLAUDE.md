@@ -47,6 +47,18 @@ touching a nib. No code reads `CFBundleShortVersionString`, so a non-numeric val
 `+[NotationPrefs appVersion]` calls `intValue` on `CFBundleVersion`. It has no callers, and an
 integer build number keeps it valid regardless.
 
+## Licensing
+
+The **source code** is GPL v3. The **application icon** (`Images/kinetic.icns`,
+`Images/kinetic.iconset`) is © jptechco, all rights reserved, and is deliberately *outside* that
+grant. Do not "tidy" that distinction away by assuming the whole tree is GPL — it is stated in both
+`README.md` and `Acknowledgments.txt` and must stay stated in both.
+
+`Acknowledgments.txt` must describe what actually ships. When a component is added or removed, check
+it against the Sources phase in `Notation.xcodeproj/project.pbxproj` — **not** against keyword
+matches in comments. Sparkle and OpenSSL are both still named in explanatory comments long after
+they stopped being linked, and a keyword search reports them as present.
+
 ## Hazards
 
 **Never `pkill` the application.** SIGTERM zeroes the notes database. Quit it with:
