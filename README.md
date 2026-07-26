@@ -112,7 +112,7 @@ Notational Velocity. The full text is in [COPYING.txt](COPYING.txt).
   RBSplitView, and ODBEditor.
 - The original Notational Velocity application icon by Taylor Carrigan is **not** used here and
   is not part of this repository; its licence did not permit commercial use. Kinetic Notes ships
-  its own icon, also copyrighted by JPTech.
+  its own icon, also copyrighted by jptechco.
 
 ### Translations
 
