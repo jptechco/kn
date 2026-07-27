@@ -28,6 +28,8 @@
 	BOOL isReloading;
 }
 
++ (NSColor*)headerBackgroundColor;
+
 - (void)_resizeColumn:(NSInteger)resizedColIdx withEvent:(id)event;
 
 - (void)setIsReloading:(BOOL)reloading;
