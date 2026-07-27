@@ -9,23 +9,16 @@ shipped body of work; a major release is `x.0` and happens only when the maintai
 release still in testing carries a `beta` suffix, and the README names the current stable release
 alongside it.
 
-**Builds** are per pull request, numbered with the pull request's own number — so build 20 is
-PR #20, and any build traces straight back to the change that produced it. The application reports
-both: *Kinetic Notes → About Kinetic Notes* reads `Version 1.5 beta (20)`.
+**Builds** are per pull request, numbered with the pull request's own number — so build 22 is
+PR #22, and any build traces straight back to the change that produced it. The application reports
+both: *Kinetic Notes → About Kinetic Notes* reads `Version 1.5 (22)`.
 
 Entries merged since the last release are collected under **Unreleased** and are promoted to a
 version heading when that release is cut.
 
 ## Unreleased
 
-- **build 21** — Reserve the application icon outside the GPL, stop shipping Notational Velocity's
-  icon, and correct `Acknowledgments.txt` so it describes what the application actually contains.
-  ([#21](https://github.com/jptechco/kn/pull/21))
-- **build 20** — Split this changelog out of the README and settle the versioning scheme above;
-  the application now reports its development version and build in the About box.
-  ([#20](https://github.com/jptechco/kn/pull/20))
-
-## 1.5 beta — 2026-07-25
+## 1.5 — 2026-07-27
 
 **The Carbon File Manager is gone from the way notes are stored.** Notational Velocity read and
 wrote every note through it — an API Apple deprecated in 2012. 1.5 replaces it, along with the
@@ -78,10 +71,22 @@ and tested against.
 - **The welcome notes are rebranded in every language.** 1.1 had done this for English only; the
   other six locales still carried Notational Velocity branding, dead links and translators'
   personal email addresses. Translator credits are kept; no translation was invented.
+- **The note list's column headers are opaque again.** macOS 11 stopped drawing a background behind
+  them and nothing in the application drew one instead, so once the list was long enough to scroll,
+  note titles showed straight through the headings. The list's grid lines now follow the system
+  appearance too, instead of being fixed at a near-white grey that was wrong on a dark background.
+  ([#22](https://github.com/jptechco/kn/pull/22))
 
 *Housekeeping*
 - Deleted the `IsLeopardOrLater` / `IsSnowLeopardOrLater` runtime checks. At a macOS 13 floor both
   were unconditionally true, so ~30 sites across 13 files were guarding dead pre-2009 branches.
+- **The application icon is reserved outside the GPL.** `Images/kinetic.icns` is © jptechco, all
+  rights reserved; the source code remains GPL v3. Notational Velocity's own icon is no longer
+  shipped, and `Acknowledgments.txt` now describes what the application actually contains.
+  ([#21](https://github.com/jptechco/kn/pull/21))
+- **This changelog was split out of the README,** and the versioning scheme above was settled. The
+  application reports its version and build in the About box.
+  ([#20](https://github.com/jptechco/kn/pull/20))
 
 ## 1.1 — 2026-07-24
 

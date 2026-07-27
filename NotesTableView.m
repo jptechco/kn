@@ -326,7 +326,7 @@ static void _CopyItemWithSelectorFromMenu(NSMenu *destMenu, NSMenu *sourceMenu, 
 	[self setIntercellSpacing:NSMakeSize(12, 2)];
 	
 	[self setGridStyleMask:isOneRow ? NSTableViewGridNone : NSTableViewSolidHorizontalGridLineMask];
-	[self setGridColor:[NSColor colorWithCalibratedWhite:0.882 alpha:1.0]];
+	[self setGridColor:[NSColor gridColor]];
 }
 
 - (void)settingChangedForSelectorString:(NSString*)selectorString {

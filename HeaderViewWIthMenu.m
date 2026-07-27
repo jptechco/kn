@@ -27,6 +27,36 @@
 	return self;
 }
 
++ (NSColor*)headerBackgroundColor {
+	//the semantic color for window chrome, opaque and appearance-aware. Note that it is not what
+	//makes the header read as a header: measured on macOS 26, windowBackgroundColor,
+	//controlBackgroundColor and textBackgroundColor all resolve to the same value as each other in
+	//both appearances (white, and #1E1E1E in Dark Mode). The heading band is distinct from the rows
+	//only because super draws its own tint over this fill, which is why the fill goes down first.
+	return [NSColor windowBackgroundColor];
+}
+
+- (BOOL)isOpaque {
+	return YES;
+}
+
+- (void)viewDidChangeEffectiveAppearance {
+	[super viewDidChangeEffectiveAppearance];
+	[self setNeedsDisplay:YES];
+}
+
+- (void)drawRect:(NSRect)dirtyRect {
+	//NSTableHeaderView and NSTableHeaderCell stopped painting an opaque bezel in 10.16, and the rows
+	//are laid out underneath the header, so without a fill of our own the note titles scroll straight
+	//through the column headings. Fill first and let super draw the titles, the column separators and
+	//the sort indicator on top; the header is also wider than the sum of its cells, and the dead space
+	//past the last column is only ever covered here.
+	[[HeaderViewWithMenu headerBackgroundColor] set];
+	NSRectFill(dirtyRect);
+
+	[super drawRect:dirtyRect];
+}
+
 - (void)_resizeColumn:(NSInteger)resizedColIdx withEvent:(id)event {	
 	//use a more understandable column resizing by changing the resizing mask immediately before calling through to the private method,
 	//and reverting it back to the original at the next runloop iteration

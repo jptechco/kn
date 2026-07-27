@@ -9,12 +9,11 @@ being withdrawn after macOS 26 Tahoe. Kinetic Notes is that application rebuilt 
 with its dead and Intel-only dependencies replaced, and nothing removed that anyone was using.
 
 ### Status
-**Version: 1.5 beta — feature complete, in testing.**
-The current stable release is **1.1**.
+**Version: 1.5 — current stable release.**
 
-1.5 replaces the application's Carbon-era internals; the storage formats are unchanged and verified
-compatible in both directions, but the file-handling code underneath them is new, so it is going out
-as a beta first.
+1.5 replaces the application's Carbon-era internals. The storage formats are unchanged and verified
+compatible in both directions, but the file-handling code underneath them was new, so it went out as
+a beta first; that testing is done and 1.5 is now the stable release.
 
 ### Changelog
 If you're curious, check out the [changelog](CHANGELOG.md) to see what's changed in each version.
