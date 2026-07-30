@@ -22,8 +22,9 @@ version heading when that release is cut.
   Kinetic Notes is maintained by a volunteer, that donations are optional, and opens the project's
   donation page in a browser. It is the only network activity the item performs: nothing is measured, and no
   record is kept of who was asked or what they chose. The README carries the same invitation, and the
-  repository has a Sponsor button.
-  ([#PR](https://github.com/jptechco/kn/pull/PR))
+  repository has a Sponsor button. The item and its dialog are localized into all seven languages
+  the application ships.
+  ([#23](https://github.com/jptechco/kn/pull/23))
 
 ## 1.5 — 2026-07-27
 
