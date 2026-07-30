@@ -48,6 +48,7 @@
 #import "LinearDividerShader.h"
 #import "SecureTextEntryManager.h"
 #import "NSString_CustomTruncation.h"
+#import "KNSupportController.h"
 
 //where the Help menu's site items point; update alongside the repository if it moves
 static NSString *KNProjectURLString = @"https://github.com/jptechco/kn";
@@ -395,6 +396,9 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	//has to happen here rather than in -awakeFromNib: MainMenu.nib is still loading at that point,
 	//so -[NSApp mainMenu] is not yet set
 	[self applyApplicationNameToInterface];
+
+	//after the rename above, which walks every existing menu title looking for the old product name
+	[[KNSupportController sharedInstance] installMenuItemInMainMenu];
 
 	//before any notes directory is opened: on a genuine first run, offer to import from an existing
 	//Notational Velocity installation. A successful import commits into Kinetic Notes' own directory,

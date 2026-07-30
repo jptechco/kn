@@ -18,6 +18,13 @@ version heading when that release is cut.
 
 ## Unreleased
 
+- **The application can be supported by donation.** *Help → Support Development* explains that
+  Kinetic Notes is maintained by a volunteer, that donations are optional, and opens the project's
+  donation page in a browser. It is the only network activity the item performs: nothing is measured, and no
+  record is kept of who was asked or what they chose. The README carries the same invitation, and the
+  repository has a Sponsor button.
+  ([#PR](https://github.com/jptechco/kn/pull/PR))
+
 ## 1.5 — 2026-07-27
 
 **The Carbon File Manager is gone from the way notes are stored.** Notational Velocity read and

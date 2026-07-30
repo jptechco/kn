@@ -70,6 +70,7 @@
 		KN0000000000000000000003 /* KNMigrationController.m in Sources */ = {isa = PBXBuildFile; fileRef = KN0000000000000000000002 /* KNMigrationController.m */; };
 		KN0000000000000000000006 /* KNAlert.m in Sources */ = {isa = PBXBuildFile; fileRef = KN0000000000000000000005 /* KNAlert.m */; };
 		KN0000000000000000000009 /* KNSecureArchiving.m in Sources */ = {isa = PBXBuildFile; fileRef = KN0000000000000000000008 /* KNSecureArchiving.m */; };
+		KN0000000000000000000012 /* KNSupportController.m in Sources */ = {isa = PBXBuildFile; fileRef = KN0000000000000000000011 /* KNSupportController.m */; };
 		215309F412E4E92300AF2739 /* DiskUUIDEntry.m in Sources */ = {isa = PBXBuildFile; fileRef = 215309F312E4E92300AF2739 /* DiskUUIDEntry.m */; };
 		21544FBE0B06331800C0D1D5 /* KeyDerivationManager.nib in Resources */ = {isa = PBXBuildFile; fileRef = 21544FB80B06331800C0D1D5 /* KeyDerivationManager.nib */; };
 		21544FC10B06332600C0D1D5 /* KeyDerivationManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 21544FC00B06332600C0D1D5 /* KeyDerivationManager.m */; };
@@ -303,6 +304,8 @@
 		KN0000000000000000000002 /* KNMigrationController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KNMigrationController.m; sourceTree = "<group>"; };
 		KN0000000000000000000004 /* KNAlert.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KNAlert.h; sourceTree = "<group>"; };
 		KN0000000000000000000005 /* KNAlert.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KNAlert.m; sourceTree = "<group>"; };
+		KN0000000000000000000010 /* KNSupportController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KNSupportController.h; sourceTree = "<group>"; };
+		KN0000000000000000000011 /* KNSupportController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KNSupportController.m; sourceTree = "<group>"; };
 		KN0000000000000000000007 /* KNSecureArchiving.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KNSecureArchiving.h; sourceTree = "<group>"; };
 		KN0000000000000000000008 /* KNSecureArchiving.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KNSecureArchiving.m; sourceTree = "<group>"; };
 		215309F212E4E92300AF2739 /* DiskUUIDEntry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DiskUUIDEntry.h; sourceTree = "<group>"; };
@@ -711,6 +714,8 @@
 				KN0000000000000000000005 /* KNAlert.m */,
 				KN0000000000000000000007 /* KNSecureArchiving.h */,
 				KN0000000000000000000008 /* KNSecureArchiving.m */,
+				KN0000000000000000000010 /* KNSupportController.h */,
+				KN0000000000000000000011 /* KNSupportController.m */,
 				215309F212E4E92300AF2739 /* DiskUUIDEntry.h */,
 				215309F312E4E92300AF2739 /* DiskUUIDEntry.m */,
 				21F0793710EC5E21004FE56F /* Sync Services */,
@@ -1314,6 +1319,7 @@
 				KN0000000000000000000003 /* KNMigrationController.m in Sources */,
 				KN0000000000000000000006 /* KNAlert.m in Sources */,
 				KN0000000000000000000009 /* KNSecureArchiving.m in Sources */,
+				KN0000000000000000000012 /* KNSupportController.m in Sources */,
 				215309F412E4E92300AF2739 /* DiskUUIDEntry.m in Sources */,
 				21B64A2612E61FA700D87EFC /* LabelColumnCell.m in Sources */,
 				21B64C4E12E62A5700D87EFC /* UnifiedCell.m in Sources */,

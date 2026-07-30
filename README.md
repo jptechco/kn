@@ -48,6 +48,19 @@ This step will disappear once the project has an Apple Developer ID to sign and 
 
 ---
 
+## Support development
+
+Kinetic Notes is maintained by a volunteer, and donations help fund ongoing development.
+
+If this app has been useful to you, please consider **[making a
+donation](https://www.kineticnotes.com/donate)**. Donations are completely optional and help keep
+the project alive — the app is free, GPL v3, and always will be.
+
+Thank you for supporting the project. The same link lives in the app, under
+**Help → Support Development**.
+
+---
+
 ## Coming from Notational Velocity?
 
 **Your existing notes are safe, and Notational Velocity keeps working.** Kinetic Notes is
