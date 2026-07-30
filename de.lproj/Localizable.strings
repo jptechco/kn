@@ -651,3 +651,27 @@
 
 /* menu command to clear out custom external editors*/
 "Reset" = "Zurücksetzen";
+
+/* the Support Development item in the Help menu, and the donation request it shows.
+   Delete this whole block to remove the feature; see KNSupportController.h. */
+
+/* Help menu item that opens the project's sponsorship page */
+"Support Development…" = "Entwicklung unterstützen…";
+
+/* title of the alert shown by the Support Development menu item */
+"Support Kinetic Notes" = "Kinetic Notes unterstützen";
+
+/* first paragraph of the donation request */
+"Kinetic Notes is maintained by a volunteer, and donations help fund ongoing development." = "Kinetic Notes wird von einem Freiwilligen gepflegt, und Spenden helfen dabei, die laufende Entwicklung zu finanzieren.";
+
+/* second paragraph of the donation request */
+"If this app has been useful to you, please consider supporting ongoing maintenance and new features. Donations are completely optional and help keep the project alive." = "Wenn diese App für Sie hilfreich war, erwägen Sie bitte, die laufende Wartung und neue Funktionen zu unterstützen. Spenden sind vollkommen freiwillig und helfen dabei, das Projekt am Leben zu erhalten.";
+
+/* closing line of the donation request */
+"Thank you for supporting the project." = "Vielen Dank für Ihre Unterstützung des Projekts.";
+
+/* button that opens the sponsorship page; no ellipsis, unlike the menu item */
+"Support Development" = "Entwicklung unterstützen";
+
+/* button that dismisses the donation request */
+"Not Now" = "Nicht jetzt";
