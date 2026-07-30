@@ -48,8 +48,12 @@
 #import "LinearDividerShader.h"
 #import "SecureTextEntryManager.h"
 #import "NSString_CustomTruncation.h"
+#import "KNSupportController.h"
 
-//where the Help menu's site items point; update alongside the repository if it moves
+//where the Help menu's "Kinetic Notes Web Site" item points
+static NSString *KNProductSiteURLString = @"https://www.kineticnotes.org";
+
+//where its "Development Web Site" item points; update alongside the repository if it moves
 static NSString *KNProjectURLString = @"https://github.com/jptechco/kn";
 
 
@@ -395,6 +399,9 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	//has to happen here rather than in -awakeFromNib: MainMenu.nib is still loading at that point,
 	//so -[NSApp mainMenu] is not yet set
 	[self applyApplicationNameToInterface];
+
+	//after the rename above, which walks every existing menu title looking for the old product name
+	[[KNSupportController sharedInstance] installMenuItemInMainMenu];
 
 	//before any notes directory is opened: on a genuine first run, offer to import from an existing
 	//Notational Velocity installation. A successful import commits into Kinetic Notes' own directory,
@@ -952,9 +959,9 @@ terminateApp:
 											options:NSWorkspaceLaunchDefault additionalEventParamDescriptor:nil launchIdentifiers:NULL];
 			break;
 		case 3:		//product site
-			//this used to read a "SiteURL" localized string that was never actually defined in any
-			//Localizable.strings, so the item silently did nothing; point it at the project instead
-			[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:KNProjectURLString]];
+			//this used to read the "SiteURL" key, which still names notational.net in every
+			//Localizable.strings; nothing reads that key any more
+			[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:KNProductSiteURLString]];
 			break;
 		case 4:		//development site
 			[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:KNProjectURLString]];
