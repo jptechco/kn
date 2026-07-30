@@ -25,6 +25,9 @@ version heading when that release is cut.
   repository has a Sponsor button. The item and its dialog are localized into all seven languages
   the application ships.
   ([#23](https://github.com/jptechco/kn/pull/23))
+- **The Help menu's *Kinetic Notes Web Site* item opens the product site,** kineticnotes.org, rather
+  than the source repository — which is what *Development Web Site*, beneath it, is for.
+  ([#23](https://github.com/jptechco/kn/pull/23))
 
 ## 1.5 — 2026-07-27
 

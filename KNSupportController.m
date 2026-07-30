@@ -30,6 +30,11 @@ static NSString *KNSponsorshipURLString = @"https://www.kineticnotes.com/donate"
 //@selector so this class needs no header from the class that implements it.
 static NSString *KNHelpMenuActionName = @"showHelpDocument:";
 
+//MainMenu.nib tags the Help items by what they open: 1 shortcuts, 2 acknowledgments, 3 product
+//site, 4 development site. The tags are the same in all seven localizations, so the acknowledgments
+//item -- the one this feature sits above -- can be found without matching any title.
+#define KNAcknowledgmentsItemTag 2
+
 static KNSupportController *sharedInstance = nil;
 
 @implementation KNSupportController
@@ -81,8 +86,31 @@ static KNSupportController *sharedInstance = nil;
 												  action:@selector(showSupportOptions:) keyEquivalent:@""] autorelease];
 	[item setTarget:self];
 
+	//it belongs directly above Acknowledgments, in the group the nib already separates off for the
+	//items that are about the project rather than about using it -- so no separator of our own
+	NSInteger acknowledgments = [self indexOfHelpItemWithTag:KNAcknowledgmentsItemTag inMenu:helpMenu];
+	if (acknowledgments != -1) {
+		[helpMenu insertItem:item atIndex:acknowledgments];
+		return;
+	}
+
+	//no acknowledgments item to sit above: end of the menu, separated from whatever precedes it
 	[helpMenu addItem:[NSMenuItem separatorItem]];
 	[helpMenu addItem:item];
+}
+
+//index of a nib-authored Help item by its tag, or -1. Matching on the action as well keeps this
+//from finding some unrelated item that happens to carry the same tag.
+- (NSInteger)indexOfHelpItemWithTag:(NSInteger)tag inMenu:(NSMenu*)menu {
+
+	SEL helpAction = NSSelectorFromString(KNHelpMenuActionName);
+	NSInteger i;
+
+	for (i = 0; i < [menu numberOfItems]; i++) {
+		NSMenuItem *item = [menu itemAtIndex:i];
+		if ([item action] == helpAction && [item tag] == tag) return i;
+	}
+	return -1;
 }
 
 - (IBAction)showSupportOptions:(id)sender {
