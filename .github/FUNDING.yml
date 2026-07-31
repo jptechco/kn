@@ -1,4 +1,4 @@
 # Draws the Sponsor button on the repository page. The same destination the application's
 # Help > Support Development item opens; see KNSupportController.h.
-custom: ["https://www.kineticnotes.com/donate"]
+# custom: ["https://www.kineticnotes.org/donate"]
 ko_fi: jptech
