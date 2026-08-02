@@ -18,6 +18,34 @@ version heading when that release is cut.
 
 ## Unreleased
 
+- **Kinetic Notes updates itself.** *Check for Updates…* works again, and the application looks for
+  a new version once a day on its own. Every download is verified against a signing key built into
+  the application before it is unpacked, and a download that fails that check is discarded rather
+  than installed.
+
+  **A scheduled check does not interrupt you.** Notational Velocity's updater — and Sparkle's own
+  default — put a window on screen the moment it found something, which in practice meant seconds
+  after launch, when you had opened the application to do something else. Instead, an *Update
+  Available* button appears in the toolbar and waits; clicking it opens the usual release notes and
+  Install dialog, where the update can also be skipped or deferred. Choosing *Check for Updates…*
+  yourself still answers immediately, because at that point you are waiting for an answer. Hiding
+  the toolbar hides the button along with it; the menu item is unaffected.
+
+  Nothing is measured. No profile of the system is sent, and no record is kept of who was offered
+  what. The only network request is for the update feed itself.
+
+  Notational Velocity bundled Sparkle 1.5b6 (2008), which was built for ppc/i386/x86_64 and so could
+  never load on Apple Silicon; it was removed in the rebrand, and the menu item has been hidden ever
+  since. This is Sparkle 2.9.4, bundled as the application's only non-system framework.
+
+  **Anyone running 1.5 or earlier must update to 1.6 by hand.** Those versions contain no updater at
+  all, so nothing in the update feed can reach them. 1.6 is the first version able to receive an
+  update; it cannot be delivered as one.
+  ([#24](https://github.com/jptechco/kn/pull/24))
+- **The *Check for Updates…* menu item is translated into every language the application ships.** It
+  had been left in English in the Spanish interface — invisible until now, because the item itself
+  was hidden.
+  ([#24](https://github.com/jptechco/kn/pull/24))
 - **The application can be supported by donation.** *Help → Support Development* explains that
   Kinetic Notes is maintained by a volunteer, that donations are optional, and opens the project's
   donation page in a browser. It is the only network activity the item performs: nothing is measured, and no

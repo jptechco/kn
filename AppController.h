@@ -45,6 +45,8 @@
     IBOutlet NotesTableView *notesTableView;
     IBOutlet LinkingEditor *textView;
 	IBOutlet EmptyView *editorStatusView;
+	//the "Check for Updates..." item. The name is baked into all seven MainMenu.nibs, so it stays as
+	//it is even though Sparkle 1.5b6, which it was named for, is long gone; see KNUpdateController.
 	IBOutlet NSMenuItem *sparkleUpdateItem;
     IBOutlet NSWindow *window;
 	IBOutlet NSPanel *syncWaitPanel;

@@ -672,3 +672,12 @@
 
 /* button that dismisses the donation request */
 "Not Now" = "Agora não";
+
+/* application menu item that checks for a new version */
+"Check for Updates…" = "Verificar Atualizações…";
+
+/* toolbar button shown when a new version was found by a scheduled check */
+"Update Available" = "Atualização disponível";
+
+/* tooltip of the Update Available toolbar button */
+"A new version of Kinetic Notes is ready to install." = "Está disponível uma nova versão do Kinetic Notes para instalar.";

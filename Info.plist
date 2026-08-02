@@ -198,5 +198,11 @@
 	</array>
 	<key>OSAScriptingDefinition</key>
 	<string>Notation.sdef</string>
+	<key>SUFeedURL</key>
+	<string>https://updates.kineticnotes.org/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>a5T6DQ4UJqhU5s3FHgMYl+yMWGjRkXEb/QcQKmhoAKA=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 </dict>
 </plist>
