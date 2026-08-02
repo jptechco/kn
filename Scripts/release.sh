@@ -40,8 +40,11 @@ sparkle_tool() {
 
 step "Preflight"
 
-security find-identity -v -p codesigning 2>/dev/null | grep -q "$KN_SIGN_IDENTITY" \
-	|| die "no '$KN_SIGN_IDENTITY' certificate in the keychain. See Scripts/README.md."
+IDENTITIES="$(security find-identity -v -p codesigning 2>/dev/null || true)"
+case "$IDENTITIES" in
+	*"$KN_SIGN_IDENTITY"*) ;;
+	*) die "no '$KN_SIGN_IDENTITY' certificate in the keychain. See Scripts/README.md." ;;
+esac
 ok "signing identity present"
 
 xcrun notarytool history --keychain-profile "$KN_NOTARY_PROFILE" >/dev/null 2>&1 \
@@ -87,9 +90,12 @@ ok "Sparkle.framework embedded"
 
 # every Mach-O that ships must carry both slices, not just the main binary
 check_universal() {
-	local f="$1"
-	lipo -info "$f" 2>/dev/null | grep -q 'x86_64 arm64\|arm64 x86_64' \
-		|| die "not universal: $f"
+	local f="$1" info
+	info="$(lipo -info "$f" 2>&1 || true)"
+	case "$info" in
+		*x86_64*arm64*|*arm64*x86_64*) ;;
+		*) die "not universal: $f ($info)" ;;
+	esac
 }
 check_universal "$APP/Contents/MacOS/Kinetic Notes"
 check_universal "$FW/Versions/B/Sparkle"
@@ -142,17 +148,31 @@ ok "signed inside out"
 step "Verifying the signature"
 
 codesign --verify --deep --strict --verbose=2 "$APP" 2>&1 | tail -2
-codesign -dvv "$APP" 2>&1 | grep -q "TeamIdentifier=$KN_TEAM_ID" \
-	|| die "signed with the wrong team (expected $KN_TEAM_ID)"
-codesign -dvv "$APP" 2>&1 | grep -q 'flags=.*runtime' \
-	|| die "hardened runtime flag not set -- notarization will be rejected"
+
+# Read the signature ONCE and assert against that text. Asking codesign again for each assertion
+# means re-reading a bundle that was written moments ago, and it has been seen to answer
+# inconsistently between two calls a few milliseconds apart -- which failed this step on a build
+# whose signature was in fact correct. One read cannot disagree with itself.
+SIGINFO="$(codesign -dvv "$APP" 2>&1 || true)"
+
+case "$SIGINFO" in
+	*"TeamIdentifier=$KN_TEAM_ID"*) ;;
+	*) printf '%s\n' "$SIGINFO" >&2; die "signed with the wrong team (expected $KN_TEAM_ID)" ;;
+esac
+case "$SIGINFO" in
+	*runtime*) ;;
+	*) printf '%s\n' "$SIGINFO" >&2; die "hardened runtime flag not set -- notarization will be rejected" ;;
+esac
 ok "Developer ID $KN_TEAM_ID, hardened runtime"
 
-ENT="$(codesign -d --entitlements - --xml "$APP" 2>/dev/null)"
-printf '%s' "$ENT" | grep -q 'com.apple.security.automation.apple-events' \
-	|| die "apple-events entitlement missing -- the external editor would break silently"
-printf '%s' "$ENT" | grep -q 'get-task-allow' \
-	&& die "get-task-allow is present -- notarization will be rejected"
+ENT="$(codesign -d --entitlements - --xml "$APP" 2>/dev/null || true)"
+case "$ENT" in
+	*com.apple.security.automation.apple-events*) ;;
+	*) printf '%s\n' "$ENT" >&2; die "apple-events entitlement missing -- the external editor would break silently" ;;
+esac
+case "$ENT" in
+	*get-task-allow*) printf '%s\n' "$ENT" >&2; die "get-task-allow is present -- notarization will be rejected" ;;
+esac
 ok "entitlements correct"
 
 # ---------------------------------------------------------------- notarize
@@ -199,8 +219,11 @@ SCRATCH="$(mktemp -d)"
 trap 'rm -rf "$SCRATCH"' EXIT
 ditto -x -k "$DIST/$ZIP_NAME" "$SCRATCH"
 
-spctl -a -vvv -t install "$SCRATCH/Kinetic Notes.app" 2>&1 | grep -q 'accepted' \
-	|| { spctl -a -vvv -t install "$SCRATCH/Kinetic Notes.app" 2>&1; die "Gatekeeper rejected the artifact"; }
+ASSESS="$(spctl -a -vvv -t install "$SCRATCH/Kinetic Notes.app" 2>&1 || true)"
+case "$ASSESS" in
+	*accepted*) ;;
+	*) printf '%s\n' "$ASSESS" >&2; die "Gatekeeper rejected the artifact" ;;
+esac
 xcrun stapler validate "$SCRATCH/Kinetic Notes.app" >/dev/null \
 	|| die "stapled ticket does not validate"
 ok "Gatekeeper: accepted, Notarized Developer ID"
