@@ -36,7 +36,7 @@ version heading when that release is cut.
 
   Notational Velocity bundled Sparkle 1.5b6 (2008), which was built for ppc/i386/x86_64 and so could
   never load on Apple Silicon; it was removed in the rebrand, and the menu item has been hidden ever
-  since. This is Sparkle 2.9.4, bundled as the application's only non-system framework.
+  since. This is Sparkle 2.9.5, bundled as the application's only non-system framework.
 
   **Anyone running 1.5 or earlier must update to 1.6 by hand.** Those versions contain no updater at
   all, so nothing in the update feed can reach them. 1.6 is the first version able to receive an

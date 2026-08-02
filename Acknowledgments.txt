@@ -345,7 +345,7 @@ public domain.
 
 Sparkle
 
-Sparkle 2.9.4 provides the automatic-update mechanism reached from "Check for Updates..."
+Sparkle 2.9.5 provides the automatic-update mechanism reached from "Check for Updates..."
 in the application menu. It ships as Sparkle.framework inside Contents/Frameworks, and it
 is the only bundled framework in Kinetic Notes; everything else the application links is
 part of macOS. The framework's own Autoupdate helper, Updater.app and XPC services are
