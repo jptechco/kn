@@ -17,5 +17,20 @@
     <description>Updates for Kinetic Notes.</description>
     <language>en</language>
 
+    <item>
+      <title>1.6</title>
+      <pubDate>Sun, 02 Aug 2026 20:31:20 +0000</pubDate>
+      <sparkle:version>26</sparkle:version>
+      <sparkle:shortVersionString>1.6</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://updates.kineticnotes.org/release-notes/1.6.html</sparkle:releaseNotesLink>
+      <link>https://github.com/jptechco/kn</link>
+      <enclosure
+        url="https://github.com/jptechco/kn/releases/download/v1.6/Kinetic-Notes-1.6.zip"
+        sparkle:edSignature="wPuG8Hz7nhhC6EKCWucHrW3Osizdmeb91DRFBkvgU41s9bxTfy00Ih1YFhxM3trzfzu+qoK57H4bLU7dG3z+Cg=="
+        length="3722475"
+        type="application/octet-stream" />
+    </item>
+
   </channel>
 </rss>
