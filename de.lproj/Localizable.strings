@@ -684,3 +684,6 @@
 
 /* tooltip of the Update Available toolbar button */
 "A new version of Kinetic Notes is ready to install." = "Eine neue Version von Kinetic Notes kann installiert werden.";
+
+/* General preference: put the search field on the title's row rather than beneath it */
+"Show the search field beside the window title" = "Suchfeld neben dem Fenstertitel anzeigen";

@@ -158,6 +158,9 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2);
 - (void)setHorizontalLayout:(BOOL)value sender:(id)sender;
 - (BOOL)horizontalLayout;
 
+- (void)setSideBySideTitleBar:(BOOL)value sender:(id)sender;
+- (BOOL)sideBySideTitleBar;
+
 - (BOOL)autoCompleteSearches;
 - (void)setAutoCompleteSearches:(BOOL)value sender:(id)sender;
 

@@ -69,6 +69,7 @@ static NSString *MakeURLsClickableKey = @"MakeURLsClickable";
 static NSString *AppActivationKeyCodeKey = @"AppActivationKeyCode";
 static NSString *AppActivationModifiersKey = @"AppActivationModifiers";
 static NSString *HorizontalLayoutKey = @"HorizontalLayout";
+static NSString *SideBySideTitleBarKey = @"SideBySideTitleBar";
 static NSString *BookmarksKey = @"Bookmarks";
 static NSString *LastScrollOffsetKey = @"LastScrollOffset";
 static NSString *LastSearchStringKey = @"LastSearchString";
@@ -158,6 +159,10 @@ static void sendCallbacksForGlobalPrefs(GlobalPrefs* self, SEL selector, id orig
 			[NSNumber numberWithBool:YES], QuitWhenClosingMainWindowKey, 
 			[NSNumber numberWithBool:NO], TriedToImportBlorKey,
 			[NSNumber numberWithBool:NO], HorizontalLayoutKey,
+			//NO is Notational Velocity's stacked title bar: the title on its own row, the search
+			//field on a full-width row beneath it. YES is the single-row layout macOS 11 made the
+			//default for every toolbar, which put the two side by side.
+			[NSNumber numberWithBool:NO], SideBySideTitleBarKey,
 			[NSNumber numberWithBool:YES], MakeURLsClickableKey,
 			[NSNumber numberWithBool:YES], HighlightSearchTermsKey, 
 			[NSNumber numberWithBool:YES], TableColumnsHaveBodyPreviewKey, 
@@ -787,6 +792,17 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2) {
 }
 - (BOOL)horizontalLayout {
 	return [defaults boolForKey:HorizontalLayoutKey];
+}
+
+- (void)setSideBySideTitleBar:(BOOL)value sender:(id)sender {
+	if ([self sideBySideTitleBar] != value) {
+		[defaults setBool:value forKey:SideBySideTitleBarKey];
+
+		SEND_CALLBACKS();
+	}
+}
+- (BOOL)sideBySideTitleBar {
+	return [defaults boolForKey:SideBySideTitleBarKey];
 }
 
 - (NSString*)lastSelectedPreferencesPane {
