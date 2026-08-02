@@ -46,7 +46,8 @@
 		[prefsController registerWithTarget:self forChangesInSettings:
 		 @selector(resolveNoteBodyFontFromNotationPrefsFromSender:), 
 		 @selector(setCheckSpellingAsYouType:sender:), 
-		 @selector(setConfirmNoteDeletion:sender:), nil];
+		 @selector(setConfirmNoteDeletion:sender:),
+		 @selector(setSideBySideTitleBar:sender:), nil];
     }
     return self;
 }
@@ -188,6 +189,10 @@
     [prefsController setQuitWhenClosingWindow:[quitWhenClosingButton state] sender:self];
 }
 
+- (IBAction)changedTitleBarLayout:(id)sender {
+	[prefsController setSideBySideTitleBar:[sideBySideTitleBarButton state] sender:self];
+}
+
 - (IBAction)changedSpellChecking:(id)sender {
     [prefsController setCheckSpellingAsYouType:[checkSpellingButton state] sender:self];
 }
@@ -253,6 +258,8 @@
 		[checkSpellingButton setState:[prefsController checkSpellingAsYouType]];
 	} else if ([selectorString isEqualToString:SEL_STR(setConfirmNoteDeletion:sender:)]) {
 		[confirmDeletionButton setState:[prefsController confirmNoteDeletion]];
+	} else if ([selectorString isEqualToString:SEL_STR(setSideBySideTitleBar:sender:)]) {
+		[sideBySideTitleBarButton setState:[prefsController sideBySideTitleBar]];
 	}
 }
 
@@ -372,8 +379,92 @@ static BOOL KNPathsAreSameDirectory(NSString *one, NSString *two) {
     [item release];
 }
 
+/*
+ The General pane's other controls all come from Preferences.nib, which is Interface Builder 3
+ format in seven localizations and is never re-saved -- so this one is built here instead. It has to
+ happen before -switchViews: runs at the end of -awakeFromNib: that method sizes the window from
+ [prefsView frame], so the pane must have grown by then, and it reassigns the pane's origin and
+ autoresizing mask afterwards.
+
+ The pane's coordinates are un-flipped, with y = 0 at the bottom, so making it taller adds the space
+ at the top. Move everything already there up by one row to open the gap at the bottom instead,
+ which keeps the new checkbox in the group of checkboxes rather than stranded above the labels.
+ */
+- (void)addTitleBarLayoutCheckbox {
+
+	if (sideBySideTitleBarButton || !generalView) return;
+
+	//the pitch the pane's checkboxes are spaced on. Everything else is measured off the pane rather
+	//than written down here: the compiled nib that actually ships does not match designable.nib's
+	//frames, so hardcoding the margins puts the new row in the wrong place.
+	const CGFloat rowPitch = 25.0f;
+
+	//the lowest control is the bottom checkbox, so its origin gives both the margin the new row
+	//should sit on and the inset the checkboxes are aligned to
+	NSView *lowest = nil;
+	NSEnumerator *probe = [[generalView subviews] objectEnumerator];
+	NSView *subview;
+	while ((subview = [probe nextObject])) {
+		if (!lowest || NSMinY([subview frame]) < NSMinY([lowest frame])) lowest = subview;
+	}
+	if (!lowest) return;
+
+	NSRect bottomRow = [lowest frame];
+
+	//un-flipped coordinates, so making the pane taller adds the space at the top. Move everything
+	//already there up by one row to open the gap at the bottom instead, which keeps the new
+	//checkbox in the group of checkboxes rather than stranded above the labels.
+	//
+	//-setFrame: would do that on its own, because the pane's controls are pinned to its top and
+	//autoresizing moves them -- but only for as long as every one of them keeps that mask. Suspend
+	//autoresizing and move them here, so the result does not depend on masks set in a nib that
+	//cannot be opened.
+	BOOL wasAutoresizing = [generalView autoresizesSubviews];
+	[generalView setAutoresizesSubviews:NO];
+
+	NSRect paneFrame = [generalView frame];
+	paneFrame.size.height += rowPitch;
+	[generalView setFrame:paneFrame];
+
+	NSEnumerator *subviews = [[generalView subviews] objectEnumerator];
+	while ((subview = [subviews nextObject])) {
+		NSPoint origin = [subview frame].origin;
+		origin.y += rowPitch;
+		[subview setFrameOrigin:origin];
+	}
+
+	[generalView setAutoresizesSubviews:wasAutoresizing];
+
+	sideBySideTitleBarButton = [[NSButton alloc] initWithFrame:bottomRow];
+	[sideBySideTitleBarButton setButtonType:NSButtonTypeSwitch];
+	[sideBySideTitleBarButton setTitle:NSLocalizedString(@"Show the search field beside the window title",
+														@"General preference: put the search field on the title's row rather than beneath it")];
+	[sideBySideTitleBarButton setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
+	[sideBySideTitleBarButton setTarget:self];
+	[sideBySideTitleBarButton setAction:@selector(changedTitleBarLayout:)];
+
+	//sizeToFit measures the title; keep the row's own height so this checkbox lines up with the
+	//ones above it rather than sitting a point or two off their baseline
+	[sideBySideTitleBarButton sizeToFit];
+	[sideBySideTitleBarButton setFrame:NSMakeRect(NSMinX(bottomRow), NSMinY(bottomRow),
+												  NSWidth([sideBySideTitleBarButton frame]), NSHeight(bottomRow))];
+	//same mask as the row it was measured from, so it travels with the group if the pane resizes
+	[sideBySideTitleBarButton setAutoresizingMask:[lowest autoresizingMask]];
+
+	//the title is longer in some languages than the pane is wide; widen the pane to fit rather than
+	//truncating it. -switchViews: centers panes narrower than the window, so a wider pane costs
+	//nothing but a wider Preferences window in those languages.
+	CGFloat needed = NSMaxX([sideBySideTitleBarButton frame]) + NSMinX(bottomRow);
+	if (needed > paneFrame.size.width) {
+		paneFrame.size.width = needed;
+		[generalView setFrame:paneFrame];
+	}
+
+	[generalView addSubview:sideBySideTitleBarButton];
+}
+
 - (void)awakeFromNib {
-	
+
 	[window setDelegate:self];
 	
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(changedTableText:)
@@ -399,6 +490,8 @@ static BOOL KNPathsAreSameDirectory(NSString *one, NSString *two) {
     [checkSpellingButton setState:[prefsController checkSpellingAsYouType]];
     [confirmDeletionButton setState:[prefsController confirmNoteDeletion]];
     [quitWhenClosingButton setState:[prefsController quitWhenClosingWindow]];
+	[self addTitleBarLayoutCheckbox];
+	[sideBySideTitleBarButton setState:[prefsController sideBySideTitleBar]];
     [styledTextButton setState:[prefsController pastePreservesStyle]];
     [autoSuggestLinksButton setState:[prefsController linksAutoSuggested]];
 	[softTabsButton setState:[prefsController softTabs]];

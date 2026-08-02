@@ -119,6 +119,8 @@ void outletObjectAwoke(id sender);
 - (void)_collapseToolbar;
 - (void)_forceRegeneratePreviewsForTitleColumn;
 - (void)_configureDividerForCurrentLayout;
+- (void)_applyTitleBarLayout;
+- (NSString*)applicationName;
 - (NoteObject*)selectedNoteObject;
 
 - (void)restoreListStateUsingPreferences;

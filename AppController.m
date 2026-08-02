@@ -103,6 +103,7 @@ static NSString *KNProjectURLString = @"https://github.com/jptechco/kn";
 	[toolbar setVisible:![[NSUserDefaults standardUserDefaults] boolForKey:@"ToolbarHidden"]];
 	[toolbar setDelegate:self];
 	[window setToolbar:toolbar];
+	[self _applyTitleBarLayout];
 
 	//so a scheduled check can put its "Update Available" indicator here instead of interrupting
 	[[KNUpdateController sharedInstance] setToolbar:toolbar];
@@ -197,9 +198,15 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	}
 }
 
+//CFBundleName: the name -applyApplicationNameToInterface substitutes into the nib-authored menu
+//titles at launch, and the name the window reverts to when the toolbar is shown again
+- (NSString*)applicationName {
+	return [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
+}
+
 - (void)applyApplicationNameToInterface {
 
-	NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
+	NSString *appName = [self applicationName];
 	if (![appName length]) return;
 
 	//AppKit draws the name in the menu bar from the first item of the main menu, not from its
@@ -501,6 +508,7 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	 @selector(removeTableColumn:sender:),  //ditto
 	 @selector(setTableColumnsShowPreview:sender:),  //when to tell notationcontroller to generate or disable note-body previews
 	 @selector(setConfirmNoteDeletion:sender:),  //whether "delete note" should have an ellipsis
+	 @selector(setSideBySideTitleBar:sender:),  //whether the search field shares the title's row
 	 @selector(setAutoCompleteSearches:sender:), nil];   //when to tell notationcontroller to build its title-prefix connections
 	
 	[self performSelector:@selector(runDelayedUIActionsAfterLaunch) withObject:nil afterDelay:0.0];
@@ -676,6 +684,23 @@ terminateApp:
 		 NSLocalizedString(@"Switch to Vertical Layout", @"title of alternate view layout menu item") : 
 		 NSLocalizedString(@"Switch to Horizontal Layout", @"title of view layout menu item")];		
 	}
+}
+
+/*
+ Notational Velocity's title bar was stacked: the window title on its own row, the search field on a
+ full-width row beneath it. That was not a design decision anyone made here -- it is what
+ NSWindowStyleMaskUnifiedTitleAndToolbar, which MainMenu.nib has always asked for, meant on every
+ version of Mac OS X up to Catalina. macOS 11 redefined toolbar rendering: -toolbarStyle now defaults
+ to NSWindowToolbarStyleAutomatic, which resolves to Unified and folds the two rows into one, putting
+ the title and the search field side by side.
+
+ Expanded is the old behaviour, kept by AppKit for exactly this purpose. No nib work and no change to
+ the style mask is involved -- the mask already requests the unified title bar; -toolbarStyle is what
+ decides how many rows it occupies.
+ */
+- (void)_applyTitleBarLayout {
+	[window setToolbarStyle:[prefsController sideBySideTitleBar] ?
+	 NSWindowToolbarStyleUnified : NSWindowToolbarStyleExpanded];
 }
 
 - (void)_forceRegeneratePreviewsForTitleColumn {
@@ -938,6 +963,8 @@ terminateApp:
 		
 	} else if ([selectorString isEqualToString:SEL_STR(setConfirmNoteDeletion:sender:)]) {
 		[self updateNoteMenus];
+	} else if ([selectorString isEqualToString:SEL_STR(setSideBySideTitleBar:sender:)]) {
+		[self _applyTitleBarLayout];
 	} else if ([selectorString isEqualToString:SEL_STR(setAutoCompleteSearches:sender:)]) {
 		if ([prefsController autoCompleteSearches])
 			[notationController updateTitlePrefixConnections];
@@ -1718,7 +1745,11 @@ terminateApp:
 
 - (void)_expandToolbar {
 	if (![toolbar isVisible]) {
-		[window setTitle:@"Notation"];
+		//the title reverts to the application's name, not to Notational Velocity's. This was
+		//invisible while the title sat beside the search field; with the stacked layout it is
+		//centred on its own row, where "Notation" would be plainly wrong.
+		NSString *appName = [self applicationName];
+		[window setTitle:[appName length] ? appName : @"Notation"];
 		if (currentNote)
 			[field setStringValue:titleOfNote(currentNote)];
 		[window toggleToolbarShown:nil];

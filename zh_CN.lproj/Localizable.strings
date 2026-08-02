@@ -682,3 +682,6 @@
 
 /* tooltip of the Update Available toolbar button */
 "A new version of Kinetic Notes is ready to install." = "Kinetic Notes 有新版本可供安装。";
+
+/* General preference: put the search field on the title's row rather than beneath it */
+"Show the search field beside the window title" = "在窗口标题旁显示搜索栏";

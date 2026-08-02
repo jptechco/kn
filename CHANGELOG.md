@@ -18,6 +18,21 @@ version heading when that release is cut.
 
 ## Unreleased
 
+- **The title bar is stacked again, the way Notational Velocity had it** — the window's title on its
+  own row, the search field on a full-width row beneath it.
+
+  This was never a design decision anyone made: it is what the window has always asked for. macOS 11
+  redefined how toolbars are drawn, defaulting every window to a single row and folding the title and
+  the search field together side by side. Kinetic Notes now asks for the older arrangement
+  explicitly.
+
+  The side-by-side layout is still available: *Settings → General → **Show the search field beside
+  the window title***. The switch takes effect immediately, with no relaunch.
+  ([#25](https://github.com/jptechco/kn/pull/25))
+- **Hiding and re-showing the toolbar no longer renames the window "Notation".** The window title is
+  restored from the application's own name. The bug was invisible while the title sat beside the
+  search field, and obvious once it has a row to itself.
+  ([#25](https://github.com/jptechco/kn/pull/25))
 - **Kinetic Notes updates itself.** *Check for Updates…* works again, and the application looks for
   a new version once a day on its own. Every download is verified against a signing key built into
   the application before it is unpacked, and a download that fails that check is discarded rather
