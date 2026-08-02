@@ -4,6 +4,10 @@ build/*
 *.mode1v3
 *.mode1
 
+# Sparkle's command-line tools (generate_keys, sign_update, generate_appcast).
+# Build tools, not a dependency -- the framework itself is vendored in Frameworks/.
+Tools/
+
 # Mac OS X specific
 .DS_Store
 profile

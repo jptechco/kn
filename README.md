@@ -9,11 +9,11 @@ being withdrawn after macOS 26 Tahoe. Kinetic Notes is that application rebuilt 
 with its dead and Intel-only dependencies replaced, and nothing removed that anyone was using.
 
 ### Status
-**Version: 1.5 — current stable release.**
+**Version: 1.6 — current stable release.**
 
-1.5 replaces the application's Carbon-era internals. The storage formats are unchanged and verified
-compatible in both directions, but the file-handling code underneath them was new, so it went out as
-a beta first; that testing is done and 1.5 is now the stable release.
+1.6 is signed with an Apple Developer ID and notarized, so it opens normally on first launch. It
+also updates itself, and restores Notational Velocity's stacked title bar — the window title on its
+own row, with the search field beneath it.
 
 ### Changelog
 If you're curious, check out the [changelog](CHANGELOG.md) to see what's changed in each version.
@@ -26,7 +26,7 @@ If you're curious, check out the [changelog](CHANGELOG.md) to see what's changed
 |---|---|
 | **macOS** | 13.0 Ventura or later |
 | **Architectures** | Universal — `arm64` (Apple Silicon) and `x86_64` (Intel), both native |
-| **Runtime dependencies** | None. Only system frameworks; nothing bundled, no Homebrew |
+| **Runtime dependencies** | [Sparkle](https://sparkle-project.org) 2.9.5 (MIT), bundled, for updates. Otherwise only system frameworks; no Homebrew |
 | **To build** | Xcode 15 or later |
 
 Rosetta 2 is not required or used.
@@ -35,16 +35,32 @@ Rosetta 2 is not required or used.
 
 ## Installing
 
-1. Download the latest release and drag **Kinetic Notes.app** to your Applications folder.
-2. The first launch will be blocked, because release builds are currently only ad-hoc signed:
+Download the latest release and drag **Kinetic Notes.app** to your Applications folder. That is the
+whole procedure — releases are signed with an Apple Developer ID and notarized by Apple, so the
+first launch is not blocked and no right-click → *Open* workaround is needed.
 
-   > "Kinetic Notes" cannot be opened because Apple cannot verify it is free of malware.
+---
 
-   Right-click the app and choose **Open**, then confirm. You only need to do this once.
-   Alternatively: **System Settings → Privacy & Security**, scroll to Security, click
-   **Open Anyway**.
+## Updates
 
-This step will disappear once the project has an Apple Developer ID to sign and notarize with.
+Kinetic Notes checks for a new version once a day and can install one itself. You can also ask at
+any time, with **Kinetic Notes → Check for Updates…**
+
+**A scheduled check does not interrupt you.** When a new version turns up on its own, an
+*Update Available* button appears in the toolbar and waits there. Click it when you are ready — it
+opens the release notes and an Install button, and the update can be skipped or postponed from
+there. Asking for a check yourself still answers straight away, since at that point you are waiting
+for an answer.
+
+Every download is verified against a signing key built into the application before it is unpacked; a
+download that fails that check is discarded rather than installed. Nothing is measured — no profile
+of your system is sent, and no record is kept of who was offered what. The update feed lives at
+[updates.kineticnotes.org](https://updates.kineticnotes.org/appcast.xml).
+
+> **Updating from 1.5 or earlier is a manual step, once.** Those versions contain no updater at all,
+> so nothing in the update feed can reach them. 1.6 is the first version able to *receive* an
+> update; it cannot be delivered as one. Download it by hand and updates take care of themselves
+> afterwards.
 
 ---
 
@@ -100,7 +116,13 @@ That should report `x86_64 arm64`. To confirm it has no external dependencies:
 otool -L "build/Deployment/Kinetic Notes.app/Contents/MacOS/Kinetic Notes" | grep -v /System/Library
 ```
 
-Only `/usr/lib` entries should remain.
+Only `/usr/lib` entries and `@rpath/Sparkle.framework/…` should remain — Sparkle is bundled inside
+the application, at `Contents/Frameworks`.
+
+A build made this way is ad-hoc signed and is not hardened, which is deliberate: hardened runtime
+enforces library validation, and two ad-hoc signatures do not count as the same team, so a hardened
+ad-hoc build cannot load its own copy of Sparkle. Hardening is applied when a release is signed with
+a real Developer ID instead. See [Scripts/README.md](Scripts/README.md) for how releases are built.
 
 ### A note for contributors
 

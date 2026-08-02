@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kinetic Notes</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    max-width: 34rem; margin: 4rem auto; padding: 0 1.25rem;
+  }
+  h1 { font-size: 1.6rem; margin-bottom: .25rem; }
+  .sub { color: #666; margin-top: 0; }
+  .note { border-left: 3px solid #bbb; padding-left: .9rem; color: #555; }
+  footer { margin-top: 3rem; font-size: .875rem; color: #777; }
+  @media (prefers-color-scheme: dark) {
+    .sub, .note { color: #aaa; } .note { border-left-color: #555; } footer { color: #999; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Kinetic Notes</h1>
+<p class="sub">A modern fork of Notational Velocity, for macOS.</p>
+
+<p>This address serves the application's update feed. If you are looking for the application itself,
+it lives on <a href="https://github.com/jptechco/kn">GitHub</a>.</p>
+
+<ul>
+  <li><a href="https://github.com/jptechco/kn/releases/latest">Download the latest release</a></li>
+  <li><a href="https://github.com/jptechco/kn/blob/main/CHANGELOG.md">Changelog</a></li>
+  <li><a href="https://github.com/jptechco/kn">Source code</a> (GPL v3)</li>
+</ul>
+
+<p class="note">Version 1.6 is the first release that can update itself. Earlier versions contain no
+updater, so anyone running 1.5 or older has to install 1.6 by hand, once. After that, updates
+arrive on their own.</p>
+
+<footer>
+<a href="appcast.xml">appcast.xml</a>
+</footer>
+
+</body>
+</html>

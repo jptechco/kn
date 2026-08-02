@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kinetic Notes 1.6</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font: 13px/1.55 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    margin: 0; padding: 1rem 1.25rem;
+  }
+  h1 { font-size: 1.15rem; margin: 0 0 .2rem; }
+  .ver { color: #777; margin: 0 0 1.25rem; font-size: .875rem; }
+  h2 { font-size: .95rem; margin: 1.5rem 0 .4rem; }
+  ul { padding-left: 1.15rem; margin: .4rem 0; }
+  li { margin-bottom: .45rem; }
+  .note { border-left: 3px solid #bbb; padding-left: .8rem; color: #555; }
+  @media (prefers-color-scheme: dark) {
+    .ver { color: #999; } .note { color: #aaa; border-left-color: #555; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Kinetic Notes 1.6</h1>
+<p class="ver">2 August 2026</p>
+
+<h2>The application updates itself</h2>
+<ul>
+  <li><strong>A scheduled check no longer interrupts you.</strong> When a new version is found on a
+      timer, an <em>Update&nbsp;Available</em> button appears in the toolbar and waits. Click it when
+      you are ready; ignore it if you are not. Choosing <em>Check for Updates…</em> yourself still
+      answers straight away.</li>
+  <li>Every download is verified against a signing key built into the application before it is
+      unpacked. A download that fails that check is discarded, not installed.</li>
+  <li>Nothing is measured. No profile of your system is sent, and no record is kept of who was
+      offered what.</li>
+</ul>
+
+<h2>The title bar is stacked again</h2>
+<ul>
+  <li>The window's title sits on its own row, with the search field on a full-width row beneath it —
+      the way Notational Velocity had it. macOS 11 had folded the two together; this asks for the
+      older arrangement explicitly.</li>
+  <li>The side-by-side layout is still available, under
+      <em>Settings&nbsp;→&nbsp;General&nbsp;→&nbsp;Show the search field beside the window
+      title</em>.</li>
+</ul>
+
+<h2>Also</h2>
+<ul>
+  <li>Kinetic Notes is now signed with an Apple Developer ID and notarized, so it opens normally on
+      first launch. The right-click&nbsp;→&nbsp;Open workaround is no longer needed.</li>
+  <li>Hiding and re-showing the toolbar no longer renames the window "Notation".</li>
+  <li><em>Check for Updates…</em> is translated into every language the application ships.</li>
+</ul>
+
+<p class="note">1.6 is the first version able to receive an update. Anyone running 1.5 or earlier has
+to install it by hand, once, because those versions contain no updater at all.</p>
+
+</body>
+</html>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Sparkle update feed for Kinetic Notes, served at https://updates.kineticnotes.org/appcast.xml
+  from the docs/ directory of https://github.com/jptechco/kn on the main branch.
+
+  Newest release first. Each item's sparkle:version is CFBundleVersion, the build number, which in
+  this project is the number of the pull request that produced it. It is NOT the marketing version;
+  that is sparkle:shortVersionString. Sparkle compares the build number against the installed one.
+
+  Every entry's length and sparkle:edSignature come from Sparkle's sign_update, run over the
+  notarized zip by Scripts/release.sh, which prints the whole block ready to paste.
+-->
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Kinetic Notes</title>
+    <link>https://updates.kineticnotes.org/appcast.xml</link>
+    <description>Updates for Kinetic Notes.</description>
+    <language>en</language>
+
+  </channel>
+</rss>
