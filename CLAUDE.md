@@ -28,6 +28,13 @@ The About box shows both, as `Version 1.5 beta (20)`.
 2. Set `CURRENT_PROJECT_VERSION` to the PR number — **three sites** in
    `Notation.xcodeproj/project.pbxproj`, one per build configuration.
 
+**Exception: a pull request that changes nothing inside the application bundle does not bump the
+build number,** and needs no changelog entry. That covers `Scripts/`, `docs/`, `README.md`,
+`CLAUDE.md` and the appcast. The build number exists to identify a *build*; moving it when the build
+is byte-for-byte identical breaks that, and would leave `main` claiming a build number no shipped
+binary ever carried. Anything under the app bundle — sources, nibs, `Info.plist`, strings tables,
+`Acknowledgments.txt`, the vendored framework — bumps it as usual.
+
 ### When a release is cut
 
 1. Promote `## Unreleased` in `CHANGELOG.md` to `## <version> — <YYYY-MM-DD>`.
