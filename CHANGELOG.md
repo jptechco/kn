@@ -9,15 +9,37 @@ shipped body of work; a major release is `x.0` and happens only when the maintai
 release still in testing carries a `beta` suffix, and the README names the current stable release
 alongside it.
 
-**Builds** are per pull request, numbered with the pull request's own number — so build 22 is
-PR #22, and any build traces straight back to the change that produced it. The application reports
-both: *Kinetic Notes → About Kinetic Notes* reads `Version 1.5 (22)`.
+**Builds** are per pull request, numbered with the pull request's own number — so build 26 is
+PR #26, and any build traces straight back to the change that produced it. The application reports
+both: *Kinetic Notes → About Kinetic Notes* reads `Version 1.6 (26)`.
 
 Entries merged since the last release are collected under **Unreleased** and are promoted to a
 version heading when that release is cut.
 
 ## Unreleased
 
+## 1.6 — 2026-08-02
+
+**Kinetic Notes updates itself, and it is signed.** Releases carry an Apple Developer ID and are
+notarized, so the first launch is no longer blocked and the right-click → *Open* workaround is
+retired. On top of that, the application now checks for new versions on its own — without the
+dialog-on-launch that made Notational Velocity's updater something to dismiss rather than read.
+
+The title bar returns to Notational Velocity's stacked arrangement, which macOS took away rather
+than anyone here removing.
+
+**Anyone running 1.5 or earlier must install 1.6 by hand.** Those versions contain no updater, so
+nothing in the update feed can reach them. 1.6 is the first version able to *receive* an update; it
+cannot be delivered as one.
+
+- **Releases are signed with an Apple Developer ID and notarized by Apple.** The first launch is no
+  longer blocked, and the right-click → *Open* dance the README used to describe is no longer
+  needed: Kinetic Notes opens like any other application.
+
+  The build is also hardened at the signing step rather than in the project's build settings, so a
+  plain `xcodebuild` from a clean checkout still produces a launchable, ad-hoc-signed build for
+  anyone who wants to compile it themselves.
+  ([#26](https://github.com/jptechco/kn/pull/26))
 - **The title bar is stacked again, the way Notational Velocity had it** — the window's title on its
   own row, the search field on a full-width row beneath it.
 
