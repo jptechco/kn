@@ -1,1 +1,4 @@
 *.pbxproj -crlf -diff -merge
+
+# vendored binary framework: never worth a textual diff
+Frameworks/Sparkle.framework/** -diff

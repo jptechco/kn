@@ -673,3 +673,12 @@
 
 /* button that dismisses the donation request */
 "Not Now" = "暂不";
+
+/* application menu item that checks for a new version */
+"Check for Updates…" = "检查更新…";
+
+/* toolbar button shown when a new version was found by a scheduled check */
+"Update Available" = "有可用更新";
+
+/* tooltip of the Update Available toolbar button */
+"A new version of Kinetic Notes is ready to install." = "Kinetic Notes 有新版本可供安装。";

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- ODBEditor sends a kAEOpenDocuments Apple event to whichever external editor the user picks
+	     (AESendMessage, ODBEditor/ODBEditor.m:291). The hardened runtime blocks that without this
+	     entitlement, and "Edit in external editor" fails silently rather than reporting anything.
+	     The first send prompts the user, explained by NSAppleEventsUsageDescription in Info.plist.
+
+	     This is the whole list, deliberately. The application is not sandboxed, so Sparkle's XPC
+	     services never activate and need no mach-lookup exceptions; and because the release script
+	     signs Sparkle.framework with the same Developer ID as the application, library validation
+	     is satisfied and com.apple.security.cs.disable-library-validation is not required. -->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
+</dict>
+</plist>

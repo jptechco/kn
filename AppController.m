@@ -49,6 +49,7 @@
 #import "SecureTextEntryManager.h"
 #import "NSString_CustomTruncation.h"
 #import "KNSupportController.h"
+#import "KNUpdateController.h"
 
 //where the Help menu's "Kinetic Notes Web Site" item points
 static NSString *KNProductSiteURLString = @"https://www.kineticnotes.org";
@@ -102,7 +103,10 @@ static NSString *KNProjectURLString = @"https://github.com/jptechco/kn";
 	[toolbar setVisible:![[NSUserDefaults standardUserDefaults] boolForKey:@"ToolbarHidden"]];
 	[toolbar setDelegate:self];
 	[window setToolbar:toolbar];
-	
+
+	//so a scheduled check can put its "Update Available" indicator here instead of interrupting
+	[[KNUpdateController sharedInstance] setToolbar:toolbar];
+
 	[window setShowsToolbarButton:NO];
 	titleBarButton = [[TitlebarButton alloc] initWithFrame:NSMakeRect(0, 0, 17.0, 17.0) pullsDown:YES];
 	[titleBarButton addToWindow:window];
@@ -216,10 +220,11 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	[notationController checkIfNotationIsTrashed];
 	[[SecureTextEntryManager sharedInstance] checkForIncompatibleApps];
 	
-	//Sparkle 1.5b6 was bundled here, but it was only ever built for ppc/i386/x86_64 and so could never
-	//load on Apple Silicon. Auto-update stays switched off until there is a signing identity to
-	//sign an appcast with; hide the menu item rather than leave a control that does nothing.
-	[sparkleUpdateItem setHidden:YES];
+	//MainMenu.nib's "Check for Updates..." item has neither target nor action -- the nib is Interface
+	//Builder 3 format and is never re-saved. KNUpdateController gives it both, retitles it, and starts
+	//Sparkle. Here rather than in -applicationDidFinishLaunching:, which can still put up the
+	//first-run import dialogs or the notes-folder open panel, or terminate outright.
+	[[KNUpdateController sharedInstance] installInMenuItem:sparkleUpdateItem];
 
 	[NSApp setServicesProvider:self];
 }
@@ -594,11 +599,15 @@ terminateApp:
 }
 
 - (NSToolbarItem *)toolbar:(NSToolbar *)toolbar itemForItemIdentifier:(NSString *)itemIdentifier willBeInsertedIntoToolbar:(BOOL)flag {
+	if ([itemIdentifier isEqualToString:KNUpdateToolbarItemIdentifier])
+		return [[KNUpdateController sharedInstance] updateToolbarItem];
 	return [itemIdentifier isEqualToString:@"DualField"] ? dualFieldItem : nil;
 }
 
 - (NSArray *)toolbarAllowedItemIdentifiers:(NSToolbar*)theToolbar {
-	return [self toolbarDefaultItemIdentifiers:theToolbar];
+	//the update indicator is allowed but not default: it is inserted only when a scheduled check has
+	//actually found something, and removed again once the user has dealt with it
+	return [NSArray arrayWithObjects:@"DualField", KNUpdateToolbarItemIdentifier, nil];
 }
 
 - (NSArray *)toolbarDefaultItemIdentifiers:(NSToolbar*)theToolbar {
