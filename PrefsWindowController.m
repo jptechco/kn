@@ -141,8 +141,10 @@
 	}
 
 	NSFont *font = [prefsController noteBodyFont];
+	//use the user's foreground text color (which falls back to the semantic [NSColor textColor] and so
+	//adapts to Dark Mode) rather than a hard-coded black that stayed invisible on a dark pane
 	NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:font ? font : [NSFont systemFontOfSize:12.0],
-		NSFontAttributeName, [NSColor blackColor], NSForegroundColorAttributeName, centerStyle, NSParagraphStyleAttributeName, nil];
+		NSFontAttributeName, [prefsController foregroundTextColor], NSForegroundColorAttributeName, centerStyle, NSParagraphStyleAttributeName, nil];
 
 	NSString *fontNameAndSize = font ? [NSString stringWithFormat:@"%@ %g", [font fontName], [font pointSize]] : @"Unknown";
 	NSAttributedString *attributedString = [[NSAttributedString alloc] initWithString:fontNameAndSize attributes:attributes];
@@ -191,6 +193,10 @@
 
 - (IBAction)changedTitleBarLayout:(id)sender {
 	[prefsController setSideBySideTitleBar:[sideBySideTitleBarButton state] sender:self];
+}
+
+- (IBAction)changedAppearanceMode:(id)sender {
+	[prefsController setAppearanceMode:(KNAppearanceMode)[appearanceModeButton indexOfSelectedItem] sender:self];
 }
 
 - (IBAction)changedSpellChecking:(id)sender {
@@ -380,60 +386,82 @@ static BOOL KNPathsAreSameDirectory(NSString *one, NSString *two) {
 }
 
 /*
- The General pane's other controls all come from Preferences.nib, which is Interface Builder 3
- format in seven localizations and is never re-saved -- so this one is built here instead. It has to
- happen before -switchViews: runs at the end of -awakeFromNib: that method sizes the window from
- [prefsView frame], so the pane must have grown by then, and it reassigns the pane's origin and
- autoresizing mask afterwards.
+ Some pane controls are built here rather than in Preferences.nib, which is Interface Builder 3
+ format in seven localizations and is never re-saved. This has to happen before -switchViews: runs at
+ the end of -awakeFromNib: that method sizes the window from [prefsView frame], so the pane must have
+ grown by then, and it reassigns the pane's origin and autoresizing mask afterwards.
 
- The pane's coordinates are un-flipped, with y = 0 at the bottom, so making it taller adds the space
- at the top. Move everything already there up by one row to open the gap at the bottom instead,
- which keeps the new checkbox in the group of checkboxes rather than stranded above the labels.
+ -openBottomRowInPane: does the shared geometry: it grows the pane by one row and shifts its existing
+ controls up to open a gap at the bottom, returning that vacated row's frame for the caller to place a
+ new control into. The pane's coordinates are un-flipped, with y = 0 at the bottom, so making it
+ taller adds the space at the top; shifting everything up opens the gap at the bottom instead, which
+ keeps the new control in the group rather than stranded above the labels.
  */
-- (void)addTitleBarLayoutCheckbox {
+- (NSRect)openBottomRowInPane:(NSView *)pane measuredRow:(NSView **)outMeasuredRow {
 
-	if (sideBySideTitleBarButton || !generalView) return;
+	if (outMeasuredRow) *outMeasuredRow = nil;
 
-	//the pitch the pane's checkboxes are spaced on. Everything else is measured off the pane rather
+	//the pitch the pane's controls are spaced on. Everything else is measured off the pane rather
 	//than written down here: the compiled nib that actually ships does not match designable.nib's
 	//frames, so hardcoding the margins puts the new row in the wrong place.
 	const CGFloat rowPitch = 25.0f;
 
-	//the lowest control is the bottom checkbox, so its origin gives both the margin the new row
-	//should sit on and the inset the checkboxes are aligned to
+	//the lowest control gives both the margin the new row should sit on and the inset the pane's
+	//controls are aligned to
 	NSView *lowest = nil;
-	NSEnumerator *probe = [[generalView subviews] objectEnumerator];
+	NSEnumerator *probe = [[pane subviews] objectEnumerator];
 	NSView *subview;
 	while ((subview = [probe nextObject])) {
 		if (!lowest || NSMinY([subview frame]) < NSMinY([lowest frame])) lowest = subview;
 	}
-	if (!lowest) return;
+	if (!lowest) return NSZeroRect;
+	if (outMeasuredRow) *outMeasuredRow = lowest;
 
+	//captured before the shift below: this is the slot the shift vacates at the bottom
 	NSRect bottomRow = [lowest frame];
 
-	//un-flipped coordinates, so making the pane taller adds the space at the top. Move everything
-	//already there up by one row to open the gap at the bottom instead, which keeps the new
-	//checkbox in the group of checkboxes rather than stranded above the labels.
-	//
-	//-setFrame: would do that on its own, because the pane's controls are pinned to its top and
+	//-setFrame: would move the controls on its own, because they are pinned to the pane's top and
 	//autoresizing moves them -- but only for as long as every one of them keeps that mask. Suspend
 	//autoresizing and move them here, so the result does not depend on masks set in a nib that
 	//cannot be opened.
-	BOOL wasAutoresizing = [generalView autoresizesSubviews];
-	[generalView setAutoresizesSubviews:NO];
+	BOOL wasAutoresizing = [pane autoresizesSubviews];
+	[pane setAutoresizesSubviews:NO];
 
-	NSRect paneFrame = [generalView frame];
+	NSRect paneFrame = [pane frame];
 	paneFrame.size.height += rowPitch;
-	[generalView setFrame:paneFrame];
+	[pane setFrame:paneFrame];
 
-	NSEnumerator *subviews = [[generalView subviews] objectEnumerator];
+	NSEnumerator *subviews = [[pane subviews] objectEnumerator];
 	while ((subview = [subviews nextObject])) {
 		NSPoint origin = [subview frame].origin;
 		origin.y += rowPitch;
 		[subview setFrameOrigin:origin];
 	}
 
-	[generalView setAutoresizesSubviews:wasAutoresizing];
+	[pane setAutoresizesSubviews:wasAutoresizing];
+
+	return bottomRow;
+}
+
+//widen `pane` if `control` (already placed in it) extends past its right edge, keeping `leftInset` on
+//the left. -switchViews: centers panes narrower than the window, so a wider pane costs nothing but a
+//wider Preferences window in the languages that need it.
+- (void)widenPane:(NSView *)pane toFitControl:(NSView *)control leftInset:(CGFloat)leftInset {
+	CGFloat needed = NSMaxX([control frame]) + leftInset;
+	NSRect paneFrame = [pane frame];
+	if (needed > paneFrame.size.width) {
+		paneFrame.size.width = needed;
+		[pane setFrame:paneFrame];
+	}
+}
+
+- (void)addTitleBarLayoutCheckbox {
+
+	if (sideBySideTitleBarButton || !generalView) return;
+
+	NSView *lowest = nil;
+	NSRect bottomRow = [self openBottomRowInPane:generalView measuredRow:&lowest];
+	if (!lowest) return;
 
 	sideBySideTitleBarButton = [[NSButton alloc] initWithFrame:bottomRow];
 	[sideBySideTitleBarButton setButtonType:NSButtonTypeSwitch];
@@ -451,16 +479,117 @@ static BOOL KNPathsAreSameDirectory(NSString *one, NSString *two) {
 	//same mask as the row it was measured from, so it travels with the group if the pane resizes
 	[sideBySideTitleBarButton setAutoresizingMask:[lowest autoresizingMask]];
 
-	//the title is longer in some languages than the pane is wide; widen the pane to fit rather than
-	//truncating it. -switchViews: centers panes narrower than the window, so a wider pane costs
-	//nothing but a wider Preferences window in those languages.
-	CGFloat needed = NSMaxX([sideBySideTitleBarButton frame]) + NSMinX(bottomRow);
-	if (needed > paneFrame.size.width) {
-		paneFrame.size.width = needed;
-		[generalView setFrame:paneFrame];
-	}
+	//the title is longer in some languages than the pane is wide; widen rather than truncate
+	[self widenPane:generalView toFitControl:sideBySideTitleBarButton leftInset:NSMinX(bottomRow)];
 
 	[generalView addSubview:sideBySideTitleBarButton];
+}
+
+/*
+ The Color Scheme control -- a label + popup letting the user follow the system appearance or pin the
+ app dark/light -- is built in code, the nib being un-editable. Unlike the General pane's checkbox,
+ this pane cannot use -openBottomRowInPane:: the Body Font field is width-sizable, so growing the pane
+ *width* (which -openBottomRowInPane: and -widenPane: can do) stretches that field until it runs under
+ the fixed "Set…" button. So this lays out by hand instead. It leaves the pane width alone, grows only
+ the *height* to make room, gives the Body Font row a generous gap above and below, and drops the
+ Color Scheme row below it. Everything is measured off existing controls, since the shipped nib's
+ frames differ from designable.nib's and vary by localization.
+ */
+- (void)addAppearanceControl {
+
+	if (appearanceModeButton || !fontsColorsView || !bodyTextFontField) return;
+
+	const CGFloat gap = 48.0f;			//breathing room above and below the Body Font row
+	const CGFloat bottomMargin = 16.0f;	//space beneath the Color Scheme popup
+
+	NSRect fieldFrame = [bodyTextFontField frame];
+	CGFloat fieldY = NSMinY(fieldFrame);
+	CGFloat fieldCenter = NSMidY(fieldFrame);
+
+	//split the pane's controls into the Body Font row (the cluster sharing the field's baseline: its
+	//label, the field, the Set button) and the colour rows above it, which move as a group
+	NSTextField *bodyFontLabel = nil;
+	NSMutableArray *bodyRow = [NSMutableArray arrayWithObject:bodyTextFontField];
+	NSMutableArray *upperRows = [NSMutableArray array];
+	CGFloat lowestUpperCenter = CGFLOAT_MAX;
+	for (NSView *sv in [fontsColorsView subviews]) {
+		if (sv == bodyTextFontField) continue;
+		if (fabs(NSMinY([sv frame]) - fieldY) < 16.0f) {
+			[bodyRow addObject:sv];
+			if (!bodyFontLabel && [sv isKindOfClass:[NSTextField class]]) bodyFontLabel = (NSTextField *)sv;
+		} else if (NSMinY([sv frame]) > fieldY) {
+			[upperRows addObject:sv];
+			lowestUpperCenter = MIN(lowestUpperCenter, NSMidY([sv frame]));
+		}
+	}
+
+	//target row centres, bottom-up: the Color Scheme popup a bottom margin off the floor, the Body
+	//Font row `gap` above it, and the colour rows `gap` above that. Grow the pane's height (and lift
+	//the colour rows with it) by whatever the top row has to rise; the top margin is preserved.
+	const CGFloat popupHeight = 24.0f;
+	CGFloat rowCenterY = bottomMargin + popupHeight / 2.0f;
+	CGFloat bodyCenterTarget = rowCenterY + gap;
+	CGFloat upperCenterTarget = bodyCenterTarget + gap;
+	CGFloat shift = (lowestUpperCenter == CGFLOAT_MAX) ? 0.0f : (upperCenterTarget - lowestUpperCenter);
+	if (shift < 0.0f) shift = 0.0f;
+
+	if (shift > 0.0f) {
+		BOOL wasAutoresizing = [fontsColorsView autoresizesSubviews];
+		[fontsColorsView setAutoresizesSubviews:NO];
+		NSRect pf = [fontsColorsView frame];
+		pf.size.height += shift;
+		[fontsColorsView setFrame:pf];
+		for (NSView *sv in upperRows) {
+			NSPoint o = [sv frame].origin;
+			o.y += shift;
+			[sv setFrameOrigin:o];
+		}
+		[fontsColorsView setAutoresizesSubviews:wasAutoresizing];
+	}
+
+	//move the Body Font row to its target centre (the pane grew with autoresizing off, so the field
+	//has not moved and fieldCenter still holds)
+	CGFloat bodyMove = bodyCenterTarget - fieldCenter;
+	for (NSView *sv in bodyRow) {
+		NSPoint o = [sv frame].origin;
+		o.y += bodyMove;
+		[sv setFrameOrigin:o];
+	}
+
+	appearanceModeButton = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(NSMinX(fieldFrame), 0.0f, 100.0f, 24.0f) pullsDown:NO];
+	[appearanceModeButton addItemWithTitle:NSLocalizedString(@"Follow System",
+		@"Color Scheme preference: track the macOS light/dark setting")];
+	[appearanceModeButton addItemWithTitle:NSLocalizedString(@"Force Dark",
+		@"Color Scheme preference: always use the dark appearance")];
+	[appearanceModeButton addItemWithTitle:NSLocalizedString(@"Force Light",
+		@"Color Scheme preference: always use the light appearance")];
+	[appearanceModeButton setTarget:self];
+	[appearanceModeButton setAction:@selector(changedAppearanceMode:)];
+	[appearanceModeButton sizeToFit];
+
+	//align under the Body Font field, vertically centred on the row
+	NSRect popFrame = [appearanceModeButton frame];
+	popFrame.origin.x = NSMinX(fieldFrame);
+	popFrame.origin.y = rowCenterY - NSHeight(popFrame) / 2.0f;
+	[appearanceModeButton setFrame:popFrame];
+	[appearanceModeButton setAutoresizingMask:NSViewMinYMargin];
+
+	//right-aligned label, its right edge matching the Body Font label's column
+	CGFloat labelRight = bodyFontLabel ? NSMaxX([bodyFontLabel frame]) : (NSMinX(fieldFrame) - 8.0f);
+	appearanceLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0f, rowCenterY - 9.0f, labelRight, 18.0f)];
+	[appearanceLabel setStringValue:NSLocalizedString(@"Color Scheme:",
+		@"Fonts & Colors preference: label for the light/dark appearance popup")];
+	[appearanceLabel setAlignment:NSTextAlignmentRight];
+	[appearanceLabel setEditable:NO];
+	[appearanceLabel setSelectable:NO];
+	[appearanceLabel setBordered:NO];
+	[appearanceLabel setBezeled:NO];
+	[appearanceLabel setDrawsBackground:NO];
+	[appearanceLabel setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
+	[appearanceLabel setAutoresizingMask:NSViewMinYMargin];
+
+	[fontsColorsView addSubview:appearanceLabel];
+	[fontsColorsView addSubview:appearanceModeButton];
 }
 
 - (void)awakeFromNib {
@@ -492,6 +621,8 @@ static BOOL KNPathsAreSameDirectory(NSString *one, NSString *two) {
     [quitWhenClosingButton setState:[prefsController quitWhenClosingWindow]];
 	[self addTitleBarLayoutCheckbox];
 	[sideBySideTitleBarButton setState:[prefsController sideBySideTitleBar]];
+	[self addAppearanceControl];
+	[appearanceModeButton selectItemAtIndex:[prefsController appearanceMode]];
     [styledTextButton setState:[prefsController pastePreservesStyle]];
     [autoSuggestLinksButton setState:[prefsController linksAutoSuggested]];
 	[softTabsButton setState:[prefsController softTabs]];

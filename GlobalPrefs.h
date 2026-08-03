@@ -41,6 +41,14 @@ extern NSString *NVPTFPboardType;
 
 enum { NoteTitleColumn, NoteLabelsColumn, NoteDateModifiedColumn, NoteDateCreatedColumn };
 
+//how the app resolves its NSApp.appearance. Follow System is the default and the historic behavior;
+//the other two pin the whole app dark or light regardless of the macOS system setting.
+typedef NS_ENUM(NSInteger, KNAppearanceMode) {
+	KNAppearanceFollowSystem = 0,
+	KNAppearanceForceDark,
+	KNAppearanceForceLight
+};
+
 #define ColumnIsSet(__ColumnEnum, __columnsBitmap) (((1 << (__ColumnEnum)) & (__columnsBitmap)) != 0)
 
 
@@ -102,6 +110,9 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2);
 - (NSColor*)foregroundTextColor;
 - (void)setBackgroundTextColor:(NSColor*)aColor sender:(id)sender;
 - (NSColor*)backgroundTextColor;
+
+- (KNAppearanceMode)appearanceMode;
+- (void)setAppearanceMode:(KNAppearanceMode)mode sender:(id)sender;
 
 - (void)setTabIndenting:(BOOL)value sender:(id)sender;
 - (BOOL)tabKeyIndents;
