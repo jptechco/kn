@@ -412,6 +412,9 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	//so -[NSApp mainMenu] is not yet set
 	[self applyApplicationNameToInterface];
 
+	//honor a saved Appearance override (Force Dark/Force Light) before any window is shown
+	[self applyAppearanceMode];
+
 	//after the rename above, which walks every existing menu title looking for the old product name
 	[[KNSupportController sharedInstance] installMenuItemInMainMenu];
 
@@ -509,6 +512,7 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	 @selector(setTableColumnsShowPreview:sender:),  //when to tell notationcontroller to generate or disable note-body previews
 	 @selector(setConfirmNoteDeletion:sender:),  //whether "delete note" should have an ellipsis
 	 @selector(setSideBySideTitleBar:sender:),  //whether the search field shares the title's row
+	 @selector(setAppearanceMode:sender:),  //when to force the app light/dark or follow the system
 	 @selector(setAutoCompleteSearches:sender:), nil];   //when to tell notationcontroller to build its title-prefix connections
 	
 	[self performSelector:@selector(runDelayedUIActionsAfterLaunch) withObject:nil afterDelay:0.0];
@@ -701,6 +705,22 @@ terminateApp:
 - (void)_applyTitleBarLayout {
 	[window setToolbarStyle:[prefsController sideBySideTitleBar] ?
 	 NSWindowToolbarStyleUnified : NSWindowToolbarStyleExpanded];
+}
+
+- (void)applyAppearanceMode {
+	//nil lets the app follow the system appearance; the other two pin every window light or dark
+	NSAppearance *appearance = nil;
+	switch ([prefsController appearanceMode]) {
+		case KNAppearanceForceDark:
+			appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
+			break;
+		case KNAppearanceForceLight:
+			appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
+			break;
+		case KNAppearanceFollowSystem:
+			break;
+	}
+	[NSApp setAppearance:appearance];
 }
 
 - (void)_forceRegeneratePreviewsForTitleColumn {
@@ -965,6 +985,8 @@ terminateApp:
 		[self updateNoteMenus];
 	} else if ([selectorString isEqualToString:SEL_STR(setSideBySideTitleBar:sender:)]) {
 		[self _applyTitleBarLayout];
+	} else if ([selectorString isEqualToString:SEL_STR(setAppearanceMode:sender:)]) {
+		[self applyAppearanceMode];
 	} else if ([selectorString isEqualToString:SEL_STR(setAutoCompleteSearches:sender:)]) {
 		if ([prefsController autoCompleteSearches])
 			[notationController updateTitlePrefixConnections];

@@ -61,6 +61,7 @@ static NSString *AutoIndentsNewLinesKey = @"AutoIndentsNewLines";
 static NSString *HighlightSearchTermsKey = @"HighlightSearchTerms";
 static NSString *SearchTermHighlightColorKey = @"SearchTermHighlightColor";
 static NSString *AutomaticallyManagesTextColorsKey = @"AutomaticallyManagesTextColors";
+static NSString *AppearanceModeKey = @"AppearanceMode";
 static NSString *ForegroundTextColorKey = @"ForegroundTextColor";
 static NSString *BackgroundTextColorKey = @"BackgroundTextColor";
 static NSString *UseSoftTabsKey = @"UseSoftTabs";
@@ -156,6 +157,7 @@ static void sendCallbacksForGlobalPrefs(GlobalPrefs* self, SEL selector, id orig
 			[NSNumber numberWithBool:NO], TextReplacementInNoteBodyKey, 
 			[NSNumber numberWithBool:YES], AutoCompleteSearchesKey,
 			[NSNumber numberWithBool:YES], AutomaticallyManagesTextColorsKey,
+			[NSNumber numberWithInteger:KNAppearanceFollowSystem], AppearanceModeKey,
 			[NSNumber numberWithBool:YES], QuitWhenClosingMainWindowKey, 
 			[NSNumber numberWithBool:NO], TriedToImportBlorKey,
 			[NSNumber numberWithBool:NO], HorizontalLayoutKey,
@@ -700,6 +702,17 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2) {
 	if (theData) return (NSColor *)KNUnarchivedPrefsObject([NSColor class], theData);
 
 	return [NSColor textBackgroundColor];
+}
+
+- (KNAppearanceMode)appearanceMode {
+	return (KNAppearanceMode)[defaults integerForKey:AppearanceModeKey];
+}
+
+- (void)setAppearanceMode:(KNAppearanceMode)mode sender:(id)sender {
+	[defaults setInteger:mode forKey:AppearanceModeKey];
+	//AppController observes this selector and drives NSApp.appearance from it, so every window updates
+	//live without a relaunch
+	sendCallbacksForGlobalPrefs(self, @selector(setAppearanceMode:sender:), sender);
 }
 
 - (BOOL)tableColumnsShowPreview {

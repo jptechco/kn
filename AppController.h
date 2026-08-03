@@ -120,6 +120,7 @@ void outletObjectAwoke(id sender);
 - (void)_forceRegeneratePreviewsForTitleColumn;
 - (void)_configureDividerForCurrentLayout;
 - (void)_applyTitleBarLayout;
+- (void)applyAppearanceMode;
 - (NSString*)applicationName;
 - (NoteObject*)selectedNoteObject;
 

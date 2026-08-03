@@ -86,7 +86,15 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
     [allowedTypesTable setDataSource:self];
     [allowedExtensionsTable setDelegate:self];
     [allowedTypesTable setDelegate:self];
-	
+
+	//the nib bakes a static white background into these tables, which stays white (and its cell text
+	//near-invisible) in Dark Mode. Point them and their scroll views at semantic colors so they track
+	//the window appearance instead.
+	for (NSTableView *table in @[allowedExtensionsTable, allowedTypesTable]) {
+		[table setBackgroundColor:[NSColor controlBackgroundColor]];
+		[[table enclosingScrollView] setBackgroundColor:[NSColor controlBackgroundColor]];
+	}
+
 	
 	//this additional management for sync prefs, plus the need for per-service settings and externally triggering updates really demands its own class
 	NSNotificationCenter *center = [NSNotificationCenter defaultCenter];

@@ -38,9 +38,12 @@
 	IBOutlet NSButton *checkSpellingButton;
 	IBOutlet NSButton *confirmDeletionButton;
 	IBOutlet NSButton *quitWhenClosingButton;
-	//not an outlet: Preferences.nib is Interface Builder 3 format in seven localizations and is
-	//never re-saved, so this checkbox is built in -addTitleBarLayoutCheckbox instead
+	//not outlets: Preferences.nib is Interface Builder 3 format in seven localizations and is
+	//never re-saved, so these controls are built in code (-addTitleBarLayoutCheckbox and
+	//-addAppearanceControl) instead
 	NSButton *sideBySideTitleBarButton;
+	NSTextField *appearanceLabel;
+	NSPopUpButton *appearanceModeButton;
 	IBOutlet NSButton *styledTextButton;
 	IBOutlet NSButton *autoSuggestLinksButton;
 	IBOutlet NSButton *softTabsButton;
@@ -76,6 +79,7 @@
 - (IBAction)changedNotesFolderLocation:(id)sender;
 - (IBAction)changedQuitBehavior:(id)sender;
 - (IBAction)changedTitleBarLayout:(id)sender;
+- (IBAction)changedAppearanceMode:(id)sender;
 - (IBAction)changedSpellChecking:(id)sender;
 - (IBAction)changedTabBehavior:(id)sender;
 - (IBAction)changedTableText:(id)sender;
