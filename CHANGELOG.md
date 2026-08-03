@@ -18,6 +18,17 @@ version heading when that release is cut.
 
 ## Unreleased
 
+- **Dark Mode no longer hides text in Preferences.** Two controls had kept colours that only worked
+  against a light background: the *Fonts & Colors* **Body Font** field drew its name in a hard-coded
+  black, invisible on the dark pane, and the *Notes → Storage* file-attribute tables kept a white
+  background that left their text unreadable. Both now use the semantic colours that follow the
+  system appearance.
+
+  **A Color Scheme control joins *Fonts & Colors*.** *Follow System* (the default) leaves the app to
+  track macOS; *Force Dark* and *Force Light* pin the whole application to one appearance regardless
+  of the system setting. The choice takes effect immediately and is remembered across launches.
+  ([#29](https://github.com/jptechco/kn/pull/29))
+
 ## 1.6 — 2026-08-02
 
 **Kinetic Notes updates itself, and it is signed.** Releases carry an Apple Developer ID and are
