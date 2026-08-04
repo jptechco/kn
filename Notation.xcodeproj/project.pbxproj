@@ -84,9 +84,6 @@
 		2155DF44097C992800163A10 /* AttributedPlainText.m in Sources */ = {isa = PBXBuildFile; fileRef = 2155DF43097C992800163A10 /* AttributedPlainText.m */; };
 		21582DC50B73F59B00711663 /* BookmarksController.m in Sources */ = {isa = PBXBuildFile; fileRef = 21582DC40B73F59A00711663 /* BookmarksController.m */; };
 		215DE83809ECC4FE009A710B /* HeaderViewWIthMenu.m in Sources */ = {isa = PBXBuildFile; fileRef = 215DE83709ECC4FE009A710B /* HeaderViewWIthMenu.m */; };
-		215DEA3F09EF5323009A710B /* General.tiff in Resources */ = {isa = PBXBuildFile; fileRef = 215DEA3D09EF5323009A710B /* General.tiff */; };
-		215DEA4709EF6446009A710B /* Notes.tiff in Resources */ = {isa = PBXBuildFile; fileRef = 215DEA4609EF6446009A710B /* Notes.tiff */; };
-		215DEE1309F1AA4C009A710B /* Editing.tiff in Resources */ = {isa = PBXBuildFile; fileRef = 215DEE1209F1AA4C009A710B /* Editing.tiff */; };
 		21665A9E10E6032F00188D3D /* Search.png in Resources */ = {isa = PBXBuildFile; fileRef = 21665A9C10E6032F00188D3D /* Search.png */; };
 		2168EC5309E33B0300778D02 /* FrozenNotation.m in Sources */ = {isa = PBXBuildFile; fileRef = 2168EC5209E33B0300778D02 /* FrozenNotation.m */; };
 		216BA24310746E3900F62D93 /* ImporterAccessory.nib in Resources */ = {isa = PBXBuildFile; fileRef = 216BA24110746E3900F62D93 /* ImporterAccessory.nib */; };
@@ -146,7 +143,6 @@
 		21B64C4E12E62A5700D87EFC /* UnifiedCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 21B64C4D12E62A5700D87EFC /* UnifiedCell.m */; };
 		21BD2ED110DAF31500BA3DF6 /* LinearDividerShader.m in Sources */ = {isa = PBXBuildFile; fileRef = 21BD2ECF10DAF31500BA3DF6 /* LinearDividerShader.m */; };
 		21BD2F3610DAF61700BA3DF6 /* SplitViewDimple.tif in Resources */ = {isa = PBXBuildFile; fileRef = 21BD2F3510DAF61700BA3DF6 /* SplitViewDimple.tif */; };
-		21C0F8A212C7E7160068693F /* Fonts & Colors.tiff in Resources */ = {isa = PBXBuildFile; fileRef = 21C0F8A112C7E7160068693F /* Fonts & Colors.tiff */; };
 		21C3DBF412D23C83002F707A /* kinetic.icns in Resources */ = {isa = PBXBuildFile; fileRef = 21C3DBF312D23C83002F707A /* kinetic.icns */; };
 		21C737950B50C73E0048C08A /* MultiplePageView.m in Sources */ = {isa = PBXBuildFile; fileRef = 21C737940B50C73E0048C08A /* MultiplePageView.m */; };
 		21CA2A911310E05300490979 /* Come funziona questa cosa?.nvhelp in Resources */ = {isa = PBXBuildFile; fileRef = 21CA2A891310E05300490979 /* Come funziona questa cosa?.nvhelp */; };
@@ -331,9 +327,6 @@
 		21582DC40B73F59A00711663 /* BookmarksController.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = BookmarksController.m; sourceTree = "<group>"; };
 		215DE83609ECC4FE009A710B /* HeaderViewWIthMenu.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = HeaderViewWIthMenu.h; sourceTree = "<group>"; };
 		215DE83709ECC4FE009A710B /* HeaderViewWIthMenu.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = HeaderViewWIthMenu.m; sourceTree = "<group>"; };
-		215DEA3D09EF5323009A710B /* General.tiff */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; name = General.tiff; path = Images/General.tiff; sourceTree = "<group>"; };
-		215DEA4609EF6446009A710B /* Notes.tiff */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; name = Notes.tiff; path = Images/Notes.tiff; sourceTree = "<group>"; };
-		215DEE1209F1AA4C009A710B /* Editing.tiff */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; name = Editing.tiff; path = Images/Editing.tiff; sourceTree = "<group>"; };
 		21665A9C10E6032F00188D3D /* Search.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Search.png; path = Images/Search.png; sourceTree = "<group>"; };
 		2168EC5109E33B0300778D02 /* FrozenNotation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FrozenNotation.h; sourceTree = "<group>"; };
 		2168EC5209E33B0300778D02 /* FrozenNotation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FrozenNotation.m; sourceTree = "<group>"; };
@@ -415,7 +408,6 @@
 		21BD2ECF10DAF31500BA3DF6 /* LinearDividerShader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LinearDividerShader.m; sourceTree = "<group>"; };
 		21BD2ED010DAF31500BA3DF6 /* LinearDividerShader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LinearDividerShader.h; sourceTree = "<group>"; };
 		21BD2F3510DAF61700BA3DF6 /* SplitViewDimple.tif */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; path = SplitViewDimple.tif; sourceTree = "<group>"; };
-		21C0F8A112C7E7160068693F /* Fonts & Colors.tiff */ = {isa = PBXFileReference; lastKnownFileType = image.tiff; name = "Fonts & Colors.tiff"; path = "Images/Fonts & Colors.tiff"; sourceTree = "<group>"; };
 		21C3DBF312D23C83002F707A /* kinetic.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = kinetic.icns; path = Images/kinetic.icns; sourceTree = "<group>"; };
 		21C737930B50C73E0048C08A /* MultiplePageView.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = MultiplePageView.h; sourceTree = "<group>"; };
 		21C737940B50C73E0048C08A /* MultiplePageView.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = MultiplePageView.m; sourceTree = "<group>"; };
@@ -946,10 +938,6 @@
 				2144950D0ADC883000E2A2B6 /* PasswordAssistantButton.tif */,
 				2144950E0ADC883000E2A2B6 /* PasswordAssistantButtonPressed.tif */,
 				21BD2F3510DAF61700BA3DF6 /* SplitViewDimple.tif */,
-				215DEE1209F1AA4C009A710B /* Editing.tiff */,
-				215DEA4609EF6446009A710B /* Notes.tiff */,
-				215DEA3D09EF5323009A710B /* General.tiff */,
-				21C0F8A112C7E7160068693F /* Fonts & Colors.tiff */,
 				219196BB09D4F20000586B15 /* Add_Pressed.tiff */,
 				219196BC09D4F20000586B15 /* Add.tiff */,
 				219196BD09D4F20000586B15 /* Remove_Pressed.tiff */,
@@ -1154,10 +1142,7 @@
 				219196C109D4F20100586B15 /* Remove_Pressed.tiff in Resources */,
 				219196C209D4F20100586B15 /* Remove.tiff in Resources */,
 				21A2FA7C09DF64E9001AF0B5 /* NotationPrefsView.nib in Resources */,
-				215DEA3F09EF5323009A710B /* General.tiff in Resources */,
-				215DEA4709EF6446009A710B /* Notes.tiff in Resources */,
 				6E12BAC824DAF33900CBB989 /* ClearPressed@2x.png in Resources */,
-				215DEE1309F1AA4C009A710B /* Editing.tiff in Resources */,
 				212DCB310A6AE38500F74E46 /* EncodingsManager.nib in Resources */,
 				212DCFF70A6E005000F74E46 /* DeletionManager.nib in Resources */,
 				6E12BAC524DAF30300CBB989 /* Clear@2x.png in Resources */,
@@ -1215,7 +1200,6 @@
 				2128651E1278AF220013820A /* ServicesMenu.strings in Resources */,
 				21286597128B14F10013820A /* Kontaktdaten.nvhelp in Resources */,
 				21286598128B14F10013820A /* Wie funktioniert dieses Programm?.nvhelp in Resources */,
-				21C0F8A212C7E7160068693F /* Fonts & Colors.tiff in Resources */,
 				216D9C2D12CFEF2A0004B9CE /* LinkBack.tif in Resources */,
 				216D9C2E12CFEF2A0004B9CE /* LinkBackPressed.tif in Resources */,
 				6E12BABF24DAEE5800CBB989 /* SnapBackPressed@2x.png in Resources */,
@@ -1859,7 +1843,7 @@
 				CODE_SIGN_ENTITLEMENTS = KineticNotes.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 29;
+				CURRENT_PROJECT_VERSION = 30;
 				DEAD_CODE_STRIPPING = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = NO;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -1924,7 +1908,7 @@
 				CODE_SIGN_ENTITLEMENTS = KineticNotes.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 29;
+				CURRENT_PROJECT_VERSION = 30;
 				DEAD_CODE_STRIPPING = YES;
 				DEPLOYMENT_POSTPROCESSING = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = NO;
@@ -1983,7 +1967,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = KineticNotes.entitlements;
 				CODE_SIGN_IDENTITY = "-";
-				CURRENT_PROJECT_VERSION = 29;
+				CURRENT_PROJECT_VERSION = 30;
 				ENABLE_STRICT_OBJC_MSGSEND = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",

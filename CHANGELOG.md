@@ -18,6 +18,17 @@ version heading when that release is cut.
 
 ## Unreleased
 
+- **An *Updates* pane joins Preferences.** It gathers the update controls that were previously only
+  reachable from the application menu: a **Check Now** button, a **Check for Updates Automatically**
+  toggle, and, beneath it, an **Auto-Update** toggle that downloads and installs updates on its own.
+  The two toggles drive the existing Sparkle updater and persist in its settings; Auto-Update is
+  available only while automatic checking is on, since Sparkle will not auto-install otherwise.
+
+  The Preferences toolbar icons are refreshed at the same time: all five panes now use SF Symbols for
+  one consistent, Dark-Mode-aware look, replacing the older bitmap icons, and the window is sized so
+  every tab stays visible instead of collapsing into a "»" overflow menu.
+  ([#30](https://github.com/jptechco/kn/pull/30))
+
 - **Dark Mode no longer hides text in Preferences.** Two controls had kept colours that only worked
   against a light background: the *Fonts & Colors* **Body Font** field drew its name in a hard-coded
   black, invisible on the dark pane, and the *Notes → Storage* file-attribute tables kept a white

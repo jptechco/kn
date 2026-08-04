@@ -32,6 +32,8 @@ static KNUpdateController *sharedInstance = nil;
 
 //declared here rather than in the header so the header needs no Sparkle import
 @interface KNUpdateController () <SPUStandardUserDriverDelegate>
+//the SPUUpdater behind updaterController, typed here where Sparkle is known
+- (SPUUpdater*)updater;
 @end
 
 @implementation KNUpdateController
@@ -118,6 +120,36 @@ static KNUpdateController *sharedInstance = nil;
 
 	NSUInteger i = [[toolbar items] indexOfObject:[self updateToolbarItem]];
 	if (i != NSNotFound) [toolbar removeItemAtIndex:i];
+}
+
+#pragma mark Preferences pane passthrough
+
+//These keep Sparkle behind this class for the Updates preference pane. updaterController is normally
+//started at launch by -installInMenuItem:; guard anyway by reusing that same idempotent path -- a nil
+//menu item just starts the updater and returns -- so the pane works even if it is somehow reached
+//first. SPUStandardUpdaterController.updater is the SPUUpdater carrying the two flags.
+- (SPUUpdater*)updater {
+	if (!updaterController) [self installInMenuItem:nil];
+	return [updaterController updater];
+}
+
+- (IBAction)checkForUpdates:(id)sender {
+	if (!updaterController) [self installInMenuItem:nil];
+	//the same action the menu item and the "Update Available" toolbar button use
+	[updaterController checkForUpdates:sender];
+}
+
+- (BOOL)automaticallyChecksForUpdates {
+	return [[self updater] automaticallyChecksForUpdates];
+}
+- (void)setAutomaticallyChecksForUpdates:(BOOL)value {
+	[[self updater] setAutomaticallyChecksForUpdates:value];
+}
+- (BOOL)automaticallyDownloadsUpdates {
+	return [[self updater] automaticallyDownloadsUpdates];
+}
+- (void)setAutomaticallyDownloadsUpdates:(BOOL)value {
+	[[self updater] setAutomaticallyDownloadsUpdates:value];
 }
 
 #pragma mark SPUStandardUserDriverDelegate
