@@ -18,6 +18,8 @@ version heading when that release is cut.
 
 ## Unreleased
 
+## 1.7 — 2026-08-04
+
 - **Deleting the note you searched for no longer blanks the whole list.** After narrowing the list by
   typing in the search field and deleting the matching note, the list went empty and stayed that way
   until an Undo or a relaunch — the remaining notes were intact, but the now-stale search string
