@@ -9,11 +9,11 @@ being withdrawn after macOS 26 Tahoe. Kinetic Notes is that application rebuilt 
 with its dead and Intel-only dependencies replaced, and nothing removed that anyone was using.
 
 ### Status
-**Version: 1.6 — current stable release.**
+**Version: 1.7 — current stable release.**
 
-1.6 is signed with an Apple Developer ID and notarized, so it opens normally on first launch. It
-also updates itself, and restores Notational Velocity's stacked title bar — the window title on its
-own row, with the search field beneath it.
+1.7 adds an Updates pane to Preferences, refreshes Dark Mode with a Color Scheme override, and fixes
+a bug where deleting a note you had searched for blanked the list. Like 1.6 it is signed with an
+Apple Developer ID and notarized, so it opens normally on first launch and updates itself.
 
 ### Changelog
 If you're curious, check out the [changelog](CHANGELOG.md) to see what's changed in each version.

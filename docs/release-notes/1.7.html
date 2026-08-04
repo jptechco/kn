@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kinetic Notes 1.7</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font: 13px/1.55 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    margin: 0; padding: 1rem 1.25rem;
+  }
+  h1 { font-size: 1.15rem; margin: 0 0 .2rem; }
+  .ver { color: #777; margin: 0 0 1.25rem; font-size: .875rem; }
+  h2 { font-size: .95rem; margin: 1.5rem 0 .4rem; }
+  ul { padding-left: 1.15rem; margin: .4rem 0; }
+  li { margin-bottom: .45rem; }
+  .note { border-left: 3px solid #bbb; padding-left: .8rem; color: #555; }
+  @media (prefers-color-scheme: dark) {
+    .ver { color: #999; } .note { color: #aaa; border-left-color: #555; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Kinetic Notes 1.7</h1>
+<p class="ver">4 August 2026</p>
+
+<h2>An Updates pane in Preferences</h2>
+<ul>
+  <li>The update controls now have a home of their own, in
+      <em>Settings&nbsp;→&nbsp;Updates</em>: a <strong>Check Now</strong> button, a
+      <strong>Check for Updates Automatically</strong> toggle, and an <strong>Auto-Update</strong>
+      toggle that downloads and installs updates on its own.</li>
+  <li>Auto-Update is available only while automatic checking is on, since a scheduled install has
+      nothing to act on otherwise.</li>
+  <li>The Preferences toolbar is refreshed to match: all five tabs now share one consistent,
+      Dark-Mode-aware icon style.</li>
+</ul>
+
+<h2>Dark Mode text, and a Color Scheme override</h2>
+<ul>
+  <li>Two Preferences controls that had kept light-only colours — the <em>Fonts&nbsp;&amp;&nbsp;Colors</em>
+      Body Font field and the <em>Notes&nbsp;→&nbsp;Storage</em> file-attribute tables — are legible
+      in Dark Mode again.</li>
+  <li>A new <strong>Color Scheme</strong> control in <em>Fonts&nbsp;&amp;&nbsp;Colors</em> lets you
+      follow the system appearance (the default) or pin the whole application to Dark or Light. The
+      choice takes effect immediately and is remembered across launches.</li>
+</ul>
+
+<h2>Fixes</h2>
+<ul>
+  <li><strong>Deleting a note you searched for no longer blanks the list.</strong> After typing to
+      narrow the list to one note and deleting it, the remaining notes stayed hidden until an Undo or
+      a relaunch. The stale search is now cleared when a deletion would otherwise empty the list, so
+      the surviving notes come straight back.</li>
+</ul>
+
+<p class="note">1.7 installs itself over 1.6 through the usual update check. Anyone still on 1.5 or
+earlier has to install by hand, once, because those versions contain no updater at all.</p>
+
+</body>
+</html>
