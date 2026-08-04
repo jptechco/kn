@@ -26,15 +26,17 @@
 #import "NSBezierPath_NV.h"
 #import "NotationPrefs.h"
 #import "GlobalPrefs.h"
+#import "KNUpdateController.h"
 #include <sys/stat.h>
 
 #define SYSTEM_LIST_FONT_SIZE 12.0f
 
-//the preference panes are only ~368pt wide, which is too narrow to display all four
-//toolbar items on modern macOS (they collapse into a ">>" overflow menu). Keep the window
-//at least this wide so every pane's toolbar item is always visible; narrower panes are
-//centered within the extra width.
-#define PREFS_MIN_CONTENT_WIDTH 540.0f
+//the preference panes are only ~368pt wide, which is too narrow to display all the toolbar items on
+//modern macOS (they collapse into a ">>" overflow menu, hiding panes). Keep the window at least this
+//wide so all five items stay visible beside the window title; narrower panes are centered in the
+//extra width. 590 is the smallest that fits: the overflow point was measured at 583pt against the
+//longest title ("Fonts & Colors", the worst case), with a few points of margin added.
+#define PREFS_MIN_CONTENT_WIDTH 590.0f
 
 @implementation PrefsWindowController
 
@@ -197,6 +199,28 @@
 
 - (IBAction)changedAppearanceMode:(id)sender {
 	[prefsController setAppearanceMode:(KNAppearanceMode)[appearanceModeButton indexOfSelectedItem] sender:self];
+}
+
+- (IBAction)checkForUpdatesNow:(id)sender {
+	[[KNUpdateController sharedInstance] checkForUpdates:sender];
+}
+
+- (IBAction)changedAutomaticallyChecksForUpdates:(id)sender {
+	BOOL on = ([automaticallyChecksButton state] == NSControlStateValueOn);
+	[[KNUpdateController sharedInstance] setAutomaticallyChecksForUpdates:on];
+
+	//Sparkle only auto-downloads if it is also auto-checking, so Auto-Update follows this toggle:
+	//disable it when checks are off, and clear it so the UI never claims a state Sparkle won't honour
+	[automaticallyDownloadsButton setEnabled:on];
+	if (!on) {
+		[automaticallyDownloadsButton setState:NSControlStateValueOff];
+		[[KNUpdateController sharedInstance] setAutomaticallyDownloadsUpdates:NO];
+	}
+}
+
+- (IBAction)changedAutomaticallyDownloadsUpdates:(id)sender {
+	[[KNUpdateController sharedInstance]
+		setAutomaticallyDownloadsUpdates:([automaticallyDownloadsButton state] == NSControlStateValueOn)];
 }
 
 - (IBAction)changedSpellChecking:(id)sender {
@@ -371,14 +395,31 @@ static BOOL KNPathsAreSameDirectory(NSString *one, NSString *two) {
     return databaseView;
 }
 
+//Every pane's toolbar icon is an SF Symbol (available on the 13.0 deployment target), so all five
+//share one modern, monochrome style that adapts to Light/Dark Mode. This replaces the old per-pane
+//.tiff bitmaps, whose shaded early-2010s look no longer matched. The .tiff files stay in the project
+//but are no longer loaded here.
+static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
+	if ([paneIdentifier isEqualToString:@"General"])        return @"gearshape";
+	if ([paneIdentifier isEqualToString:@"Notes"])          return @"tray.full";
+	if ([paneIdentifier isEqualToString:@"Editing"])        return @"square.and.pencil";
+	if ([paneIdentifier isEqualToString:@"Fonts & Colors"]) return @"textformat";
+	if ([paneIdentifier isEqualToString:@"Updates"])        return @"arrow.triangle.2.circlepath";
+	return nil;
+}
+
 - (void)addToolbarItemWithName:(NSString*)name {
     NSToolbarItem *item = [[NSToolbarItem alloc] initWithItemIdentifier:name];
-	
+
 	NSString *localizedTitle = [[NSBundle mainBundle] localizedStringForKey:name value:@"" table:nil];
     [item setPaletteLabel:localizedTitle];
     [item setLabel:localizedTitle];
     //[item setToolTip:@"General settings: appearance and behavior"];
-    [item setImage:[[[NSImage alloc] initWithContentsOfFile:[[NSBundle mainBundle] pathForResource:name ofType:@"tiff"]] autorelease]];
+	NSString *symbolName = KNPaneSymbolName(name);
+	NSImage *icon = symbolName ? [NSImage imageWithSystemSymbolName:symbolName accessibilityDescription:localizedTitle] : nil;
+	if (!icon)  //fall back to the legacy .tiff if a symbol is somehow unavailable
+		icon = [[[NSImage alloc] initWithContentsOfFile:[[NSBundle mainBundle] pathForResource:name ofType:@"tiff"]] autorelease];
+    [item setImage:icon];
     [item setTarget:self];
     [item setAction:@selector(switchViews:)];
     [items setObject:item forKey:name];
@@ -592,6 +633,86 @@ static BOOL KNPathsAreSameDirectory(NSString *one, NSString *two) {
 	[fontsColorsView addSubview:appearanceModeButton];
 }
 
+/*
+ The Updates pane is a whole new pane rather than a control added to an existing one, so unlike the
+ two above there is no nib view to grow: it is built from nothing here. It holds a "Check Now" button
+ and two toggles -- "Check for Updates Automatically" and, indented beneath it as its sub-option,
+ "Auto-Update" -- which drive the Sparkle updater through KNUpdateController. Coordinates are
+ un-flipped (y = 0 at the bottom); the pane is narrower than PREFS_MIN_CONTENT_WIDTH, so -switchViews:
+ centres it in the window. Its own frame height is what sizes the pane, so it is set generously.
+ */
+- (void)buildUpdatesView {
+
+	if (updatesView) return;
+
+	const CGFloat leftInset = 20.0f;
+
+	updatesView = [[NSView alloc] initWithFrame:NSMakeRect(0.0f, 0.0f, 420.0f, 150.0f)];
+
+	//"Check Now" -- a momentary push button, top of the pane
+	NSButton *checkNowButton = [[[NSButton alloc] initWithFrame:NSMakeRect(leftInset, 104.0f, 120.0f, 32.0f)] autorelease];
+	[checkNowButton setBezelStyle:NSBezelStyleRounded];
+	[checkNowButton setButtonType:NSButtonTypeMomentaryPushIn];
+	[checkNowButton setTitle:NSLocalizedString(@"Check Now",
+		@"Updates preference: button that checks for a new version immediately")];
+	[checkNowButton setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
+	[checkNowButton setTarget:self];
+	[checkNowButton setAction:@selector(checkForUpdatesNow:)];
+	[checkNowButton sizeToFit];
+	NSRect cnFrame = [checkNowButton frame];
+	if (cnFrame.size.width < 100.0f) cnFrame.size.width = 100.0f;	//keep a comfortable minimum
+	cnFrame.origin = NSMakePoint(leftInset, 104.0f);
+	[checkNowButton setFrame:cnFrame];
+	[checkNowButton setAutoresizingMask:NSViewMinYMargin];
+	[updatesView addSubview:checkNowButton];
+
+	//caption beside the button, so it reads "Check Now  for the most recent version". A plain label:
+	//no custom text colour, so it uses the adaptive labelColor and stays legible in Dark Mode.
+	NSTextField *checkNowCaption = [[[NSTextField alloc] initWithFrame:NSMakeRect(0.0f, 0.0f, 260.0f, 18.0f)] autorelease];
+	[checkNowCaption setStringValue:NSLocalizedString(@"for the most recent version",
+		@"Updates preference: caption beside the Check Now button")];
+	[checkNowCaption setEditable:NO];
+	[checkNowCaption setSelectable:NO];
+	[checkNowCaption setBordered:NO];
+	[checkNowCaption setBezeled:NO];
+	[checkNowCaption setDrawsBackground:NO];
+	[checkNowCaption setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
+	[checkNowCaption sizeToFit];
+	NSRect capFrame = [checkNowCaption frame];
+	capFrame.origin = NSMakePoint(NSMaxX(cnFrame) + 8.0f, NSMidY(cnFrame) - NSHeight(capFrame) / 2.0f);
+	[checkNowCaption setFrame:capFrame];
+	[checkNowCaption setAutoresizingMask:NSViewMinYMargin];
+	[updatesView addSubview:checkNowCaption];
+	//grow the pane if the button+caption run past its right edge, so nothing is clipped
+	[self widenPane:updatesView toFitControl:checkNowCaption leftInset:leftInset];
+
+	//"Check for Updates Automatically" -- Sparkle's scheduled checks
+	automaticallyChecksButton = [[NSButton alloc] initWithFrame:NSMakeRect(leftInset, 64.0f, 320.0f, 18.0f)];
+	[automaticallyChecksButton setButtonType:NSButtonTypeSwitch];
+	[automaticallyChecksButton setTitle:NSLocalizedString(@"Check for Updates Automatically",
+		@"Updates preference: toggle Sparkle's scheduled update checks")];
+	[automaticallyChecksButton setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
+	[automaticallyChecksButton setTarget:self];
+	[automaticallyChecksButton setAction:@selector(changedAutomaticallyChecksForUpdates:)];
+	[automaticallyChecksButton sizeToFit];
+	[automaticallyChecksButton setFrameOrigin:NSMakePoint(leftInset, 64.0f)];
+	[automaticallyChecksButton setAutoresizingMask:NSViewMinYMargin];
+	[updatesView addSubview:automaticallyChecksButton];
+
+	//"Auto-Update" -- automatic download+install; indented to read as a sub-option of the toggle above
+	automaticallyDownloadsButton = [[NSButton alloc] initWithFrame:NSMakeRect(leftInset + 18.0f, 36.0f, 320.0f, 18.0f)];
+	[automaticallyDownloadsButton setButtonType:NSButtonTypeSwitch];
+	[automaticallyDownloadsButton setTitle:NSLocalizedString(@"Auto-Update",
+		@"Updates preference: toggle automatic download and install of updates")];
+	[automaticallyDownloadsButton setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
+	[automaticallyDownloadsButton setTarget:self];
+	[automaticallyDownloadsButton setAction:@selector(changedAutomaticallyDownloadsUpdates:)];
+	[automaticallyDownloadsButton sizeToFit];
+	[automaticallyDownloadsButton setFrameOrigin:NSMakePoint(leftInset + 18.0f, 36.0f)];
+	[automaticallyDownloadsButton setAutoresizingMask:NSViewMinYMargin];
+	[updatesView addSubview:automaticallyDownloadsButton];
+}
+
 - (void)awakeFromNib {
 
 	[window setDelegate:self];
@@ -640,6 +761,16 @@ static BOOL KNPathsAreSameDirectory(NSString *one, NSString *two) {
     [self addToolbarItemWithName:@"Notes"];	
     [self addToolbarItemWithName:@"Editing"];
 	[self addToolbarItemWithName:@"Fonts & Colors"];
+
+	[self buildUpdatesView];
+	[self addToolbarItemWithName:@"Updates"];
+
+	//reflect Sparkle's current state; Auto-Update is meaningful only while auto-checking is on
+	KNUpdateController *updateController = [KNUpdateController sharedInstance];
+	BOOL autoChecks = [updateController automaticallyChecksForUpdates];
+	[automaticallyChecksButton setState:autoChecks ? NSControlStateValueOn : NSControlStateValueOff];
+	[automaticallyDownloadsButton setState:[updateController automaticallyDownloadsUpdates] ? NSControlStateValueOn : NSControlStateValueOff];
+	[automaticallyDownloadsButton setEnabled:autoChecks];
 		
     toolbar = [[NSToolbar alloc] initWithIdentifier:@"preferencePanes"];
     [toolbar setDelegate:self];
@@ -664,7 +795,7 @@ static BOOL KNPathsAreSameDirectory(NSString *one, NSString *two) {
 }
 
 - (NSArray *)toolbarDefaultItemIdentifiers:(NSToolbar*)theToolbar {
-    return [NSArray arrayWithObjects:@"General", @"Notes", @"Editing", @"Fonts & Colors", nil];
+    return [NSArray arrayWithObjects:@"General", @"Notes", @"Editing", @"Fonts & Colors", @"Updates", nil];
 }
 
 - (NSArray *)toolbarSelectableItemIdentifiers: (NSToolbar *)toolbar {
@@ -695,6 +826,8 @@ static BOOL KNPathsAreSameDirectory(NSString *one, NSString *two) {
         prefsView = editingView;
     } else if([sender isEqualToString:@"Fonts & Colors"]) {
         prefsView = fontsColorsView;
+	} else if([sender isEqualToString:@"Updates"]) {
+		prefsView = updatesView;
 	} else {
 		NSLog(@"unknown sender: %@", sender);
 	}

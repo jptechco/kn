@@ -82,4 +82,14 @@ extern NSString *KNUpdateToolbarItemIdentifier;
 //Built on first use, so a launch in which no update is ever found never allocates it.
 - (NSToolbarItem*)updateToolbarItem;
 
+//The Updates preference pane drives these. They forward to the SPUUpdater behind updaterController,
+//so that pane's "Check Now" button and its two "automatically…" toggles need no Sparkle import of
+//their own -- the framework stays confined to KNUpdateController.m. Sparkle persists both flags in
+//its own defaults, so setting them is all the persistence there is.
+- (IBAction)checkForUpdates:(id)sender;
+- (BOOL)automaticallyChecksForUpdates;
+- (void)setAutomaticallyChecksForUpdates:(BOOL)value;
+- (BOOL)automaticallyDownloadsUpdates;
+- (void)setAutomaticallyDownloadsUpdates:(BOOL)value;
+
 @end
