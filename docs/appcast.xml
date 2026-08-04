@@ -18,6 +18,21 @@
     <language>en</language>
 
     <item>
+      <title>1.7</title>
+      <pubDate>Tue, 04 Aug 2026 20:17:12 +0000</pubDate>
+      <sparkle:version>32</sparkle:version>
+      <sparkle:shortVersionString>1.7</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://updates.kineticnotes.org/release-notes/1.7.html</sparkle:releaseNotesLink>
+      <link>https://github.com/jptechco/kn</link>
+      <enclosure
+        url="https://github.com/jptechco/kn/releases/download/v1.7/Kinetic-Notes-1.7.zip"
+        sparkle:edSignature="LjmxP8pLQ1/st9Sq2Qd28g3loDGbk5e+uBG3dpRKXwMX23VYbQPjljzWRt0+hYMqIB9Q4zRzR+sUAVI9jftXDQ=="
+        length="3718405"
+        type="application/octet-stream" />
+    </item>
+
+    <item>
       <title>1.6</title>
       <pubDate>Sun, 02 Aug 2026 20:31:20 +0000</pubDate>
       <sparkle:version>26</sparkle:version>
