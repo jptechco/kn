@@ -18,6 +18,14 @@ version heading when that release is cut.
 
 ## Unreleased
 
+- **Deleting the note you searched for no longer blanks the whole list.** After narrowing the list by
+  typing in the search field and deleting the matching note, the list went empty and stayed that way
+  until an Undo or a relaunch — the remaining notes were intact, but the now-stale search string
+  matched none of them, so the list filtered down to nothing while the search field looked empty,
+  giving no hint a filter was still active. A deletion that empties the list now clears the search, so
+  the surviving notes reappear.
+  ([#31](https://github.com/jptechco/kn/pull/31))
+
 - **An *Updates* pane joins Preferences.** It gathers the update controls that were previously only
   reachable from the application menu: a **Check Now** button, a **Check for Updates Automatically**
   toggle, and, beneath it, an **Auto-Update** toggle that downloads and installs updates on its own.

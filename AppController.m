@@ -794,7 +794,8 @@ terminateApp:
 		} else if ([retainedDeleteObj isKindOfClass:[NoteObject class]]) {
 			[notationController removeNote:retainedDeleteObj];
 		}
-		
+		[self clearSearchIfDeletionEmptiedList];
+
 		if ([[alert suppressionButton] state] == NSOnState) {
 			[prefsController setConfirmNoteDeletion:NO sender:self];
 		}
@@ -828,10 +829,21 @@ terminateApp:
 			}];
 			[alert release];
 		} else {
-			//just delete the notes outright			
+			//just delete the notes outright
 			[notationController performSelector:[indexes count] > 1 ? @selector(removeNotes:) : @selector(removeNote:) withObject:deleteObj];
+			[self clearSearchIfDeletionEmptiedList];
 		}
 	}
+}
+
+//Deleting the note(s) the current search had narrowed to leaves the search matching nothing: the
+//surviving notes no longer match the filter string, so -refilterNotes empties the displayed list and
+//the window goes blank -- while the search field can look empty, giving no hint a filter is active --
+//until Undo or a relaunch clears the filter. When a deletion empties the list, clear the search so the
+//remaining notes reappear. If no notes remain, this just shows the empty database, exactly as before.
+- (void)clearSearchIfDeletionEmptiedList {
+	if ([notesTableView numberOfRows] == 0)
+		[self cancelOperation:nil];
 }
 
 - (IBAction)copyNoteLink:(id)sender {
@@ -1900,7 +1912,7 @@ terminateApp:
 				
 				[notesTableView selectRowIndexes:indexes byExtendingSelection:NO];
 			}
-			
+
 			[notesTableView setViewingLocation:listUpdateViewCtx];
 		}
 	}
