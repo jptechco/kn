@@ -25,6 +25,15 @@ Settings, all overridable from the environment:
 | `KN_TEAM_ID` | `4QF262Q666` |
 | `KN_NOTARY_PROFILE` | `kn-notarytool` |
 | `KN_SPARKLE_TOOLS` | `Tools/Sparkle/bin`, falling back to `PATH` |
+| `KN_RELEASE_BRANCH` | `main` |
+| `KN_SKIP_GIT_CHECKS` | unset |
+
+Before anything else it checks that it is on `KN_RELEASE_BRANCH`, that the tree is clean, and
+that the branch is level with `origin`. Nothing after the build looks at git again — the version
+and build number are read back out of `Info.plist` — so a release built from a branch, or from a
+`main` that has not pulled the version bump, is labelled with the *previous* release's numbers
+and notarizes perfectly happily. That is worse than a failure: a build number Sparkle has already
+seen is one it will never offer to anybody. `KN_SKIP_GIT_CHECKS=1` waives all three.
 
 It deliberately does **not** create the GitHub Release and does **not** edit the appcast. Publishing
 is a decision, not a build step.

@@ -17,6 +17,8 @@ readonly REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 KN_SIGN_IDENTITY="${KN_SIGN_IDENTITY:-Developer ID Application}"
 KN_TEAM_ID="${KN_TEAM_ID:-4QF262Q666}"
 KN_NOTARY_PROFILE="${KN_NOTARY_PROFILE:-kn-notarytool}"
+# The branch a release is built from. Overridable, but see the git checks below before you do.
+KN_RELEASE_BRANCH="${KN_RELEASE_BRANCH:-main}"
 # Sparkle's bin/ from the release tarball. Not committed -- it is a build tool, not a dependency.
 KN_SPARKLE_TOOLS="${KN_SPARKLE_TOOLS:-$REPO/Tools/Sparkle/bin}"
 
@@ -27,6 +29,7 @@ readonly LOG="$REPO/build/release-build.log"
 die()  { printf '\n\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 step() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 ok()   { printf '    \033[32mok\033[0m  %s\n' "$*"; }
+warn() { printf '    \033[33mwarn\033[0m %s\n' "$*"; }
 
 sparkle_tool() {
 	local name="$1"
@@ -39,6 +42,45 @@ sparkle_tool() {
 # ---------------------------------------------------------------- preflight
 
 step "Preflight"
+
+# The build takes whatever happens to be checked out, and nothing downstream looks at git again: the
+# version and the build number are read back out of Info.plist, the tag is applied by hand, and
+# notarization will happily sign a working copy full of uncommitted edits. So a release built from a
+# branch -- or from a main that has not pulled the release PR yet -- comes out labelled with the
+# *previous* release's numbers, and that is worse than an outright failure: a build number Sparkle
+# has already seen is one it will never offer to anybody. The cost of finding this out downstream is
+# a whole notarization round trip, so find out here instead.
+#
+# KN_SKIP_GIT_CHECKS=1 to build from somewhere else on purpose.
+if [ -n "${KN_SKIP_GIT_CHECKS:-}" ]; then
+	warn "git checks skipped (KN_SKIP_GIT_CHECKS is set) -- the artifact may not match any commit"
+elif ! git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1; then
+	die "$REPO is not a git checkout. Set KN_SKIP_GIT_CHECKS=1 to build anyway."
+else
+	BRANCH="$(git -C "$REPO" symbolic-ref --quiet --short HEAD || true)"
+	[ "$BRANCH" = "$KN_RELEASE_BRANCH" ] || die \
+		"on ${BRANCH:-a detached HEAD}, not $KN_RELEASE_BRANCH. A release builds from the merged release branch, so that the tag names a commit that outlives the pull request. See 'Cutting a release' in Scripts/README.md."
+
+	DIRTY="$(git -C "$REPO" status --porcelain)"
+	if [ -n "$DIRTY" ]; then
+		printf '%s\n' "$DIRTY" >&2
+		die "the working tree is not clean -- the artifact would not match any commit. Commit, stash or remove the above."
+	fi
+
+	# The one this is really here for: the release PR is merged on the remote but not pulled, so the
+	# version bump is missing and the build silently carries the last release's numbers.
+	git -C "$REPO" fetch --quiet origin "$KN_RELEASE_BRANCH" 2>/dev/null \
+		|| warn "could not reach origin; comparing against a possibly stale origin/$KN_RELEASE_BRANCH"
+	if git -C "$REPO" rev-parse --quiet --verify "origin/$KN_RELEASE_BRANCH" >/dev/null; then
+		BEHIND="$(git -C "$REPO" rev-list --count "HEAD..origin/$KN_RELEASE_BRANCH")"
+		AHEAD="$(git -C "$REPO" rev-list --count "origin/$KN_RELEASE_BRANCH..HEAD")"
+		[ "$BEHIND" = 0 ] || die \
+			"$KN_RELEASE_BRANCH is $BEHIND commit(s) behind origin -- pull before releasing, or the build carries the previous release's version."
+		[ "$AHEAD" = 0 ] || die \
+			"$KN_RELEASE_BRANCH is $AHEAD commit(s) ahead of origin -- the release would ship code that has not been pushed."
+	fi
+	ok "clean $KN_RELEASE_BRANCH, in sync with origin"
+fi
 
 IDENTITIES="$(security find-identity -v -p codesigning 2>/dev/null || true)"
 case "$IDENTITIES" in
