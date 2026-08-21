@@ -25,6 +25,15 @@ Settings, all overridable from the environment:
 | `KN_TEAM_ID` | `4QF262Q666` |
 | `KN_NOTARY_PROFILE` | `kn-notarytool` |
 | `KN_SPARKLE_TOOLS` | `Tools/Sparkle/bin`, falling back to `PATH` |
+| `KN_RELEASE_BRANCH` | `main` |
+| `KN_SKIP_GIT_CHECKS` | unset |
+
+Before anything else it checks that it is on `KN_RELEASE_BRANCH`, that the tree is clean, and
+that the branch is level with `origin`. Nothing after the build looks at git again — the version
+and build number are read back out of `Info.plist` — so a release built from a branch, or from a
+`main` that has not pulled the version bump, is labelled with the *previous* release's numbers
+and notarizes perfectly happily. That is worse than a failure: a build number Sparkle has already
+seen is one it will never offer to anybody. `KN_SKIP_GIT_CHECKS=1` waives all three.
 
 It deliberately does **not** create the GitHub Release and does **not** edit the appcast. Publishing
 is a decision, not a build step.
@@ -93,11 +102,19 @@ release instead of shipping a binary that silently never updates.
 
 1. Land the release PR: `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` set at **three sites each**
    in `project.pbxproj`, `CHANGELOG.md`'s *Unreleased* promoted, `README.md`'s status line updated,
-   and `docs/release-notes/<version>.html` written.
-2. Tag it: `git tag v1.6 && git push origin v1.6`
-3. `Scripts/release.sh`
-4. `gh release create v1.6 build/dist/Kinetic-Notes-1.6.zip --title "Kinetic Notes 1.6"`
-5. Open a PR adding the printed `<item>` to `docs/appcast.xml`. Its `length` and `edSignature`
+   and the release notes written in **both** forms — `docs/release-notes/<version>.html` for
+   Sparkle, which loads it into a web view, and `docs/release-notes/<version>.md` for the GitHub
+   release body, which is rendered as Markdown. `release.sh` refuses to build without both.
+
+   `CURRENT_PROJECT_VERSION` is the release PR's *own* number, so it cannot be filled in until that
+   PR exists: open it, read the number, then push the version bump to the same branch.
+2. Merge it, and pull `main`. **Everything below builds from merged `main`, never from the branch** —
+   the tag has to name a commit that survives the merge, or the shipped binary corresponds to
+   nothing. `release.sh` has no git awareness and will happily build whatever is checked out.
+3. Tag it: `git tag v1.6 && git push origin v1.6`
+4. `Scripts/release.sh`
+5. `gh release create v1.6 build/dist/Kinetic-Notes-1.6.zip --title "Kinetic Notes 1.6" --notes-file docs/release-notes/1.6.md`
+6. Open a PR adding the printed `<item>` to `docs/appcast.xml`. Its `length` and `edSignature`
    cannot exist until the notarized zip does, which is why this is a separate step.
 
 `sparkle:version` in that item is `CFBundleVersion` — the **build number**, not the marketing

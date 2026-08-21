@@ -12,6 +12,10 @@ Two separate numbers, both visible in the application:
 - A minor release steps by `0.1` and covers a shipped body of work.
 - A major release is `x.0` and happens **only when John calls one**. Never promote to a new major
   on your own judgement.
+- A **patch release** adds a third component — `1.7.1` — and re-ships an existing release with a
+  correction rather than with new work: a packaging, signing or feed fix that changes nothing a
+  user asked for. It does not step the minor. Reach for one only when the shipped artifact is
+  wrong; new work steps the minor as usual.
 - A release still in testing carries a ` beta` suffix in its version string — `1.5 beta`.
 - If the 1.x line ever reaches 1.9 without a major being declared, ask: that is the point to either
   call 2.0 or accept 1.10.
