@@ -132,6 +132,16 @@ curl -sfI --max-time 20 "$FEED_URL" >/dev/null \
 	|| die "SUFeedURL does not resolve: $FEED_URL (is GitHub Pages enabled and the DNS live?)"
 ok "feed reachable: $FEED_URL"
 
+# Both release-notes files must already exist, and this is the earliest point that can be checked --
+# MARKETING_VERSION is not known until the build has run. Failing here costs nothing; failing after
+# notarization costs a whole round trip. The .html is what the appcast's releaseNotesLink points at,
+# and nothing downstream would notice it pointing at a 404. The .md is the GitHub release body.
+for ext in html md; do
+	[ -f "$REPO/docs/release-notes/$MARKETING_VERSION.$ext" ] \
+		|| die "docs/release-notes/$MARKETING_VERSION.$ext is missing -- write the release notes first."
+done
+ok "release notes present (.html for Sparkle, .md for the GitHub release)"
+
 # ---------------------------------------------------------------- normalize filenames
 
 step "Normalizing resource filenames"
@@ -349,6 +359,10 @@ XML
 
 step "Done"
 printf '    artifact:  %s\n' "$DIST/$ZIP_NAME"
-printf '    next:      gh release create %s "%s" --title "Kinetic Notes %s" --notes-file docs/release-notes/%s.html\n' \
+# .md, not .html. Each release has both, for two consumers that want opposite things: Sparkle loads
+# the .html into a web view, so it wants a whole styled document; GitHub renders a release body as
+# Markdown, so handing it that document prints the <title> and <style> as visible text -- and turns
+# the CSS @media query into an @-mention of github.com/media, as the 1.7 release page still shows.
+printf '    next:      gh release create %s "%s" --title "Kinetic Notes %s" --notes-file docs/release-notes/%s.md\n' \
 	"$TAG" "$DIST/$ZIP_NAME" "$MARKETING_VERSION" "$MARKETING_VERSION"
 printf '    then:      add the <item> above to docs/appcast.xml and open a PR\n\n'
