@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kinetic Notes 1.7.1</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font: 13px/1.55 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    margin: 0; padding: 1rem 1.25rem;
+  }
+  h1 { font-size: 1.15rem; margin: 0 0 .2rem; }
+  .ver { color: #777; margin: 0 0 1.25rem; font-size: .875rem; }
+  h2 { font-size: .95rem; margin: 1.5rem 0 .4rem; }
+  ul { padding-left: 1.15rem; margin: .4rem 0; }
+  li { margin-bottom: .45rem; }
+  .note { border-left: 3px solid #bbb; padding-left: .8rem; color: #555; }
+  @media (prefers-color-scheme: dark) {
+    .ver { color: #999; } .note { color: #aaa; border-left-color: #555; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Kinetic Notes 1.7.1</h1>
+<p class="ver">21 August 2026</p>
+
+<h2>A repackaged 1.7</h2>
+<ul>
+  <li><strong>The download opens normally again.</strong> On some Macs, 1.7 was refused at launch
+      with <em>&ldquo;Apple could not verify &lsquo;Kinetic Notes.app&rsquo; is free of
+      malware&rdquo;</em>. The application was signed and notarized correctly &mdash; the zip around
+      it could damage that signature while being unpacked, before macOS ever looked at it.</li>
+  <li>Two separate faults did it. Stray filesystem metadata was stored <em>inside</em> the
+      application bundle, and unpacking with Finder left some of it behind where no unsigned file is
+      allowed. And four Spanish resource files were sealed under one spelling of their accented
+      names while Finder wrote back another, so they no longer matched the signature.</li>
+  <li>Nothing in the application itself changed. 1.7.1 is 1.7, packaged so that it survives every
+      way of unpacking it, and the release script now refuses to publish an archive with either
+      fault.</li>
+</ul>
+
+<p class="note">If Kinetic Notes is already installed, this was never a problem for you: the updater
+unpacks releases faithfully, and only a fresh download from the releases page was affected. 1.7.1
+installs itself over 1.7 through the usual update check.</p>
+
+</body>
+</html>

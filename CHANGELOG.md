@@ -7,7 +7,8 @@ Every notable change to Kinetic Notes. The newest work is at the top.
 **Releases** are `major.minor` — 1.0, 1.1, 1.5, 1.6. A minor release steps by 0.1 and covers a
 shipped body of work; a major release is `x.0` and happens only when the maintainer calls one. A
 release still in testing carries a `beta` suffix, and the README names the current stable release
-alongside it.
+alongside it. A **patch release** adds a third component — 1.7.1 — and re-ships an existing release
+with a correction rather than with new work.
 
 **Builds** are per pull request, numbered with the pull request's own number — so build 26 is
 PR #26, and any build traces straight back to the change that produced it. The application reports
@@ -17,6 +18,22 @@ Entries merged since the last release are collected under **Unreleased** and are
 version heading when that release is cut.
 
 ## Unreleased
+
+## 1.7.1 — 2026-08-21
+
+- **The download no longer fails to open with "Apple could not verify … is free of malware".** The
+  1.7 application was signed and notarized correctly, but the zip around it could break its own code
+  signature on the way out, in two independent ways. Every file in the build carried a
+  `com.apple.provenance` extended attribute, which `ditto` stored as AppleDouble `._` entries *inside*
+  the bundle; unpacking with Finder's Archive Utility left six of them stranded next to the symlinks
+  in `Sparkle.framework/`, where an unsealed file is fatal. Separately, four Spanish resource names
+  were sealed in composed form, and Archive Utility rewrites names decomposed, so they no longer
+  matched the signature. Either one was enough for Gatekeeper to refuse the app. The release script
+  now sequesters that metadata outside the bundle, decomposes the names before signing, and checks
+  the finished zip for both faults instead of trusting the single unpacker that happened to hide
+  them. Existing installations were never affected: Sparkle unpacks updates with `ditto`, which
+  reproduces the bundle faithfully.
+  ([#35](https://github.com/jptechco/kn/pull/35))
 
 ## 1.7 — 2026-08-04
 
