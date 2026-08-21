@@ -93,11 +93,19 @@ release instead of shipping a binary that silently never updates.
 
 1. Land the release PR: `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` set at **three sites each**
    in `project.pbxproj`, `CHANGELOG.md`'s *Unreleased* promoted, `README.md`'s status line updated,
-   and `docs/release-notes/<version>.html` written.
-2. Tag it: `git tag v1.6 && git push origin v1.6`
-3. `Scripts/release.sh`
-4. `gh release create v1.6 build/dist/Kinetic-Notes-1.6.zip --title "Kinetic Notes 1.6"`
-5. Open a PR adding the printed `<item>` to `docs/appcast.xml`. Its `length` and `edSignature`
+   and the release notes written in **both** forms — `docs/release-notes/<version>.html` for
+   Sparkle, which loads it into a web view, and `docs/release-notes/<version>.md` for the GitHub
+   release body, which is rendered as Markdown. `release.sh` refuses to build without both.
+
+   `CURRENT_PROJECT_VERSION` is the release PR's *own* number, so it cannot be filled in until that
+   PR exists: open it, read the number, then push the version bump to the same branch.
+2. Merge it, and pull `main`. **Everything below builds from merged `main`, never from the branch** —
+   the tag has to name a commit that survives the merge, or the shipped binary corresponds to
+   nothing. `release.sh` has no git awareness and will happily build whatever is checked out.
+3. Tag it: `git tag v1.6 && git push origin v1.6`
+4. `Scripts/release.sh`
+5. `gh release create v1.6 build/dist/Kinetic-Notes-1.6.zip --title "Kinetic Notes 1.6" --notes-file docs/release-notes/1.6.md`
+6. Open a PR adding the printed `<item>` to `docs/appcast.xml`. Its `length` and `edSignature`
    cannot exist until the notarized zip does, which is why this is a separate step.
 
 `sparkle:version` in that item is `CFBundleVersion` — the **build number**, not the marketing
