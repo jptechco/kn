@@ -17,7 +17,7 @@ both: *Kinetic Notes → About Kinetic Notes* reads `Version 1.6 (26)`.
 Entries merged since the last release are collected under **Unreleased** and are promoted to a
 version heading when that release is cut.
 
-## Unreleased
+## Releases
 
 ## 1.8 — 2026-09-16
 
