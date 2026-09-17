@@ -22,6 +22,7 @@
 
 #import "KNUpdateController.h"
 #import <Sparkle/Sparkle.h>
+#import "KNReleaseNotesWindowController.h"
 
 NSString *KNUpdateToolbarItemIdentifier = @"UpdateAvailable";
 
@@ -30,10 +31,28 @@ NSString *KNUpdateToolbarItemIdentifier = @"UpdateAvailable";
 
 static KNUpdateController *sharedInstance = nil;
 
+//An update that downloaded itself and is waiting to install on quit, recorded so that the next launch
+//can show its release notes: a dictionary of the three keys below. Removed once the notes are shown,
+//or as soon as the user sees Sparkle's own window for the update, which carries the same notes.
+static NSString *KNSilentUpdateKey = @"KNUpdateInstallingSilently";
+static NSString *KNSilentUpdateBuildKey = @"build";
+static NSString *KNSilentUpdateVersionKey = @"version";
+static NSString *KNSilentUpdateNotesURLKey = @"releaseNotesURL";
+
+KNSilentUpdateAction KNSilentUpdateActionForBuilds(NSInteger recordedBuild, NSInteger runningBuild) {
+	if (recordedBuild <= 0 || runningBuild <= 0) return KNSilentUpdateForget;
+	if (runningBuild == recordedBuild) return KNSilentUpdateShowNotes;
+	//a newer build than the one recorded was installed some other way, and the record is stale
+	if (runningBuild > recordedBuild) return KNSilentUpdateForget;
+	//still running the old build: the install on quit has not happened yet (a crash, or a forced quit)
+	return KNSilentUpdateWait;
+}
+
 //declared here rather than in the header so the header needs no Sparkle import
-@interface KNUpdateController () <SPUStandardUserDriverDelegate>
+@interface KNUpdateController () <SPUUpdaterDelegate, SPUStandardUserDriverDelegate>
 //the SPUUpdater behind updaterController, typed here where Sparkle is known
 - (SPUUpdater*)updater;
+- (void)forgetSilentUpdate;
 @end
 
 @implementation KNUpdateController
@@ -50,11 +69,12 @@ static KNUpdateController *sharedInstance = nil;
 
 	if (!updaterController) {
 		//YES: start the updater now. Sparkle does not check on a first launch, and asks permission
-		//before its first scheduled check, so nothing reaches the network unannounced. The updater
-		//delegate is nil -- the stock behaviour is what we want -- but the user-driver delegate is
-		//this class, which is what suppresses the alert for scheduled checks. See below.
+		//before its first scheduled check, so nothing reaches the network unannounced. Both delegates
+		//are this class: the user-driver delegate is what suppresses the alert for scheduled checks,
+		//and the updater delegate only watches for an update that will install itself unseen. It
+		//changes nothing about how updates are found or installed. See below.
 		updaterController = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:YES
-																		 updaterDelegate:nil
+																		 updaterDelegate:self
 																	  userDriverDelegate:self];
 	}
 
@@ -152,6 +172,73 @@ static KNUpdateController *sharedInstance = nil;
 	[[self updater] setAutomaticallyDownloadsUpdates:value];
 }
 
+#pragma mark Release notes for updates that installed themselves
+
+/*
+ With Auto-Update on, Sparkle downloads an update in the background and installs it when the application
+ quits, and the user never sees the window that would have shown them what changed. Only that path is
+ recorded -- Sparkle announces it with -updater:willInstallUpdateOnQuit:immediateInstallationBlock:,
+ which fires for nothing else -- and the next launch of the new build shows the notes, once.
+
+ Everyone else is left alone: an update installed from Sparkle's window came with its notes; a fresh
+ download from the website was never recorded; and a silently downloaded update that Sparkle ends up
+ presenting after all (a critical update, or one left waiting too long) clears the record when shown.
+ */
+- (BOOL)updater:(SPUUpdater *)updater willInstallUpdateOnQuit:(SUAppcastItem *)item
+			immediateInstallationBlock:(void (^)(void))immediateInstallHandler {
+
+	NSInteger build = [[item versionString] integerValue];
+	NSURL *notesURL = [item releaseNotesURL];
+
+	//only a page served over HTTPS is shown; without one there is nothing worth a window
+	if (build > 0 && [[[notesURL scheme] lowercaseString] isEqualToString:@"https"]) {
+		NSString *version = [item displayVersionString];
+		[[NSUserDefaults standardUserDefaults] setObject:[NSDictionary dictionaryWithObjectsAndKeys:
+			[NSNumber numberWithInteger:build], KNSilentUpdateBuildKey,
+			[version length] ? version : [item versionString], KNSilentUpdateVersionKey,
+			[notesURL absoluteString], KNSilentUpdateNotesURLKey, nil] forKey:KNSilentUpdateKey];
+	} else {
+		[self forgetSilentUpdate];
+	}
+
+	//NO: Sparkle keeps charge of the install, exactly as it would with no delegate
+	return NO;
+}
+
+- (void)forgetSilentUpdate {
+	[[NSUserDefaults standardUserDefaults] removeObjectForKey:KNSilentUpdateKey];
+}
+
+- (void)showReleaseNotesIfUpdateInstalledSilently {
+
+	NSDictionary *record = [[NSUserDefaults standardUserDefaults] dictionaryForKey:KNSilentUpdateKey];
+	if (!record) return;
+
+	NSInteger recordedBuild = [[record objectForKey:KNSilentUpdateBuildKey] integerValue];
+	NSInteger runningBuild = [[[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"] integerValue];
+
+	switch (KNSilentUpdateActionForBuilds(recordedBuild, runningBuild)) {
+		case KNSilentUpdateWait:
+			return;
+		case KNSilentUpdateForget:
+			[self forgetSilentUpdate];
+			return;
+		case KNSilentUpdateShowNotes:
+			break;
+	}
+
+	//forgotten before showing, so a crash while the window is up cannot make it appear on every launch
+	[self forgetSilentUpdate];
+
+	id urlString = [record objectForKey:KNSilentUpdateNotesURLKey];
+	NSURL *notesURL = [urlString isKindOfClass:[NSString class]] ? [NSURL URLWithString:urlString] : nil;
+	if (![[[notesURL scheme] lowercaseString] isEqualToString:@"https"]) return;
+
+	id version = [record objectForKey:KNSilentUpdateVersionKey];
+	[KNReleaseNotesWindowController showReleaseNotesForVersion:[version isKindOfClass:[NSString class]] ? version : @""
+														  URL:notesURL];
+}
+
 #pragma mark SPUStandardUserDriverDelegate
 
 //Without this, Sparkle assumes the application has no way to show a reminder of its own and logs a
@@ -175,14 +262,17 @@ static KNUpdateController *sharedInstance = nil;
 - (void)standardUserDriverWillHandleShowingUpdate:(BOOL)handleShowingUpdate
 										forUpdate:(SUAppcastItem *)update
 											state:(SPUUserUpdateState *)state {
-	//Sparkle is showing its own window for this one; ours would be redundant
-	if (!handleShowingUpdate) [self showUpdateIndicator];
+	//Sparkle is showing its own window for this one, which carries the release notes: the indicator
+	//would be redundant, and so would showing the notes again after the update installs
+	if (handleShowingUpdate) [self forgetSilentUpdate];
+	else [self showUpdateIndicator];
 }
 
 //the user clicked the indicator, or opened Sparkle's window some other way -- the reminder has done
 //its job and the window now carries the message
 - (void)standardUserDriverDidReceiveUserAttentionForUpdate:(SUAppcastItem *)update {
 	[self hideUpdateIndicator];
+	[self forgetSilentUpdate];
 }
 
 //installed, skipped, deferred or failed: whatever the outcome, nothing is waiting any more

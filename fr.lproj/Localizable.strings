@@ -744,3 +744,12 @@
 
 /* tooltip for the status bar's count */
 "Choose what to count" = "Choisir ce qui est compté";
+
+/* title of the window showing the release notes of an update that installed itself */
+"What's New in Kinetic Notes %@" = "Nouveautés de Kinetic Notes %@";
+
+/* line above the release notes of an update that installed itself */
+"Kinetic Notes updated itself to version %@. Here is what changed." = "Kinetic Notes s’est mis à jour vers la version %@. Voici ce qui a changé.";
+
+/* shown in the release notes window when the page cannot be loaded, e.g. offline */
+"The release notes could not be loaded. You can read them online:" = "Les notes de version n’ont pas pu être chargées. Vous pouvez les lire en ligne :";
