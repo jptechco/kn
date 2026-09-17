@@ -19,6 +19,13 @@ version heading when that release is cut.
 
 ## Unreleased
 
+- **An update that installs itself now says what changed.** With *Auto-Update* on, updates download
+  in the background and install when Kinetic Notes quits, so the window describing them was never
+  seen. The first launch after such an update now opens a *What's New* window with that version's
+  release notes, once. Nobody else sees it: an update installed from the update window already showed
+  its notes there. The first update able to do this is the one after the release that includes it.
+  ([#39](https://github.com/jptechco/kn/pull/39))
+
 - **Line numbers and a word count, both in *Settings → Editing*.** *Show line numbers* puts a gutter
   beside the note: muted numbers, with the line holding the cursor — every line a selection touches —
   drawn brighter on a faint band. The numbers are drawn beside the text rather than added to it, so
