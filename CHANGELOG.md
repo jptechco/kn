@@ -19,6 +19,8 @@ version heading when that release is cut.
 
 ## Unreleased
 
+## 1.8 — 2026-09-16
+
 - **An update that installs itself now says what changed.** With *Auto-Update* on, updates download
   in the background and install when Kinetic Notes quits, so the window describing them was never
   seen. The first launch after such an update now opens a *What's New* window with that version's

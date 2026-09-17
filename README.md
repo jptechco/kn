@@ -9,13 +9,12 @@ being withdrawn after macOS 26 Tahoe. Kinetic Notes is that application rebuilt 
 with its dead and Intel-only dependencies replaced, and nothing removed that anyone was using.
 
 ### Status
-**Version: 1.7.1 — current stable release.**
+**Version: 1.8 — current stable release.**
 
-1.7.1 repackages 1.7, whose download could break its own code signature while being unpacked and so
-was refused by macOS on some Macs. Nothing in the application itself changed. 1.7 adds an Updates
-pane to Preferences, refreshes Dark Mode with a Color Scheme override, and fixes a bug where deleting
-a note you had searched for blanked the list. Like 1.6 it is signed with an Apple Developer ID and
-notarized, so it opens normally on first launch and updates itself.
+1.8 adds optional line numbers beside the note and a word count along the bottom of the window, shows
+the release notes after an update that installed itself, and makes the divider between the notes and
+the note the same thin line in both layouts, each remembering where it was left. Like 1.6 it is signed
+with an Apple Developer ID and notarized, so it opens normally on first launch and updates itself.
 
 ### Changelog
 If you're curious, check out the [changelog](CHANGELOG.md) to see what's changed in each version.
