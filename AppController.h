@@ -32,7 +32,7 @@
 @class RBSplitView;
 @class RBSplitSubview;
 @class TitlebarButton;
-@class LinearDividerShader;
+@class KNStatusBar;
 
 @interface AppController : NSObject 
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6
@@ -54,11 +54,11 @@
 	NSToolbar *toolbar;
 	NSToolbarItem *dualFieldItem;
 	TitlebarButton *titleBarButton;
+	//the word-count bar along the bottom of the window; built in code, since MainMenu.nib is never re-saved
+	KNStatusBar *statusBar;
 	
 	BOOL waitedForUncommittedChanges;
 	
-	NSImage *verticalDividerImg;
-	LinearDividerShader *dividerShader;
 	
 	NSString *URLToInterpretOnLaunch;
 	NSMutableArray *pathsToOpenOnLaunch;
@@ -119,7 +119,9 @@ void outletObjectAwoke(id sender);
 - (void)_collapseToolbar;
 - (void)_forceRegeneratePreviewsForTitleColumn;
 - (void)_configureDividerForCurrentLayout;
+- (NSRect)_dividerDragRect;
 - (void)_applyTitleBarLayout;
+- (void)_applyStatusBarVisibility;
 - (void)applyAppearanceMode;
 - (NSString*)applicationName;
 - (NoteObject*)selectedNoteObject;

@@ -44,6 +44,9 @@
 	NSButton *sideBySideTitleBarButton;
 	NSTextField *appearanceLabel;
 	NSPopUpButton *appearanceModeButton;
+	//the Editing pane's Display group, likewise built in code
+	NSTextField *displayLabel;
+	NSButton *showsLineNumbersButton, *showsWordCountButton;
 	//the Updates pane and its two toggles, likewise built in code rather than in the nib
 	NSView *updatesView;
 	NSButton *automaticallyChecksButton, *automaticallyDownloadsButton;
@@ -82,6 +85,8 @@
 - (IBAction)changedNotesFolderLocation:(id)sender;
 - (IBAction)changedQuitBehavior:(id)sender;
 - (IBAction)changedTitleBarLayout:(id)sender;
+- (IBAction)changedShowsLineNumbers:(id)sender;
+- (IBAction)changedShowsWordCount:(id)sender;
 - (IBAction)changedAppearanceMode:(id)sender;
 - (IBAction)checkForUpdatesNow:(id)sender;
 - (IBAction)changedAutomaticallyChecksForUpdates:(id)sender;

@@ -19,6 +19,28 @@ version heading when that release is cut.
 
 ## Unreleased
 
+- **Line numbers and a word count, both in *Settings → Editing*.** *Show line numbers* puts a gutter
+  beside the note: muted numbers, with the line holding the cursor — every line a selection touches —
+  drawn brighter on a faint band. The numbers are drawn beside the text rather than added to it, so
+  they are never copied, printed or exported, and a line that wraps is numbered once. *Show word count*
+  runs a bar along the bottom of the window counting the selected note; its **^** caret switches the
+  count between characters with and without spaces, words, lines and paragraphs, and the choice is
+  remembered. Both are off until turned on.
+  ([#38](https://github.com/jptechco/kn/pull/38))
+
+- **The divider between the notes and the note is the same thin line in both layouts.** The stacked
+  layout's 8pt shaded bar gives way to the 1pt line the side-by-side layout already showed, and either
+  layout's divider is dragged by grabbing that line. *Show the search field beside the window title*
+  also moves to the top of the General pane's checkboxes.
+  ([#38](https://github.com/jptechco/kn/pull/38))
+
+- **Each layout remembers where its divider was left.** Switching between the stacked and side-by-side
+  layouts used to save an evenly split position over the one the other layout had, so neither seemed
+  to keep a dragged position. And in the side-by-side layout, the lines between notes no longer run
+  through each note's preview and tags: since macOS 11 the list has been padded at the top, and the
+  lines were drawn 10pt above where the rows actually are.
+  ([#38](https://github.com/jptechco/kn/pull/38))
+
 ## 1.7.1 — 2026-08-21
 
 - **The download no longer fails to open with "Apple could not verify … is free of malware".** The

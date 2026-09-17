@@ -685,3 +685,63 @@
 
 /* General preference: put the search field on the title's row rather than beneath it */
 "Show the search field beside the window title" = "在窗口标题旁显示搜索栏";
+
+/* Editing preference: number the lines beside the note text */
+"Show line numbers" = "显示行号";
+
+/* Editing preference: show a bar beneath the window counting the words in the note */
+"Show word count" = "显示字数统计";
+
+/* Editing preference: label for the line-number and word-count checkboxes */
+"Display:" = "显示：";
+
+/* status bar count menu: count every character except line breaks */
+"Characters (with spaces)" = "字符数（含空格）";
+
+/* status bar count menu: count characters, leaving out spaces and line breaks */
+"Characters (no spaces)" = "字符数（不含空格）";
+
+/* status bar count menu: count words */
+"Words" = "字数";
+
+/* status bar count menu: count lines */
+"Lines" = "行数";
+
+/* status bar count menu: count paragraphs */
+"Paragraphs" = "段落数";
+
+/* status bar: a count of exactly one character, spaces included */
+"%@ character (with spaces)" = "%@ 个字符（含空格）";
+
+/* status bar: a count of characters, spaces included */
+"%@ characters (with spaces)" = "%@ 个字符（含空格）";
+
+/* status bar: a count of exactly one character, spaces left out */
+"%@ character (no spaces)" = "%@ 个字符（不含空格）";
+
+/* status bar: a count of characters, spaces left out */
+"%@ characters (no spaces)" = "%@ 个字符（不含空格）";
+
+/* status bar: a count of exactly one line */
+"%@ line" = "%@ 行";
+
+/* status bar: a count of lines */
+"%@ lines" = "%@ 行";
+
+/* status bar: a count of exactly one paragraph */
+"%@ paragraph" = "%@ 个段落";
+
+/* status bar: a count of paragraphs */
+"%@ paragraphs" = "%@ 个段落";
+
+/* status bar: a count of exactly one word */
+"%@ word" = "%@ 个字";
+
+/* status bar: a count of words */
+"%@ words" = "%@ 个字";
+
+/* accessibility description of the status bar's caret */
+"Count options" = "统计选项";
+
+/* tooltip for the status bar's count */
+"Choose what to count" = "选择统计内容";

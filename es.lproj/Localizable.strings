@@ -687,3 +687,63 @@
 
 /* General preference: put the search field on the title's row rather than beneath it */
 "Show the search field beside the window title" = "Mostrar el campo de búsqueda junto al título de la ventana";
+
+/* Editing preference: number the lines beside the note text */
+"Show line numbers" = "Mostrar números de línea";
+
+/* Editing preference: show a bar beneath the window counting the words in the note */
+"Show word count" = "Mostrar recuento de palabras";
+
+/* Editing preference: label for the line-number and word-count checkboxes */
+"Display:" = "Mostrar:";
+
+/* status bar count menu: count every character except line breaks */
+"Characters (with spaces)" = "Caracteres (con espacios)";
+
+/* status bar count menu: count characters, leaving out spaces and line breaks */
+"Characters (no spaces)" = "Caracteres (sin espacios)";
+
+/* status bar count menu: count words */
+"Words" = "Palabras";
+
+/* status bar count menu: count lines */
+"Lines" = "Líneas";
+
+/* status bar count menu: count paragraphs */
+"Paragraphs" = "Párrafos";
+
+/* status bar: a count of exactly one character, spaces included */
+"%@ character (with spaces)" = "%@ carácter (con espacios)";
+
+/* status bar: a count of characters, spaces included */
+"%@ characters (with spaces)" = "%@ caracteres (con espacios)";
+
+/* status bar: a count of exactly one character, spaces left out */
+"%@ character (no spaces)" = "%@ carácter (sin espacios)";
+
+/* status bar: a count of characters, spaces left out */
+"%@ characters (no spaces)" = "%@ caracteres (sin espacios)";
+
+/* status bar: a count of exactly one line */
+"%@ line" = "%@ línea";
+
+/* status bar: a count of lines */
+"%@ lines" = "%@ líneas";
+
+/* status bar: a count of exactly one paragraph */
+"%@ paragraph" = "%@ párrafo";
+
+/* status bar: a count of paragraphs */
+"%@ paragraphs" = "%@ párrafos";
+
+/* status bar: a count of exactly one word */
+"%@ word" = "%@ palabra";
+
+/* status bar: a count of words */
+"%@ words" = "%@ palabras";
+
+/* accessibility description of the status bar's caret */
+"Count options" = "Opciones de recuento";
+
+/* tooltip for the status bar's count */
+"Choose what to count" = "Elegir qué contar";

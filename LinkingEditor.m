@@ -16,6 +16,7 @@
 
 
 #import "LinkingEditor.h"
+#import "KNLineNumberRulerView.h"
 #import "GlobalPrefs.h"
 #import "AppController.h"
 #import "AppController_Importing.h"
@@ -77,7 +78,8 @@ CGFloat _perceptualDarkness(NSColor*a);
 	 @selector(setSearchTermHighlightColor:sender:),
 	 @selector(setShouldHighlightSearchTerms:sender:),
 	 @selector(setBackgroundTextColor:sender:),
-	 @selector(setForegroundTextColor:sender:), nil];	
+	 @selector(setForegroundTextColor:sender:),
+	 @selector(setShowsLineNumbers:sender:), nil];
 	
 	[self setTextContainerInset:NSMakeSize(3, 8)];
 	[self setSmartInsertDeleteEnabled:NO];
@@ -86,6 +88,7 @@ CGFloat _perceptualDarkness(NSColor*a);
 	[self setDrawsBackground:YES];
 	[self setBackgroundColor:[prefsController backgroundTextColor]];
 	[self updateTextColors];
+	[self updateLineNumberGutter];
 	
 	[[self window] setAcceptsMouseMovedEvents:YES];
 	defaultIBeamCursorIMP = method_getImplementation(class_getClassMethod([NSCursor class], @selector(IBeamCursor)));
@@ -116,6 +119,7 @@ CGFloat _perceptualDarkness(NSColor*a);
 
 		[self setTypingAttributes:[prefsController noteBodyAttributes]];
 		//[textView setFont:[prefsController noteBodyFont]];
+		[self updateLineNumberGutter];
 	} else if ([selectorString isEqualToString:SEL_STR(setMakeURLsClickable:sender:)]) {
 		
 		[self setLinkTextAttributes:[self preferredLinkAttributes]];
@@ -125,11 +129,17 @@ CGFloat _perceptualDarkness(NSColor*a);
 		//link-color is derived both from foreground and background colors
 		[self setBackgroundColor:[prefsController backgroundTextColor]];
 		[self updateTextColors];
+		[self updateLineNumberGutter];
 		
 	} else if ([selectorString isEqualToString:SEL_STR(setForegroundTextColor:sender:)]) {
 		
 		[self updateTextColors];
 		[self setTypingAttributes:[prefsController noteBodyAttributes]];
+		[self updateLineNumberGutter];
+		
+	} else if ([selectorString isEqualToString:SEL_STR(setShowsLineNumbers:sender:)]) {
+		
+		[self updateLineNumberGutter];
 		
 	} else if ([selectorString isEqualToString:SEL_STR(setSearchTermHighlightColor:sender:)] || 
 			   [selectorString isEqualToString:SEL_STR(setShouldHighlightSearchTerms:sender:)]) {
@@ -194,6 +204,34 @@ CGFloat _perceptualDarkness(NSColor*a);
 	[self setLinkTextAttributes:[self preferredLinkAttributes]];
 	[self setSelectedTextAttributes:[NSDictionary dictionaryWithObject:[self _selectionColorForForegroundColor:fgColor backgroundColor:bgColor]
 																forKey:NSBackgroundColorAttributeName]];
+}
+
+//Shows or hides the line-number gutter to match the preference, and has it re-derive its font and
+//colors. The gutter is the scroll view's vertical ruler; the text view's own ruler machinery stays off
+//(-setUsesRuler:NO above), so nothing but this ever makes the scroll view's rulers visible.
+- (void)updateLineNumberGutter {
+	NSScrollView *scrollView = [self enclosingScrollView];
+	if (!scrollView) return;
+
+	if ([prefsController showsLineNumbers]) {
+		if (![[scrollView verticalRulerView] isKindOfClass:[KNLineNumberRulerView class]]) {
+			KNLineNumberRulerView *gutter = [[KNLineNumberRulerView alloc] initWithTextView:self];
+			[scrollView setVerticalRulerView:gutter];
+			[gutter release];
+		}
+		[scrollView setHasVerticalRuler:YES];
+		[scrollView setRulersVisible:YES];
+		[(KNLineNumberRulerView *)[scrollView verticalRulerView] noteAppearanceChanged];
+	} else if ([scrollView rulersVisible]) {
+		[scrollView setRulersVisible:NO];
+		[scrollView setHasVerticalRuler:NO];
+	}
+}
+
+//the gutter numbers nothing while the editor is hidden (no note selected), so it redraws when that changes
+- (void)setHidden:(BOOL)flag {
+	[super setHidden:flag];
+	[[[self enclosingScrollView] verticalRulerView] setNeedsDisplay:YES];
 }
 
 //AppKit sends this when the system switches between Light and Dark Mode. The editor's own colors are

@@ -197,6 +197,14 @@
 	[prefsController setSideBySideTitleBar:[sideBySideTitleBarButton state] sender:self];
 }
 
+- (IBAction)changedShowsLineNumbers:(id)sender {
+	[prefsController setShowsLineNumbers:[showsLineNumbersButton state] sender:self];
+}
+
+- (IBAction)changedShowsWordCount:(id)sender {
+	[prefsController setShowsWordCount:[showsWordCountButton state] sender:self];
+}
+
 - (IBAction)changedAppearanceMode:(id)sender {
 	[prefsController setAppearanceMode:(KNAppearanceMode)[appearanceModeButton indexOfSelectedItem] sender:self];
 }
@@ -432,56 +440,64 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
  the end of -awakeFromNib: that method sizes the window from [prefsView frame], so the pane must have
  grown by then, and it reassigns the pane's origin and autoresizing mask afterwards.
 
- -openBottomRowInPane: does the shared geometry: it grows the pane by one row and shifts its existing
- controls up to open a gap at the bottom, returning that vacated row's frame for the caller to place a
- new control into. The pane's coordinates are un-flipped, with y = 0 at the bottom, so making it
- taller adds the space at the top; shifting everything up opens the gap at the bottom instead, which
- keeps the new control in the group rather than stranded above the labels.
+ -liftControlsInPane:above:by: does the shared geometry. The pane's coordinates are un-flipped, with
+ y = 0 at the bottom, so making it taller adds the space at the top; moving the controls above some
+ line up into that space opens a gap at the line instead, which is where the caller puts its new
+ controls. Everything is measured off the pane rather than written down, because the compiled nib that
+ actually ships does not match designable.nib's frames, and the frames vary by localization.
  */
-- (NSRect)openBottomRowInPane:(NSView *)pane measuredRow:(NSView **)outMeasuredRow {
 
-	if (outMeasuredRow) *outMeasuredRow = nil;
+//the pitch the panes' checkbox rows are spaced on
+#define PREFS_ROW_PITCH 25.0f
 
-	//the pitch the pane's controls are spaced on. Everything else is measured off the pane rather
-	//than written down here: the compiled nib that actually ships does not match designable.nib's
-	//frames, so hardcoding the margins puts the new row in the wrong place.
-	const CGFloat rowPitch = 25.0f;
-
-	//the lowest control gives both the margin the new row should sit on and the inset the pane's
-	//controls are aligned to
-	NSView *lowest = nil;
-	NSEnumerator *probe = [[pane subviews] objectEnumerator];
-	NSView *subview;
-	while ((subview = [probe nextObject])) {
-		if (!lowest || NSMinY([subview frame]) < NSMinY([lowest frame])) lowest = subview;
-	}
-	if (!lowest) return NSZeroRect;
-	if (outMeasuredRow) *outMeasuredRow = lowest;
-
-	//captured before the shift below: this is the slot the shift vacates at the bottom
-	NSRect bottomRow = [lowest frame];
+- (void)liftControlsInPane:(NSView *)pane above:(CGFloat)y by:(CGFloat)delta {
 
 	//-setFrame: would move the controls on its own, because they are pinned to the pane's top and
-	//autoresizing moves them -- but only for as long as every one of them keeps that mask. Suspend
-	//autoresizing and move them here, so the result does not depend on masks set in a nib that
-	//cannot be opened.
+	//autoresizing moves them -- but only for as long as every one of them keeps that mask, and it would
+	//move all of them. Suspend autoresizing and move exactly the ones above the line here, so the
+	//result does not depend on masks set in a nib that cannot be opened.
 	BOOL wasAutoresizing = [pane autoresizesSubviews];
 	[pane setAutoresizesSubviews:NO];
 
 	NSRect paneFrame = [pane frame];
-	paneFrame.size.height += rowPitch;
+	paneFrame.size.height += delta;
 	[pane setFrame:paneFrame];
 
-	NSEnumerator *subviews = [[pane subviews] objectEnumerator];
-	while ((subview = [subviews nextObject])) {
-		NSPoint origin = [subview frame].origin;
-		origin.y += rowPitch;
-		[subview setFrameOrigin:origin];
+	for (NSView *subview in [pane subviews]) {
+		if (NSMinY([subview frame]) >= y) {
+			NSPoint origin = [subview frame].origin;
+			origin.y += delta;
+			[subview setFrameOrigin:origin];
+		}
 	}
 
 	[pane setAutoresizesSubviews:wasAutoresizing];
+}
 
-	return bottomRow;
+//the pane's lowest control, which gives both the margin a new bottom row should sit on and the inset
+//the pane's controls are aligned to
+- (NSView *)lowestControlInPane:(NSView *)pane {
+	NSView *lowest = nil;
+	for (NSView *subview in [pane subviews]) {
+		if (!lowest || NSMinY([subview frame]) < NSMinY([lowest frame])) lowest = subview;
+	}
+	return lowest;
+}
+
+//a checkbox for a pane row: its title measured, but the row's own height kept, so it lines up with the
+//nib's checkboxes rather than sitting a point or two off their baseline
+- (NSButton *)newCheckboxWithTitle:(NSString *)title action:(SEL)action inRow:(NSRect)row likeControl:(NSView *)sibling {
+	NSButton *checkbox = [[NSButton alloc] initWithFrame:row];
+	[checkbox setButtonType:NSButtonTypeSwitch];
+	[checkbox setTitle:title];
+	[checkbox setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
+	[checkbox setTarget:self];
+	[checkbox setAction:action];
+	[checkbox sizeToFit];
+	[checkbox setFrame:NSMakeRect(NSMinX(row), NSMinY(row), NSWidth([checkbox frame]), NSHeight(row))];
+	//same mask as the row it was measured from, so it travels with the group if the pane resizes
+	[checkbox setAutoresizingMask:[sibling autoresizingMask]];
+	return checkbox;
 }
 
 //widen `pane` if `control` (already placed in it) extends past its right edge, keeping `leftInset` on
@@ -496,42 +512,100 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 	}
 }
 
+//The search-field checkbox heads the General pane's group of checkboxes, above "Auto-select notes by
+//title": the controls above that checkbox move up a row to make room, and the rest stay where they are.
 - (void)addTitleBarLayoutCheckbox {
 
-	if (sideBySideTitleBarButton || !generalView) return;
+	if (sideBySideTitleBarButton || !generalView || !completeNoteTitlesButton) return;
 
-	NSView *lowest = nil;
-	NSRect bottomRow = [self openBottomRowInPane:generalView measuredRow:&lowest];
-	if (!lowest) return;
+	NSRect anchor = [completeNoteTitlesButton frame];
+	[self liftControlsInPane:generalView above:NSMaxY(anchor) by:PREFS_ROW_PITCH];
 
-	sideBySideTitleBarButton = [[NSButton alloc] initWithFrame:bottomRow];
-	[sideBySideTitleBarButton setButtonType:NSButtonTypeSwitch];
-	[sideBySideTitleBarButton setTitle:NSLocalizedString(@"Show the search field beside the window title",
-														@"General preference: put the search field on the title's row rather than beneath it")];
-	[sideBySideTitleBarButton setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
-	[sideBySideTitleBarButton setTarget:self];
-	[sideBySideTitleBarButton setAction:@selector(changedTitleBarLayout:)];
-
-	//sizeToFit measures the title; keep the row's own height so this checkbox lines up with the
-	//ones above it rather than sitting a point or two off their baseline
-	[sideBySideTitleBarButton sizeToFit];
-	[sideBySideTitleBarButton setFrame:NSMakeRect(NSMinX(bottomRow), NSMinY(bottomRow),
-												  NSWidth([sideBySideTitleBarButton frame]), NSHeight(bottomRow))];
-	//same mask as the row it was measured from, so it travels with the group if the pane resizes
-	[sideBySideTitleBarButton setAutoresizingMask:[lowest autoresizingMask]];
+	sideBySideTitleBarButton = [self newCheckboxWithTitle:NSLocalizedString(@"Show the search field beside the window title",
+																			@"General preference: put the search field on the title's row rather than beneath it")
+												   action:@selector(changedTitleBarLayout:)
+													inRow:NSOffsetRect(anchor, 0.0f, PREFS_ROW_PITCH)
+											  likeControl:completeNoteTitlesButton];
 
 	//the title is longer in some languages than the pane is wide; widen rather than truncate
-	[self widenPane:generalView toFitControl:sideBySideTitleBarButton leftInset:NSMinX(bottomRow)];
+	[self widenPane:generalView toFitControl:sideBySideTitleBarButton leftInset:NSMinX(anchor)];
 
 	[generalView addSubview:sideBySideTitleBarButton];
 }
 
 /*
+ The Editing pane gains a Display group at its foot -- "Show line numbers" and "Show word count" --
+ laid out like the pane's Links group above it: a right-aligned label in the labels' column, the
+ checkboxes in the controls' column, and a little more space between the groups than within one.
+ */
+- (void)addDisplayCheckboxes {
+
+	if (showsLineNumbersButton || !editingView) return;
+
+	NSView *lowest = [self lowestControlInPane:editingView];
+	if (!lowest) return;
+
+	//the gap between two groups is wider than the pitch within one; measure it off Soft tabs and the
+	//Links group's first row rather than assume it
+	CGFloat groupGap = 10.0f;
+	if (softTabsButton && makeURLsClickable && NSMinY([softTabsButton frame]) > NSMinY([makeURLsClickable frame]))
+		groupGap = MAX(0.0f, NSMinY([softTabsButton frame]) - NSMinY([makeURLsClickable frame]) - PREFS_ROW_PITCH);
+
+	NSRect bottomRow = [lowest frame];
+	[self liftControlsInPane:editingView above:NSMinY(bottomRow) by:2.0f * PREFS_ROW_PITCH + groupGap];
+
+	NSRect wordCountRow = bottomRow;
+	NSRect lineNumbersRow = NSOffsetRect(bottomRow, 0.0f, PREFS_ROW_PITCH);
+
+	showsLineNumbersButton = [self newCheckboxWithTitle:NSLocalizedString(@"Show line numbers",
+																		  @"Editing preference: number the lines beside the note text")
+												 action:@selector(changedShowsLineNumbers:)
+												  inRow:lineNumbersRow likeControl:lowest];
+	showsWordCountButton = [self newCheckboxWithTitle:NSLocalizedString(@"Show word count",
+																		@"Editing preference: show a bar beneath the window counting the words in the note")
+											   action:@selector(changedShowsWordCount:)
+												inRow:wordCountRow likeControl:lowest];
+
+	//the group's label goes in the labels' column, right-aligned with the lowest label already there
+	//(Links:), which is any non-editable text field ending left of the checkboxes
+	NSTextField *columnLabel = nil;
+	for (NSView *subview in [editingView subviews]) {
+		if (![subview isKindOfClass:[NSTextField class]] || [(NSTextField *)subview isEditable]) continue;
+		if (NSMaxX([subview frame]) > NSMinX(bottomRow)) continue;
+		if (!columnLabel || NSMinY([subview frame]) < NSMinY([columnLabel frame])) columnLabel = (NSTextField *)subview;
+	}
+
+	displayLabel = [[NSTextField alloc] initWithFrame:NSZeroRect];
+	[displayLabel setStringValue:NSLocalizedString(@"Display:", @"Editing preference: label for the line-number and word-count checkboxes")];
+	[displayLabel setAlignment:NSTextAlignmentRight];
+	[displayLabel setEditable:NO];
+	[displayLabel setSelectable:NO];
+	[displayLabel setBordered:NO];
+	[displayLabel setBezeled:NO];
+	[displayLabel setDrawsBackground:NO];
+	[displayLabel setFont:columnLabel ? [columnLabel font] : [NSFont systemFontOfSize:[NSFont systemFontSize]]];
+	[displayLabel sizeToFit];
+	NSRect labelFrame = [displayLabel frame];
+	CGFloat labelRight = columnLabel ? NSMaxX([columnLabel frame]) : NSMinX(bottomRow) - 3.0f;
+	labelFrame.origin.x = MAX(0.0f, labelRight - NSWidth(labelFrame));
+	labelFrame.size.width = labelRight - NSMinX(labelFrame);
+	labelFrame.origin.y = floor(NSMidY(lineNumbersRow) - NSHeight(labelFrame) / 2.0f);
+	[displayLabel setFrame:labelFrame];
+	[displayLabel setAutoresizingMask:[lowest autoresizingMask]];
+
+	[self widenPane:editingView toFitControl:showsLineNumbersButton leftInset:NSMinX(labelFrame)];
+	[self widenPane:editingView toFitControl:showsWordCountButton leftInset:NSMinX(labelFrame)];
+
+	[editingView addSubview:displayLabel];
+	[editingView addSubview:showsLineNumbersButton];
+	[editingView addSubview:showsWordCountButton];
+}
+
+/*
  The Color Scheme control -- a label + popup letting the user follow the system appearance or pin the
  app dark/light -- is built in code, the nib being un-editable. Unlike the General pane's checkbox,
- this pane cannot use -openBottomRowInPane:: the Body Font field is width-sizable, so growing the pane
- *width* (which -openBottomRowInPane: and -widenPane: can do) stretches that field until it runs under
- the fixed "Set…" button. So this lays out by hand instead. It leaves the pane width alone, grows only
+ this pane cannot lean on -widenPane:: the Body Font field is width-sizable, so growing the pane
+ *width* stretches that field until it runs under the fixed "Set…" button. So this lays out by hand instead. It leaves the pane width alone, grows only
  the *height* to make room, gives the Body Font row a generous gap above and below, and drops the
  Color Scheme row below it. Everything is measured off existing controls, since the shipped nib's
  frames differ from designable.nib's and vary by localization.
@@ -742,6 +816,9 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
     [quitWhenClosingButton setState:[prefsController quitWhenClosingWindow]];
 	[self addTitleBarLayoutCheckbox];
 	[sideBySideTitleBarButton setState:[prefsController sideBySideTitleBar]];
+	[self addDisplayCheckboxes];
+	[showsLineNumbersButton setState:[prefsController showsLineNumbers]];
+	[showsWordCountButton setState:[prefsController showsWordCount]];
 	[self addAppearanceControl];
 	[appearanceModeButton selectItemAtIndex:[prefsController appearanceMode]];
     [styledTextButton setState:[prefsController pastePreservesStyle]];
