@@ -72,6 +72,9 @@
 		KN0000000000000000000009 /* KNSecureArchiving.m in Sources */ = {isa = PBXBuildFile; fileRef = KN0000000000000000000008 /* KNSecureArchiving.m */; };
 		KN0000000000000000000012 /* KNSupportController.m in Sources */ = {isa = PBXBuildFile; fileRef = KN0000000000000000000011 /* KNSupportController.m */; };
 		KN0000000000000000000022 /* KNUpdateController.m in Sources */ = {isa = PBXBuildFile; fileRef = KN0000000000000000000021 /* KNUpdateController.m */; };
+		KN0000000000000000000042 /* KNTextStatistics.m in Sources */ = {isa = PBXBuildFile; fileRef = KN0000000000000000000041 /* KNTextStatistics.m */; };
+		KN0000000000000000000045 /* KNLineNumberRulerView.m in Sources */ = {isa = PBXBuildFile; fileRef = KN0000000000000000000044 /* KNLineNumberRulerView.m */; };
+		KN0000000000000000000048 /* KNStatusBar.m in Sources */ = {isa = PBXBuildFile; fileRef = KN0000000000000000000047 /* KNStatusBar.m */; };
 		KN0000000000000000000031 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = KN0000000000000000000030 /* Sparkle.framework */; };
 		KN0000000000000000000032 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = KN0000000000000000000030 /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		215309F412E4E92300AF2739 /* DiskUUIDEntry.m in Sources */ = {isa = PBXBuildFile; fileRef = 215309F312E4E92300AF2739 /* DiskUUIDEntry.m */; };
@@ -311,6 +314,12 @@
 		KN0000000000000000000030 /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = Frameworks/Sparkle.framework; sourceTree = "<group>"; };
 		KN0000000000000000000007 /* KNSecureArchiving.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KNSecureArchiving.h; sourceTree = "<group>"; };
 		KN0000000000000000000008 /* KNSecureArchiving.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KNSecureArchiving.m; sourceTree = "<group>"; };
+		KN0000000000000000000040 /* KNTextStatistics.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KNTextStatistics.h; sourceTree = "<group>"; };
+		KN0000000000000000000041 /* KNTextStatistics.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KNTextStatistics.m; sourceTree = "<group>"; };
+		KN0000000000000000000043 /* KNLineNumberRulerView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KNLineNumberRulerView.h; sourceTree = "<group>"; };
+		KN0000000000000000000044 /* KNLineNumberRulerView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KNLineNumberRulerView.m; sourceTree = "<group>"; };
+		KN0000000000000000000046 /* KNStatusBar.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KNStatusBar.h; sourceTree = "<group>"; };
+		KN0000000000000000000047 /* KNStatusBar.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KNStatusBar.m; sourceTree = "<group>"; };
 		215309F212E4E92300AF2739 /* DiskUUIDEntry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DiskUUIDEntry.h; sourceTree = "<group>"; };
 		215309F312E4E92300AF2739 /* DiskUUIDEntry.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DiskUUIDEntry.m; sourceTree = "<group>"; };
 		21544FBF0B06332600C0D1D5 /* KeyDerivationManager.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = KeyDerivationManager.h; sourceTree = "<group>"; };
@@ -718,6 +727,12 @@
 				KN0000000000000000000011 /* KNSupportController.m */,
 				KN0000000000000000000020 /* KNUpdateController.h */,
 				KN0000000000000000000021 /* KNUpdateController.m */,
+				KN0000000000000000000040 /* KNTextStatistics.h */,
+				KN0000000000000000000041 /* KNTextStatistics.m */,
+				KN0000000000000000000043 /* KNLineNumberRulerView.h */,
+				KN0000000000000000000044 /* KNLineNumberRulerView.m */,
+				KN0000000000000000000046 /* KNStatusBar.h */,
+				KN0000000000000000000047 /* KNStatusBar.m */,
 				215309F212E4E92300AF2739 /* DiskUUIDEntry.h */,
 				215309F312E4E92300AF2739 /* DiskUUIDEntry.m */,
 				21F0793710EC5E21004FE56F /* Sync Services */,
@@ -1316,6 +1331,9 @@
 				KN0000000000000000000009 /* KNSecureArchiving.m in Sources */,
 				KN0000000000000000000012 /* KNSupportController.m in Sources */,
 				KN0000000000000000000022 /* KNUpdateController.m in Sources */,
+				KN0000000000000000000042 /* KNTextStatistics.m in Sources */,
+				KN0000000000000000000045 /* KNLineNumberRulerView.m in Sources */,
+				KN0000000000000000000048 /* KNStatusBar.m in Sources */,
 				215309F412E4E92300AF2739 /* DiskUUIDEntry.m in Sources */,
 				21B64A2612E61FA700D87EFC /* LabelColumnCell.m in Sources */,
 				21B64C4E12E62A5700D87EFC /* UnifiedCell.m in Sources */,

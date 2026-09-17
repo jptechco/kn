@@ -49,6 +49,16 @@ typedef NS_ENUM(NSInteger, KNAppearanceMode) {
 	KNAppearanceForceLight
 };
 
+//what the status bar beneath the window counts in the selected note. The raw values are stored in
+//the defaults, so append new units rather than reordering these.
+typedef NS_ENUM(NSInteger, KNTextCountUnit) {
+	KNTextCountWords = 0,
+	KNTextCountCharactersWithSpaces,
+	KNTextCountCharactersWithoutSpaces,
+	KNTextCountLines,
+	KNTextCountParagraphs
+};
+
 #define ColumnIsSet(__ColumnEnum, __columnsBitmap) (((1 << (__ColumnEnum)) & (__columnsBitmap)) != 0)
 
 
@@ -157,6 +167,14 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2);
 - (void)setSearchTermHighlightColor:(NSColor*)color sender:(id)sender;
 - (NSDictionary*)searchTermHighlightAttributes;
 - (NSColor*)searchTermHighlightColorRaw:(BOOL)isRaw;
+
+- (void)setShowsLineNumbers:(BOOL)value sender:(id)sender;
+- (BOOL)showsLineNumbers;
+
+- (void)setShowsWordCount:(BOOL)value sender:(id)sender;
+- (BOOL)showsWordCount;
+- (void)setWordCountUnit:(KNTextCountUnit)unit sender:(id)sender;
+- (KNTextCountUnit)wordCountUnit;
 
 - (void)setSoftTabs:(BOOL)value sender:(id)sender;
 - (BOOL)softTabs;

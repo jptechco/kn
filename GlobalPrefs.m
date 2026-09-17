@@ -65,6 +65,9 @@ static NSString *AppearanceModeKey = @"AppearanceMode";
 static NSString *ForegroundTextColorKey = @"ForegroundTextColor";
 static NSString *BackgroundTextColorKey = @"BackgroundTextColor";
 static NSString *UseSoftTabsKey = @"UseSoftTabs";
+static NSString *ShowsLineNumbersKey = @"ShowsLineNumbers";
+static NSString *ShowsWordCountKey = @"ShowsWordCount";
+static NSString *WordCountUnitKey = @"WordCountUnit";
 static NSString *NumberOfSpacesInTabKey = @"NumberOfSpacesInTab";
 static NSString *MakeURLsClickableKey = @"MakeURLsClickable";
 static NSString *AppActivationKeyCodeKey = @"AppActivationKeyCode";
@@ -149,6 +152,9 @@ static void sendCallbacksForGlobalPrefs(GlobalPrefs* self, SEL selector, id orig
 			[NSNumber numberWithBool:YES], AutoIndentsNewLinesKey, 
 			[NSNumber numberWithBool:YES], AutoFormatsListBulletsKey,
 			[NSNumber numberWithBool:NO], UseSoftTabsKey,
+			[NSNumber numberWithBool:NO], ShowsLineNumbersKey,
+			[NSNumber numberWithBool:NO], ShowsWordCountKey,
+			[NSNumber numberWithInteger:KNTextCountWords], WordCountUnitKey,
 			[NSNumber numberWithInt:4], NumberOfSpacesInTabKey,
 			[NSNumber numberWithBool:YES], PastePreservesStyleKey,
 			[NSNumber numberWithBool:YES], TabKeyIndentsKey,
@@ -480,6 +486,44 @@ static void sendCallbacksForGlobalPrefs(GlobalPrefs* self, SEL selector, id orig
 	}
 	return searchTermHighlightAttributes;
 	
+}
+
+- (void)setShowsLineNumbers:(BOOL)value sender:(id)sender {
+	if ([self showsLineNumbers] != value) {
+		[defaults setBool:value forKey:ShowsLineNumbersKey];
+
+		SEND_CALLBACKS();
+	}
+}
+
+- (BOOL)showsLineNumbers {
+	return [defaults boolForKey:ShowsLineNumbersKey];
+}
+
+- (void)setShowsWordCount:(BOOL)value sender:(id)sender {
+	if ([self showsWordCount] != value) {
+		[defaults setBool:value forKey:ShowsWordCountKey];
+
+		SEND_CALLBACKS();
+	}
+}
+
+- (BOOL)showsWordCount {
+	return [defaults boolForKey:ShowsWordCountKey];
+}
+
+- (void)setWordCountUnit:(KNTextCountUnit)unit sender:(id)sender {
+	if ([self wordCountUnit] != unit) {
+		[defaults setInteger:unit forKey:WordCountUnitKey];
+
+		SEND_CALLBACKS();
+	}
+}
+
+- (KNTextCountUnit)wordCountUnit {
+	NSInteger unit = [defaults integerForKey:WordCountUnitKey];
+	//a value written by some later version, or by hand, falls back to words rather than counting nothing
+	return (unit >= KNTextCountWords && unit <= KNTextCountParagraphs) ? (KNTextCountUnit)unit : KNTextCountWords;
 }
 
 - (void)setSoftTabs:(BOOL)value sender:(id)sender {

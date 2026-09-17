@@ -275,25 +275,28 @@ static void _CopyItemWithSelectorFromMenu(NSMenu *destMenu, NSMenu *sourceMenu, 
 	NSIndexSet *set = [self selectedRowIndexes];
 	NSInteger editedRow = [self editedRow];
 	
+	//line positions come from the rows' own rectangles. Adding up -rowHeight from zero put every line 10pt
+	//too high once macOS 11 resolved the table's automatic style to the inset one, which pads the top of
+	//the list: the lines ran through the bottom of each note's preview and its tags.
 	NSRange rangeOfRows = [self rowsInRect:clipRect];
-	float yToDraw = -0.5;
-	float ySpacing = [self rowHeight] + [self intercellSpacing].height;
-	float rowRectOrigin = ySpacing * rangeOfRows.location;
+	NSInteger rowCount = [self numberOfRows];
+	CGFloat ySpacing = [self rowHeight] + [self intercellSpacing].height;
 	
 	for (i = rangeOfRows.location; i < rangeOfRows.location + rangeOfRows.length; i++) {
 		//don't draw this line if it's next to a selected row, or the row after it is being edited
 		if (![set containsIndex:i] && editedRow != (NSInteger)(i+1)) {			
-			yToDraw = rowRectOrigin + ySpacing - 0.5;
+			CGFloat yToDraw = NSMaxY([self rectOfRow:i]) - 0.5;
 			[line moveToPoint:NSMakePoint(clipRect.origin.x, yToDraw)];
 			[line lineToPoint:NSMakePoint(clipRect.origin.x + clipRect.size.width, yToDraw)];
 		}
-		rowRectOrigin += ySpacing;
 	}
-	//draw everything after the visible range of rows
-	while (rowRectOrigin < clipRect.size.height) {
-		rowRectOrigin += ySpacing;
-		[line moveToPoint:NSMakePoint(clipRect.origin.x, rowRectOrigin)];
-		[line lineToPoint:NSMakePoint(clipRect.origin.x + clipRect.size.width, rowRectOrigin)];
+	//draw everything after the last row, continuing the rows' pitch down the empty part of the list
+	CGFloat yToDraw = (rowCount > 0) ? NSMaxY([self rectOfRow:rowCount - 1]) - 0.5 : -0.5;
+	while (ySpacing > 0.0 && yToDraw < NSMaxY(clipRect)) {
+		yToDraw += ySpacing;
+		if (yToDraw < NSMinY(clipRect)) continue;
+		[line moveToPoint:NSMakePoint(clipRect.origin.x, yToDraw)];
+		[line lineToPoint:NSMakePoint(clipRect.origin.x + clipRect.size.width, yToDraw)];
 	}
 	[line stroke];
 	[NSGraphicsContext restoreGraphicsState];

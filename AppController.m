@@ -16,6 +16,7 @@
 
 
 #import "AppController.h"
+#import "KNStatusBar.h"
 #import "KNAlert.h"
 #import "NoteObject.h"
 #import "GlobalPrefs.h"
@@ -45,7 +46,6 @@
 #import "SyncSessionController.h"
 #import "MultiplePageView.h"
 #import "InvocationRecorder.h"
-#import "LinearDividerShader.h"
 #import "SecureTextEntryManager.h"
 #import "NSString_CustomTruncation.h"
 #import "KNSupportController.h"
@@ -70,9 +70,6 @@ static NSString *KNProjectURLString = @"https://github.com/jptechco/kn";
 		// Setup URL Handling
 		NSAppleEventManager *appleEventManager = [NSAppleEventManager sharedAppleEventManager];
 		[appleEventManager setEventHandler:self andSelector:@selector(handleGetURLEvent:withReplyEvent:) forEventClass:kInternetEventClass andEventID:kAEGetURL];	
-		
-		dividerShader = [[LinearDividerShader alloc] initWithStartColor:[NSColor colorWithCalibratedWhite:0.988 alpha:1.0] 
-															   endColor:[NSColor colorWithCalibratedWhite:0.875 alpha:1.0]];
 		
 		isCreatingANote = isFilteringFromTyping = typedStringIsCached = NO;
 		typedString = @"";
@@ -138,6 +135,7 @@ static NSString *KNProjectURLString = @"https://github.com/jptechco/kn";
 		//NSLog(@"all (hopefully relevant) views awakend!");
 		[self _configureDividerForCurrentLayout];
 		[splitView restoreState:YES];
+		[self _applyStatusBarVisibility];
 		
 		[splitSubview addSubview:editorStatusView positioned:NSWindowAbove relativeTo:splitSubview];
 		[editorStatusView setFrame:[[textView enclosingScrollView] frame]];
@@ -513,6 +511,7 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	 @selector(setConfirmNoteDeletion:sender:),  //whether "delete note" should have an ellipsis
 	 @selector(setSideBySideTitleBar:sender:),  //whether the search field shares the title's row
 	 @selector(setAppearanceMode:sender:),  //when to force the app light/dark or follow the system
+	 @selector(setShowsWordCount:sender:),  //whether the word-count bar runs along the bottom of the window
 	 @selector(setAutoCompleteSearches:sender:), nil];   //when to tell notationcontroller to build its title-prefix connections
 	
 	[self performSelector:@selector(runDelayedUIActionsAfterLaunch) withObject:nil afterDelay:0.0];
@@ -707,6 +706,43 @@ terminateApp:
 	 NSWindowToolbarStyleUnified : NSWindowToolbarStyleExpanded];
 }
 
+/*
+ The word-count bar is not in MainMenu.nib, which is never re-saved. The split view fills the window's
+ content view, so showing the bar takes its height off the bottom of the split view and puts the bar in
+ the space that opens; hiding it gives the height back. The bar is built once and kept, so that its
+ place in the window is all that changes.
+ */
+- (void)_applyStatusBarVisibility {
+	NSView *contentView = [splitView superview];
+	if (!contentView) return;
+
+	BOOL show = [prefsController showsWordCount];
+	if (show == ([statusBar superview] != nil)) return;
+
+	NSRect splitFrame = [splitView frame];
+	if (show) {
+		if (!statusBar) {
+			statusBar = [[KNStatusBar alloc] initWithFrame:NSZeroRect textView:textView];
+			[statusBar setAutoresizingMask:NSViewWidthSizable | NSViewMaxYMargin];
+		}
+		splitFrame.origin.y += KNStatusBarHeight;
+		splitFrame.size.height -= KNStatusBarHeight;
+		[splitView setFrame:splitFrame];
+
+		[statusBar setFrame:NSMakeRect(0.0f, 0.0f, NSWidth([contentView bounds]), KNStatusBarHeight)];
+		[contentView addSubview:statusBar];
+		[statusBar update];
+	} else {
+		[statusBar removeFromSuperview];
+
+		splitFrame.origin.y -= KNStatusBarHeight;
+		splitFrame.size.height += KNStatusBarHeight;
+		[splitView setFrame:splitFrame];
+	}
+	[splitView adjustSubviews];
+	[contentView setNeedsDisplay:YES];
+}
+
 - (void)applyAppearanceMode {
 	//nil lets the app follow the system appearance; the other two pin every window light or dark
 	NSAppearance *appearance = nil;
@@ -728,15 +764,23 @@ terminateApp:
 								visibleFilteredRows:[notesTableView rowsInRect:[notesTableView visibleRect]] forceUpdate:YES];
 }
 
+/*
+ Both layouts separate the notes list from the note with the same thing: the editor scroll view's own
+ 1pt border, along its top edge when the two are stacked and along its left edge when they are side by
+ side. The split view itself has no divider in either layout. The stacked layout used to draw an 8pt
+ shaded bar with a grip dimple there, which did not match. In both layouts the line is dragged by a band
+ either side of it -- see -splitView:dividerForPoint:inSubview: -- and, side by side, by the drag square.
+ */
 - (void)_configureDividerForCurrentLayout {
 	BOOL horiz = [prefsController horizontalLayout];
 	[splitView setVertical:horiz];
 	
-	if (!verticalDividerImg && [splitView divider]) verticalDividerImg = [[splitView divider] retain];
-	[splitView setDivider: horiz ? nil : verticalDividerImg];
-	[splitView setDividerThickness: horiz ? 0.0 : 8.0];
+	[splitView setDivider:nil];
+	[splitView setDividerThickness:0.0];
 	
-	[[notesTableView enclosingScrollView] setBorderType: horiz ? NSNoBorder : NSBezelBorder];
+	//the list's own border would double the editor's line; in the stacked layout its other edges fall
+	//outside the window or under the toolbar's baseline, so nothing else is lost
+	[[notesTableView enclosingScrollView] setBorderType:NSNoBorder];
 	
 	NSSize size = [[splitView subviewAtPosition:0] frame].size;
 	[[notesTableView enclosingScrollView] setFrame: horiz ? NSMakeRect(1, 0, size.width - 1, size.height - 1) : (NSRect){.size = size, .origin = NSZeroPoint}];
@@ -752,9 +796,16 @@ terminateApp:
 	
 	[self _expandToolbar];
 	
+	//each layout remembers its own divider position, under its own defaults key. Record this one's
+	//before leaving it, and take up the other's once the split view has turned: without that, the
+	//subviews kept the sizes they had in the old direction, and the adjustment that follows saved
+	//them -- evened out -- over the position the user had left the other layout at.
+	[splitView saveState:NO];
+	
 	[prefsController setHorizontalLayout:![prefsController horizontalLayout] sender:self];
 	[notationController updateDateStringsIfNecessary];
 	[self _configureDividerForCurrentLayout];
+	[splitView restoreState:NO];
 	[notationController regenerateAllPreviews];
 	[splitView adjustSubviews];
 	
@@ -999,6 +1050,8 @@ terminateApp:
 		[self _applyTitleBarLayout];
 	} else if ([selectorString isEqualToString:SEL_STR(setAppearanceMode:sender:)]) {
 		[self applyAppearanceMode];
+	} else if ([selectorString isEqualToString:SEL_STR(setShowsWordCount:sender:)]) {
+		[self _applyStatusBarVisibility];
 	} else if ([selectorString isEqualToString:SEL_STR(setAutoCompleteSearches:sender:)]) {
 		if ([prefsController autoCompleteSearches])
 			[notationController updateTitlePrefixConnections];
@@ -1473,6 +1526,7 @@ terminateApp:
 	[textView clearFindPanel];
 	[textView setHidden:enable];
 	[editorStatusView setHidden:!enable];
+	[statusBar update];
 	
 	if (enable) {
 		[editorStatusView setLabelStatus:[notesTableView numberOfSelectedRows]];
@@ -1842,17 +1896,39 @@ terminateApp:
 	}
 }
 
-- (NSRect)splitView:(RBSplitView*)sender willDrawDividerInRect:(NSRect)dividerRect betweenView:(RBSplitSubview*)leading 
-			andView:(RBSplitSubview*)trailing withProposedRect:(NSRect)imageRect {
-	
-	[dividerShader drawDividerInRect:dividerRect withDimpleRect:imageRect blendVertically:![prefsController horizontalLayout]];
-	
-	return NSZeroRect;
+//How far either side of the 1pt line between the list and the note a press still grabs it. Reaching into
+//the list as well as the note matters: the list can be dragged down to nothing when stacked, and would
+//otherwise be left with no band to pull it back out by. The note's side is inside the editor's own
+//inset, clear of its text.
+#define KNDividerGrabDistance 3.0f
+
+//the band along the line, in split view coordinates (flipped), for whichever layout is current
+- (NSRect)_dividerDragRect {
+	NSRect listFrame = [[splitView subviewAtPosition:0] frame];
+	NSRect bounds = [splitView bounds];
+	if ([prefsController horizontalLayout]) {
+		return NSMakeRect(NSMaxX(listFrame) - KNDividerGrabDistance, NSMinY(bounds), 2.0f * KNDividerGrabDistance, NSHeight(bounds));
+	}
+	return NSMakeRect(NSMinX(bounds), NSMaxY(listFrame) - KNDividerGrabDistance, NSWidth(bounds), 2.0f * KNDividerGrabDistance);
+}
+
+//RBSplitView asks for divider cursor rects only when it has a divider image, and otherwise sends this
+//once with an empty rect. Neither layout has an image, so the resize cursor over the band is added here.
+- (NSRect)splitView:(RBSplitView*)sender cursorRect:(NSRect)rect forDivider:(NSUInteger)divider {
+	if (NSIsEmptyRect(rect)) {
+		[sender addCursorRect:[self _dividerDragRect]
+					   cursor:[prefsController horizontalLayout] ? [NSCursor resizeLeftRightCursor] : [NSCursor resizeUpDownCursor]];
+	}
+	return rect;
 }
 
 - (NSUInteger)splitView:(RBSplitView*)sender dividerForPoint:(NSPoint)point inSubview:(RBSplitSubview*)subview {
 	if ([(AugmentedScrollView*)[notesTableView enclosingScrollView] shouldDragWithPoint:point sender:sender]) {
 		return 0;       // [firstSplit position], which we assume to be zero
+	}
+	//a press close to the line between the list and the note drags it, in either layout
+	if (NSMouseInRect(point, [self _dividerDragRect], [sender isFlipped])) {
+		return 0;
 	}
 	return NSNotFound;
 }
@@ -2036,7 +2112,6 @@ terminateApp:
 
 - (void)dealloc {
 	[windowUndoManager release];
-	[dividerShader release];
 	
 	[super dealloc];
 }
