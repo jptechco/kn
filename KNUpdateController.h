@@ -35,13 +35,18 @@
  a target nor an action -- and, in Spanish, with an untranslated title. The nib is Interface Builder 3
  format and is never re-saved, so the item gets its target, its action and its title here, at launch.
 
+ An update that installs itself -- with Auto-Update on, it downloads in the background and installs on
+ quit -- is followed, on the next launch, by a window of its release notes (KNReleaseNotesWindowController),
+ since its user never saw Sparkle's window. Nobody else sees that window.
+
  A scheduled check does NOT interrupt the user. Sparkle's own alert window appears only for a check
  the user asked for, by choosing the menu item; a check that happens on a timer puts a small "Update
  Available" button in the toolbar instead, and waits. This is Sparkle's "gentle reminders" facility,
  not a fork of it.
 
  To remove the feature entirely:
-   1. delete this file and KNUpdateController.m, and their four entries in project.pbxproj
+   1. delete this file, KNUpdateController.m and KNReleaseNotesWindowController.h/.m, and their
+      entries in project.pbxproj
    2. delete the #import and the three KNUpdateController lines in AppController.m -- the two in
       -runDelayedUIActionsAfterLaunch and -awakeFromNib, and the toolbar-delegate branch -- then hide
       the menu item again, as -runDelayedUIActionsAfterLaunch used to
@@ -50,8 +55,18 @@
       build settings: CODE_SIGN_ENTITLEMENTS, LD_RUNPATH_SEARCH_PATHS, and the
       "$(SRCROOT)/Frameworks" entry in FRAMEWORK_SEARCH_PATHS
    4. remove the SU* keys from Info.plist and the Sparkle section from Acknowledgments.txt
-   5. delete the "Update Available" and "Check for Updates" blocks from the seven Localizable.strings
+   5. delete the "Update Available", "Check for Updates" and release-notes window blocks from the
+      seven Localizable.strings
  */
+
+//What a launch does about a recorded silent install, given the build it recorded and the build running.
+//Exposed for testing; see -showReleaseNotesIfUpdateInstalledSilently.
+typedef NS_ENUM(NSInteger, KNSilentUpdateAction) {
+	KNSilentUpdateWait = 0,		//the update has not installed yet: keep the record
+	KNSilentUpdateShowNotes,	//this is the build that installed itself: show its notes, once
+	KNSilentUpdateForget		//the record is stale or malformed: drop it
+};
+KNSilentUpdateAction KNSilentUpdateActionForBuilds(NSInteger recordedBuild, NSInteger runningBuild);
 
 //the toolbar item the indicator lives in. AppController's toolbar delegate vends it by this name.
 extern NSString *KNUpdateToolbarItemIdentifier;
@@ -86,6 +101,11 @@ extern NSString *KNUpdateToolbarItemIdentifier;
 //so that pane's "Check Now" button and its two "automatically…" toggles need no Sparkle import of
 //their own -- the framework stays confined to KNUpdateController.m. Sparkle persists both flags in
 //its own defaults, so setting them is all the persistence there is.
+//If the build now running is an update that downloaded and installed itself on quit -- so the user was
+//never shown what changed -- opens a window with its release notes. Once per update; does nothing for
+//an update installed from Sparkle's own window or downloaded from the website.
+- (void)showReleaseNotesIfUpdateInstalledSilently;
+
 - (IBAction)checkForUpdates:(id)sender;
 - (BOOL)automaticallyChecksForUpdates;
 - (void)setAutomaticallyChecksForUpdates:(BOOL)value;

@@ -230,6 +230,8 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	//Sparkle. Here rather than in -applicationDidFinishLaunching:, which can still put up the
 	//first-run import dialogs or the notes-folder open panel, or terminate outright.
 	[[KNUpdateController sharedInstance] installInMenuItem:sparkleUpdateItem];
+	//and if this launch is of an update that installed itself on quit, say what changed
+	[[KNUpdateController sharedInstance] showReleaseNotesIfUpdateInstalledSilently];
 
 	[NSApp setServicesProvider:self];
 }

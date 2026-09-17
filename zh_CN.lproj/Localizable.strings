@@ -745,3 +745,12 @@
 
 /* tooltip for the status bar's count */
 "Choose what to count" = "选择统计内容";
+
+/* title of the window showing the release notes of an update that installed itself */
+"What's New in Kinetic Notes %@" = "Kinetic Notes %@ 的新功能";
+
+/* line above the release notes of an update that installed itself */
+"Kinetic Notes updated itself to version %@. Here is what changed." = "Kinetic Notes 已自动更新到 %@ 版。以下是更新内容。";
+
+/* shown in the release notes window when the page cannot be loaded, e.g. offline */
+"The release notes could not be loaded. You can read them online:" = "无法载入更新说明。你可以在线阅读：";
