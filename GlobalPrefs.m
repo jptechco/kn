@@ -67,6 +67,7 @@ static NSString *BackgroundTextColorKey = @"BackgroundTextColor";
 static NSString *UseSoftTabsKey = @"UseSoftTabs";
 static NSString *ShowsLineNumbersKey = @"ShowsLineNumbers";
 static NSString *ShowsWordCountKey = @"ShowsWordCount";
+static NSString *AutomaticallyCommitAndPushNotesKey = @"AutomaticallyCommitAndPushNotes";
 static NSString *WordCountUnitKey = @"WordCountUnit";
 static NSString *NumberOfSpacesInTabKey = @"NumberOfSpacesInTab";
 static NSString *MakeURLsClickableKey = @"MakeURLsClickable";
@@ -154,6 +155,7 @@ static void sendCallbacksForGlobalPrefs(GlobalPrefs* self, SEL selector, id orig
 			[NSNumber numberWithBool:NO], UseSoftTabsKey,
 			[NSNumber numberWithBool:NO], ShowsLineNumbersKey,
 			[NSNumber numberWithBool:NO], ShowsWordCountKey,
+			[NSNumber numberWithBool:NO], AutomaticallyCommitAndPushNotesKey,
 			[NSNumber numberWithInteger:KNTextCountWords], WordCountUnitKey,
 			[NSNumber numberWithInt:4], NumberOfSpacesInTabKey,
 			[NSNumber numberWithBool:YES], PastePreservesStyleKey,
@@ -510,6 +512,17 @@ static void sendCallbacksForGlobalPrefs(GlobalPrefs* self, SEL selector, id orig
 
 - (BOOL)showsWordCount {
 	return [defaults boolForKey:ShowsWordCountKey];
+}
+
+- (void)setAutomaticallyCommitAndPushNotes:(BOOL)value sender:(id)sender {
+	if ([self automaticallyCommitAndPushNotes] != value) {
+		[defaults setBool:value forKey:AutomaticallyCommitAndPushNotesKey];
+		SEND_CALLBACKS();
+	}
+}
+
+- (BOOL)automaticallyCommitAndPushNotes {
+	return [defaults boolForKey:AutomaticallyCommitAndPushNotesKey];
 }
 
 - (void)setWordCountUnit:(KNTextCountUnit)unit sender:(id)sender {

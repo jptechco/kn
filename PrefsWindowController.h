@@ -50,6 +50,9 @@
 	//the Updates pane and its two toggles, likewise built in code rather than in the nib
 	NSView *updatesView;
 	NSButton *automaticallyChecksButton, *automaticallyDownloadsButton;
+	//the Hooks pane and its automatic Git checkbox, likewise built in code
+	NSView *hooksView;
+	NSButton *automaticallyCommitAndPushButton;
 	IBOutlet NSButton *styledTextButton;
 	IBOutlet NSButton *autoSuggestLinksButton;
 	IBOutlet NSButton *softTabsButton;
@@ -91,6 +94,7 @@
 - (IBAction)checkForUpdatesNow:(id)sender;
 - (IBAction)changedAutomaticallyChecksForUpdates:(id)sender;
 - (IBAction)changedAutomaticallyDownloadsUpdates:(id)sender;
+- (IBAction)changedAutomaticallyCommitAndPush:(id)sender;
 - (IBAction)changedSpellChecking:(id)sender;
 - (IBAction)changedTabBehavior:(id)sender;
 - (IBAction)changedTableText:(id)sender;

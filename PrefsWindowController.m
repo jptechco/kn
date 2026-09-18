@@ -33,10 +33,9 @@
 
 //the preference panes are only ~368pt wide, which is too narrow to display all the toolbar items on
 //modern macOS (they collapse into a ">>" overflow menu, hiding panes). Keep the window at least this
-//wide so all five items stay visible beside the window title; narrower panes are centered in the
-//extra width. 590 is the smallest that fits: the overflow point was measured at 583pt against the
-//longest title ("Fonts & Colors", the worst case), with a few points of margin added.
-#define PREFS_MIN_CONTENT_WIDTH 590.0f
+//wide so all six items stay visible beside the window title; narrower panes are centered in the
+//extra width. The Hooks item adds another toolbar slot beyond the previously measured 590pt minimum.
+#define PREFS_MIN_CONTENT_WIDTH 660.0f
 
 @implementation PrefsWindowController
 
@@ -231,6 +230,11 @@
 		setAutomaticallyDownloadsUpdates:([automaticallyDownloadsButton state] == NSControlStateValueOn)];
 }
 
+- (IBAction)changedAutomaticallyCommitAndPush:(id)sender {
+	[prefsController setAutomaticallyCommitAndPushNotes:
+		([automaticallyCommitAndPushButton state] == NSControlStateValueOn) sender:self];
+}
+
 - (IBAction)changedSpellChecking:(id)sender {
     [prefsController setCheckSpellingAsYouType:[checkSpellingButton state] sender:self];
 }
@@ -412,6 +416,7 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 	if ([paneIdentifier isEqualToString:@"Notes"])          return @"tray.full";
 	if ([paneIdentifier isEqualToString:@"Editing"])        return @"square.and.pencil";
 	if ([paneIdentifier isEqualToString:@"Fonts & Colors"]) return @"textformat";
+	if ([paneIdentifier isEqualToString:@"Hooks"])          return @"terminal";
 	if ([paneIdentifier isEqualToString:@"Updates"])        return @"arrow.triangle.2.circlepath";
 	return nil;
 }
@@ -787,6 +792,41 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 	[updatesView addSubview:automaticallyDownloadsButton];
 }
 
+- (void)buildHooksView {
+	if (hooksView) return;
+
+	const CGFloat leftInset = 20.0f;
+	hooksView = [[NSView alloc] initWithFrame:NSMakeRect(0.0f, 0.0f, 480.0f, 130.0f)];
+
+	automaticallyCommitAndPushButton = [[NSButton alloc]
+		initWithFrame:NSMakeRect(leftInset, 84.0f, 440.0f, 18.0f)];
+	[automaticallyCommitAndPushButton setButtonType:NSButtonTypeSwitch];
+	[automaticallyCommitAndPushButton setTitle:NSLocalizedString(
+		@"Automatically commit and push note changes",
+		@"Hooks preference: commit and push changes when the notes folder is a Git repository")];
+	[automaticallyCommitAndPushButton setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
+	[automaticallyCommitAndPushButton setTarget:self];
+	[automaticallyCommitAndPushButton setAction:@selector(changedAutomaticallyCommitAndPush:)];
+	[automaticallyCommitAndPushButton sizeToFit];
+	[automaticallyCommitAndPushButton setFrameOrigin:NSMakePoint(leftInset, 84.0f)];
+	[hooksView addSubview:automaticallyCommitAndPushButton];
+
+	NSTextField *caption = [[[NSTextField alloc]
+		initWithFrame:NSMakeRect(leftInset + 18.0f, 34.0f, 430.0f, 38.0f)] autorelease];
+	[caption setStringValue:NSLocalizedString(
+		@"When the notes folder is a Git repository root, Kinetic Notes stages and commits saved changes, then pushes them using the configured remote.",
+		@"Hooks preference: explanation of automatic Git operations")];
+	[caption setEditable:NO];
+	[caption setSelectable:NO];
+	[caption setBordered:NO];
+	[caption setBezeled:NO];
+	[caption setDrawsBackground:NO];
+	[caption setTextColor:[NSColor secondaryLabelColor]];
+	[caption setFont:[NSFont systemFontOfSize:[NSFont smallSystemFontSize]]];
+	[[caption cell] setWraps:YES];
+	[hooksView addSubview:caption];
+}
+
 - (void)awakeFromNib {
 
 	[window setDelegate:self];
@@ -839,6 +879,9 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
     [self addToolbarItemWithName:@"Editing"];
 	[self addToolbarItemWithName:@"Fonts & Colors"];
 
+	[self buildHooksView];
+	[self addToolbarItemWithName:@"Hooks"];
+
 	[self buildUpdatesView];
 	[self addToolbarItemWithName:@"Updates"];
 
@@ -848,6 +891,8 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 	[automaticallyChecksButton setState:autoChecks ? NSControlStateValueOn : NSControlStateValueOff];
 	[automaticallyDownloadsButton setState:[updateController automaticallyDownloadsUpdates] ? NSControlStateValueOn : NSControlStateValueOff];
 	[automaticallyDownloadsButton setEnabled:autoChecks];
+	[automaticallyCommitAndPushButton setState:[prefsController automaticallyCommitAndPushNotes] ?
+		NSControlStateValueOn : NSControlStateValueOff];
 		
     toolbar = [[NSToolbar alloc] initWithIdentifier:@"preferencePanes"];
     [toolbar setDelegate:self];
@@ -872,7 +917,7 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 }
 
 - (NSArray *)toolbarDefaultItemIdentifiers:(NSToolbar*)theToolbar {
-    return [NSArray arrayWithObjects:@"General", @"Notes", @"Editing", @"Fonts & Colors", @"Updates", nil];
+    return [NSArray arrayWithObjects:@"General", @"Notes", @"Editing", @"Fonts & Colors", @"Hooks", @"Updates", nil];
 }
 
 - (NSArray *)toolbarSelectableItemIdentifiers: (NSToolbar *)toolbar {
@@ -903,6 +948,8 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
         prefsView = editingView;
     } else if([sender isEqualToString:@"Fonts & Colors"]) {
         prefsView = fontsColorsView;
+	} else if([sender isEqualToString:@"Hooks"]) {
+		prefsView = hooksView;
 	} else if([sender isEqualToString:@"Updates"]) {
 		prefsView = updatesView;
 	} else {

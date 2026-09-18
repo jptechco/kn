@@ -43,6 +43,7 @@
 #import "SyncSessionController.h"
 #import "BookmarksController.h"
 #import "DeletionManager.h"
+#import "KNGitHookRunner.h"
 
 @implementation NotationController
 
@@ -657,9 +658,10 @@ bail:
 
 - (void)synchronizeNoteChanges:(NSTimer*)timer {
     
-    if ([unwrittenNotes count] > 0) {
+	if ([unwrittenNotes count] > 0) {
 		lastWriteError = noErr;
-		if ([notationPrefs notesStorageFormat] != SingleDatabaseFormat) {
+		BOOL writesSeparateFiles = ([notationPrefs notesStorageFormat] != SingleDatabaseFormat);
+		if (writesSeparateFiles) {
 			//to avoid mutation enumeration if writing this file triggers a filename change which then triggers another makeNoteDirty which then triggers another scheduleWriteForNote:
 			//loose-coupling? what?
 			[[[unwrittenNotes copy] autorelease] makeObjectsPerformSelector:@selector(writeUsingCurrentFileFormatIfNecessary)];
@@ -677,6 +679,9 @@ bail:
 		[unwrittenNotes removeAllObjects];
 		
 		[self scheduleUpdateListForAttribute:NoteDateModifiedColumnString];
+		if (writesSeparateFiles && lastWriteError == noErr &&
+			[prefsController automaticallyCommitAndPushNotes])
+			[KNGitHookRunner scheduleCommitAndPushForNotesDirectory:[self noteDirectoryPath]];
 
     }
     
@@ -1051,6 +1056,8 @@ bail:
     //we do this after removing it from the array to avoid re-discovering a removed file
     if ([notationPrefs notesStorageFormat] != SingleDatabaseFormat) {
 		[aNoteObject removeFileFromDirectory];
+		if ([prefsController automaticallyCommitAndPushNotes])
+			[KNGitHookRunner scheduleCommitAndPushForNotesDirectory:[self noteDirectoryPath]];
     }
 	//add journal removal event
 	if (walWriter && ![walWriter writeRemovalForNote:aNoteObject]) {
@@ -1566,5 +1573,3 @@ bail:
 }
 
 @end
-
-
