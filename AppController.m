@@ -41,7 +41,6 @@
 #import "DualField.h"
 #import "TitlebarButton.h"
 #import "RBSplitView/RBSplitView.h"
-#import "AugmentedScrollView.h"
 #import "BookmarksController.h"
 #import "SyncSessionController.h"
 #import "MultiplePageView.h"
@@ -771,7 +770,7 @@ terminateApp:
  1pt border, along its top edge when the two are stacked and along its left edge when they are side by
  side. The split view itself has no divider in either layout. The stacked layout used to draw an 8pt
  shaded bar with a grip dimple there, which did not match. In both layouts the line is dragged by a band
- either side of it -- see -splitView:dividerForPoint:inSubview: -- and, side by side, by the drag square.
+ either side of it -- see -splitView:dividerForPoint:inSubview:.
  */
 - (void)_configureDividerForCurrentLayout {
 	BOOL horiz = [prefsController horizontalLayout];
@@ -1925,9 +1924,6 @@ terminateApp:
 }
 
 - (NSUInteger)splitView:(RBSplitView*)sender dividerForPoint:(NSPoint)point inSubview:(RBSplitSubview*)subview {
-	if ([(AugmentedScrollView*)[notesTableView enclosingScrollView] shouldDragWithPoint:point sender:sender]) {
-		return 0;       // [firstSplit position], which we assume to be zero
-	}
 	//a press close to the line between the list and the note drags it, in either layout
 	if (NSMouseInRect(point, [self _dividerDragRect], [sender isFlipped])) {
 		return 0;
