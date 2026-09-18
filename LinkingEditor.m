@@ -239,12 +239,28 @@ CGFloat _perceptualDarkness(NSColor*a);
 	return markdownPreviewMode;
 }
 
-//A Markdown preview deliberately uses the same text view as the editor. On its first click the
-//delegate restores the note's untouched source; forwarding that same event then places the caret
-//where the user clicked, so entering edit mode feels like one action rather than two.
+//Let preview gestures finish against the rendered text first, so dragging and multi-clicking can
+//select text for copying. Only a short, stationary single click enters source editing.
 - (void)mouseDown:(NSEvent *)event {
-	if (markdownPreviewMode && [[self delegate] respondsToSelector:@selector(markdownPreviewWasClicked:)])
-		[[self delegate] performSelector:@selector(markdownPreviewWasClicked:) withObject:self];
+	if (markdownPreviewMode) {
+		NSPoint clickPoint = [self convertPoint:[event locationInWindow] fromView:nil];
+		NSPoint windowClickPoint = [event locationInWindow];
+		NSTimeInterval clickTime = [event timestamp];
+		NSInteger clickCount = [event clickCount];
+		[super mouseDown:event];
+
+		NSEvent *endingEvent = [NSApp currentEvent];
+		NSPoint endingPoint = [endingEvent locationInWindow];
+		CGFloat distance = hypot(endingPoint.x - windowClickPoint.x, endingPoint.y - windowClickPoint.y);
+		BOOL wasQuickClick = clickCount == 1 && distance <= 3.0 &&
+			([endingEvent timestamp] - clickTime) <= 0.35 && [self selectedRange].length == 0;
+		if (wasQuickClick && [[self delegate] respondsToSelector:@selector(markdownPreviewWasClicked:)]) {
+			[[self delegate] performSelector:@selector(markdownPreviewWasClicked:) withObject:self];
+			NSUInteger insertionIndex = [self characterIndexForInsertionAtPoint:clickPoint];
+			[self setSelectedRange:NSMakeRange(MIN(insertionIndex, [[self string] length]), 0)];
+		}
+		return;
+	}
 	[super mouseDown:event];
 }
 
