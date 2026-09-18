@@ -60,6 +60,7 @@ static NSString *KNProjectURLString = @"https://github.com/jptechco/kn";
 @interface AppController ()
 - (BOOL)_shouldPreviewMarkdownNote:(NoteObject *)note;
 - (NSAttributedString *)_markdownPreviewForNote:(NoteObject *)note;
+- (void)_styleMarkdownPreview:(NSMutableAttributedString *)preview;
 - (void)_showMarkdownPreviewForCurrentNote;
 - (void)_restoreMarkdownSourceForCurrentNote;
 @end
@@ -1163,6 +1164,17 @@ terminateApp:
 }
 
 - (void)cancelOperation:(id)sender {
+	//For preview-enabled Markdown notes, Escape first leaves editing and returns to the rendered
+	//view. Because the preview remains the first responder, a subsequent Escape reaches this method
+	//again and follows the normal note-deselection path below.
+	if ([[window firstResponder] isEqual:textView] &&
+		![textView isShowingMarkdownPreview] && [self _shouldPreviewMarkdownNote:currentNote]) {
+		[currentNote setSelectedRange:[textView selectedRange]];
+		[currentNote updateContentCacheCStringIfNecessary];
+		[self _showMarkdownPreviewForCurrentNote];
+		return;
+	}
+
 	//simulate a search for nothing
 	
 	[field setStringValue:@""];
@@ -1568,14 +1580,97 @@ terminateApp:
 	NSString *path = [note noteFilePath];
 	NSURL *baseURL = path ? [NSURL fileURLWithPath:[path stringByDeletingLastPathComponent] isDirectory:YES] : nil;
 	NSError *error = nil;
-	NSAttributedString *preview = [[[NSAttributedString alloc]
+	NSMutableAttributedString *preview = [[[NSMutableAttributedString alloc]
 		initWithMarkdownString:[[note contentString] string]
 		options:options baseURL:baseURL error:&error] autorelease];
 	if (!preview) {
 		NSLog(@"Could not render Markdown preview for %@: %@", filenameOfNote(note), error);
 		return [note contentString];
 	}
+	[self _styleMarkdownPreview:preview];
 	return preview;
+}
+
+//Foundation's Markdown parser preserves block and inline semantics as attributes, but NSTextView
+//does not give those attributes a useful AppKit presentation on its own. In particular, adjacent
+//paragraph and fenced-code intents have no separating character. Keep Foundation as the parser and
+//supply the small display layer that its attributed-string API expects clients to provide.
+- (void)_styleMarkdownPreview:(NSMutableAttributedString *)preview {
+	if (![preview length]) return;
+
+	NSMutableDictionary *separatorLengths = [NSMutableDictionary dictionary];
+	NSMutableArray *codeBlockRanges = [NSMutableArray array];
+	NSMutableArray *inlineCodeRanges = [NSMutableArray array];
+	NSFont *codeFont = [NSFont monospacedSystemFontOfSize:[NSFont systemFontSize]
+		weight:NSFontWeightRegular];
+	NSColor *codeBackground = [NSColor controlBackgroundColor];
+	NSRange fullRange = NSMakeRange(0, [preview length]);
+
+	[preview enumerateAttribute:NSPresentationIntentAttributeName inRange:fullRange options:0
+		usingBlock:^(id value, NSRange range, BOOL *stop) {
+			NSPresentationIntent *intent = value;
+			while (intent && [intent intentKind] != NSPresentationIntentKindCodeBlock)
+				intent = [intent parentIntent];
+			if (!intent) return;
+
+			[codeBlockRanges addObject:[NSValue valueWithRange:range]];
+			if (range.location > 0) {
+				NSUInteger existingNewlines = 0;
+				NSUInteger index = range.location;
+				while (index > 0 && [[preview string] characterAtIndex:index - 1] == '\n') {
+					existingNewlines++;
+					index--;
+				}
+				if (existingNewlines < 2)
+					[separatorLengths setObject:[NSNumber numberWithUnsignedInteger:2 - existingNewlines]
+						forKey:[NSNumber numberWithUnsignedInteger:range.location]];
+			}
+			NSUInteger end = NSMaxRange(range);
+			if (end < [preview length]) {
+				NSUInteger existingNewlines = 0;
+				NSUInteger index = end;
+				while (index > range.location && [[preview string] characterAtIndex:index - 1] == '\n') {
+					existingNewlines++;
+					index--;
+				}
+				NSUInteger followingNewlines = 0;
+				while (end + followingNewlines < [preview length] &&
+					[[preview string] characterAtIndex:end + followingNewlines] == '\n')
+					followingNewlines++;
+				existingNewlines += followingNewlines;
+				if (existingNewlines < 2)
+					[separatorLengths setObject:[NSNumber numberWithUnsignedInteger:2 - existingNewlines]
+						forKey:[NSNumber numberWithUnsignedInteger:end]];
+			}
+		}];
+
+	[preview enumerateAttribute:NSInlinePresentationIntentAttributeName inRange:fullRange options:0
+		usingBlock:^(NSNumber *value, NSRange range, BOOL *stop) {
+			if ([value unsignedIntegerValue] & NSInlinePresentationIntentCode)
+				[inlineCodeRanges addObject:[NSValue valueWithRange:range]];
+		}];
+	for (NSValue *value in codeBlockRanges) {
+		NSRange range = [value rangeValue];
+		[preview addAttribute:NSFontAttributeName value:codeFont range:range];
+		[preview addAttribute:NSBackgroundColorAttributeName value:codeBackground range:range];
+	}
+	for (NSValue *value in inlineCodeRanges) {
+		NSRange range = [value rangeValue];
+		[preview addAttribute:NSFontAttributeName value:codeFont range:range];
+		[preview addAttribute:NSBackgroundColorAttributeName value:codeBackground range:range];
+	}
+
+	//Foundation discards Markdown's blank lines between block elements. Restore two newline
+	//characters at each code boundary so the preview retains paragraph spacing. Insert from the end
+	//so the parser's original ranges remain valid while applying each change.
+	NSArray *separatorIndexes = [[separatorLengths allKeys]
+		sortedArrayUsingSelector:@selector(compare:)];
+	for (NSNumber *indexValue in [separatorIndexes reverseObjectEnumerator]) {
+		NSUInteger count = [[separatorLengths objectForKey:indexValue] unsignedIntegerValue];
+		NSString *separator = count == 2 ? @"\n\n" : @"\n";
+		[preview insertAttributedString:[[[NSAttributedString alloc] initWithString:separator] autorelease]
+			atIndex:[indexValue unsignedIntegerValue]];
+	}
 }
 
 - (void)_showMarkdownPreviewForCurrentNote {
@@ -1590,6 +1685,8 @@ terminateApp:
 	if (!currentNote) return;
 	[textView setMarkdownPreviewMode:NO];
 	[[textView textStorage] setAttributedString:[currentNote contentString]];
+	[[textView textStorage] addAttributesForMarkdownHeadingLinesInRange:
+		NSMakeRange(0, [[textView textStorage] length])];
 
 	NSRange selection = [currentNote lastSelectedRange];
 	if (selection.location == NSNotFound || NSMaxRange(selection) > [[currentNote contentString] length])

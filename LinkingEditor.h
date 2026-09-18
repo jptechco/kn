@@ -42,7 +42,7 @@ enum {LAST_FIND_UNKNOWN, LAST_FIND_NO, LAST_FIND_YES};
 	BOOL didChangeIntoAutomaticRange;
 	NSRange lastAutomaticallySelectedRange;
 	NSRange changedRange;
-	BOOL isAutocompleting, wasDeleting;
+	BOOL isAutocompleting, wasDeleting, markdownFenceMayHaveChanged;
 	
 	BOOL backgroundIsDark, mouseInside;
 	BOOL markdownPreviewMode;

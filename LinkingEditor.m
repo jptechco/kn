@@ -395,6 +395,23 @@ CGFloat _perceptualColorDifference(NSColor*a, NSColor*b) {
     return (responder == self && [super isContinuousSpellCheckingEnabled]);
 }
 
+//Automatic correction is useful in prose, but changes identifiers and language keywords inside
+//fenced Markdown code blocks. Determine the fence state at the insertion point without parsing the
+//whole document into a second representation on every keystroke.
+- (BOOL)_selectionIsInsideMarkdownCodeBlock {
+	NSRange selection = [self selectedRange];
+	if (selection.location == NSNotFound) return NO;
+	return [[self string] locationIsInsideMarkdownCodeBlock:selection.location];
+}
+
+- (BOOL)isAutomaticSpellingCorrectionEnabled {
+	return ![self _selectionIsInsideMarkdownCodeBlock] && [super isAutomaticSpellingCorrectionEnabled];
+}
+
+- (BOOL)isAutomaticQuoteSubstitutionEnabled {
+	return ![self _selectionIsInsideMarkdownCodeBlock] && [super isAutomaticQuoteSubstitutionEnabled];
+}
+
 - (BOOL)didRenderFully {
 	return didRenderFully;
 }
@@ -1238,7 +1255,11 @@ cancelCompetion:
 	[[self textStorage] addLinkAttributesForRange:changedRange];
 	
 	[[self textStorage] addStrikethroughNearDoneTagsForRange:changedRange];
-	[[self textStorage] addAttributesForMarkdownHeadingLinesInRange:changedRange];
+	NSRange markdownRange = changedRange;
+	if (markdownFenceMayHaveChanged)
+		markdownRange.length = [[self textStorage] length] - markdownRange.location;
+	[[self textStorage] addAttributesForMarkdownHeadingLinesInRange:markdownRange];
+	markdownFenceMayHaveChanged = NO;
 	
 	if (!isAutocompleting && !wasDeleting && [prefsController linksAutoSuggested] && 
 		![[self undoManager] isUndoing] && ![[self undoManager] isRedoing]) {
@@ -1277,6 +1298,13 @@ cancelCompetion:
 	if (end == NSNotFound) {
 		end = [string length];
 	}
+	//Changing a fence alters the Markdown context of every following line. Remember both the old
+	//line and the replacement so deleting the last fence character also triggers downstream restyling.
+	NSCharacterSet *fenceCharacterSet = [NSCharacterSet characterSetWithCharactersInString:@"`~"];
+	NSRange oldLineRange = NSMakeRange(begin, end - begin);
+	markdownFenceMayHaveChanged =
+		[string rangeOfCharacterFromSet:fenceCharacterSet options:0 range:oldLineRange].location != NSNotFound ||
+		[replacementString rangeOfCharacterFromSet:fenceCharacterSet].location != NSNotFound;
 	changedRange = NSMakeRange(begin, (end - begin) + [replacementString length]);
 		
 	if (affectedCharRange.length > 0 && replacementString != nil) { // Deleting something

@@ -53,6 +53,7 @@ void resetCurrentDayTime();
 - (NSString*)stringWithPercentEscapes;
 - (NSString *)stringByReplacingPercentEscapes;
 - (BOOL)superficiallyResemblesAnHTTPURL;
+- (BOOL)locationIsInsideMarkdownCodeBlock:(NSUInteger)location;
 + (NSString*)reasonStringFromCarbonFSError:(OSStatus)err;
 
 - (NSArray*)labelCompatibleWords;

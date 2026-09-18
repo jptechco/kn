@@ -329,6 +329,12 @@ static BOOL _StringWithRangeIsProbablyObjC(NSString *string, NSRange blockRange)
 	
 	NSCharacterSet *newlineSet = [NSCharacterSet newlineCharacterSet];
 	NSRange lineEndRange, scanRange = changedRange;
+	//Incremental editor ranges begin at the newline preceding the changed line. Start at the line's
+	//first content character so prefix checks and fenced-code context refer to the actual line.
+	while (scanRange.length && [newlineSet characterIsMember:[[self string] characterAtIndex:scanRange.location]]) {
+		scanRange.location++;
+		scanRange.length--;
+	}
 	@try {
 		do {
 			lineEndRange = [[self string] rangeOfCharacterFromSet:newlineSet options:NSLiteralSearch range:scanRange];
@@ -337,9 +343,14 @@ static BOOL _StringWithRangeIsProbablyObjC(NSString *string, NSRange blockRange)
 			}
 			NSRange thisLineRange = NSMakeRange(scanRange.location, lineEndRange.location - scanRange.location);
 			NSString *thisLine = [[self string] substringWithRange:thisLineRange];
-			if([thisLine hasPrefix:@"#"]) {
+			BOOL isInsideCodeBlock = [[self string] locationIsInsideMarkdownCodeBlock:thisLineRange.location];
+			BOOL isHeadingLine = [thisLine hasPrefix:@"#"];
+			if(isHeadingLine && !isInsideCodeBlock) {
 				[self addAttributes:[NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithInt:NSUnderlineStyleSingle],  NSUnderlineStyleAttributeName, [NSNull null], NVHiddenHeadingTagAttributeName, nil] range:NSMakeRange(thisLineRange.location, thisLineRange.length)];
-			} else if([self attribute:NVHiddenHeadingTagAttributeName existsInRange:thisLineRange]) {
+			} else if((isHeadingLine && isInsideCodeBlock) ||
+				[self attribute:NVHiddenHeadingTagAttributeName existsInRange:thisLineRange]) {
+				//The private heading marker can be lost during text-storage updates while its visual
+				//underline survives. A # line in code must clear both unconditionally.
 				[self removeAttribute:NVHiddenHeadingTagAttributeName range:thisLineRange];
 				[self removeAttribute:NSUnderlineStyleAttributeName range:thisLineRange];
 			}

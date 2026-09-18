@@ -102,7 +102,9 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
 	if (!markdownPreviewButton && storageFormatPopupButton) {
 		NSView *storageView = [storageFormatPopupButton superview];
 		NSRect popupFrame = [storageFormatPopupButton frame];
-		const CGFloat rowPitch = 18.0f;
+		//Leave a standard control gap between the popup and the checkbox. An 18-point
+		//shift put their frames directly against one another.
+		const CGFloat rowPitch = 24.0f;
 		for (NSView *sibling in [storageView subviews]) {
 			if (NSMinY([sibling frame]) >= NSMinY(popupFrame)) {
 				NSPoint origin = [sibling frame].origin;
