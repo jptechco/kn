@@ -802,7 +802,7 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 		initWithFrame:NSMakeRect(leftInset, 84.0f, 440.0f, 18.0f)];
 	[automaticallyCommitAndPushButton setButtonType:NSButtonTypeSwitch];
 	[automaticallyCommitAndPushButton setTitle:NSLocalizedString(
-		@"Automatically commit and push note changes",
+		@"Automatically pull, commit, and push note changes",
 		@"Hooks preference: commit and push changes when the notes folder is a Git repository")];
 	[automaticallyCommitAndPushButton setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
 	[automaticallyCommitAndPushButton setTarget:self];
@@ -814,7 +814,7 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 	NSTextField *caption = [[[NSTextField alloc]
 		initWithFrame:NSMakeRect(leftInset + 18.0f, 34.0f, 430.0f, 38.0f)] autorelease];
 	[caption setStringValue:NSLocalizedString(
-		@"When the notes folder is a Git repository root, Kinetic Notes stages and commits saved changes, then pushes them using the configured remote.",
+		@"When the notes folder is a Git repository root, Kinetic Notes periodically pulls remote changes and commits and pushes saved local changes.",
 		@"Hooks preference: explanation of automatic Git operations")];
 	[caption setEditable:NO];
 	[caption setSelectable:NO];

@@ -173,6 +173,11 @@
 		//the database is loaded and no save is in flight yet, so this is a safe moment to clear out
 		//scratch files left behind by earlier interrupted or failed atomic saves
 		[self removeOrphanedTemporaryFiles];
+
+		[prefsController registerWithTarget:self forChangesInSettings:
+			@selector(setAutomaticallyCommitAndPushNotes:sender:), nil];
+		registeredForGitPreferenceChanges = YES;
+		[self updateAutomaticGitPullSchedule];
     }
 
     return self;
@@ -692,6 +697,28 @@ bail:
     }
 }
 
+- (void)performAutomaticGitPull:(NSTimer *)timer {
+	if (![prefsController automaticallyCommitAndPushNotes]) return;
+	[self synchronizeNoteChanges:nil];
+	[KNGitHookRunner schedulePullForNotesDirectory:[self noteDirectoryPath]];
+}
+
+- (void)updateAutomaticGitPullSchedule {
+	[gitPullTimer invalidate];
+	[gitPullTimer release];
+	gitPullTimer = nil;
+
+	if (![prefsController automaticallyCommitAndPushNotes]) return;
+	[self performAutomaticGitPull:nil];
+	gitPullTimer = [[NSTimer scheduledTimerWithTimeInterval:300.0 target:self
+		selector:@selector(performAutomaticGitPull:) userInfo:nil repeats:YES] retain];
+}
+
+- (void)settingChangedForSelectorString:(NSString *)selectorString {
+	if ([selectorString isEqualToString:SEL_STR(setAutomaticallyCommitAndPushNotes:sender:)])
+		[self updateAutomaticGitPullSchedule];
+}
+
 - (NSData*)bookmarkDataForNoteDirectory {
     return [NSData bookmarkDataForPath:[self noteDirectoryPath]];
 }
@@ -705,6 +732,7 @@ bail:
 }
 
 - (void)closeAllResources {
+	[gitPullTimer invalidate];
 	[allNotes makeObjectsPerformSelector:@selector(abortEditingInExternalEditor)];
 	
 	[deletionManager cancelPanelReturningCode:NSRunStoppedResponse];
@@ -1546,6 +1574,11 @@ bail:
 }
 
 - (void)dealloc {
+	if (registeredForGitPreferenceChanges)
+		[prefsController unregisterForNotificationsFromSelector:
+			@selector(setAutomaticallyCommitAndPushNotes:sender:) sender:self];
+	[gitPullTimer invalidate];
+	[gitPullTimer release];
  
 	[walWriter setDelegate:nil];
 	[notationPrefs setDelegate:nil];
