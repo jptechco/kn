@@ -11,3 +11,6 @@ Tools/
 # Mac OS X specific
 .DS_Store
 profile
+
+# Scratch folder
+/tmp
