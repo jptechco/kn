@@ -63,6 +63,8 @@ static NSString *KNProjectURLString = @"https://github.com/jptechco/kn";
 - (void)_styleMarkdownPreview:(NSMutableAttributedString *)preview;
 - (void)_showMarkdownPreviewForCurrentNote;
 - (void)_restoreMarkdownSourceForCurrentNote;
+- (BOOL)_shouldHideYAMLFrontMatter;
+- (void)_applyYAMLFrontMatterVisibility;
 @end
 
 
@@ -523,6 +525,7 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	 @selector(setAppearanceMode:sender:),  //when to force the app light/dark or follow the system
 	 @selector(setShowsWordCount:sender:),  //whether the word-count bar runs along the bottom of the window
 	 @selector(setMarkdownPreviewEnabled:sender:),  //whether .md notes open as rendered previews
+	 @selector(setHidesYAMLFrontMatter:sender:),  //whether leading YAML metadata participates in presentation
 	 @selector(setAutoCompleteSearches:sender:), nil];   //when to tell notationcontroller to build its title-prefix connections
 	
 	[self performSelector:@selector(runDelayedUIActionsAfterLaunch) withObject:nil afterDelay:0.0];
@@ -1068,6 +1071,12 @@ terminateApp:
 			[self _showMarkdownPreviewForCurrentNote];
 		else if ([textView isShowingMarkdownPreview])
 			[self _restoreMarkdownSourceForCurrentNote];
+	} else if ([selectorString isEqualToString:SEL_STR(setHidesYAMLFrontMatter:sender:)]) {
+		if ([textView isShowingMarkdownPreview]) [self _showMarkdownPreviewForCurrentNote];
+		else [self _applyYAMLFrontMatterVisibility];
+		[notationController regenerateAllPreviews];
+		[notesTableView reloadData];
+		[statusBar update];
 	} else if ([selectorString isEqualToString:SEL_STR(setAutoCompleteSearches:sender:)]) {
 		if ([prefsController autoCompleteSearches])
 			[notationController updateTitlePrefixConnections];
@@ -1571,6 +1580,15 @@ terminateApp:
 	return ([extension length] && [extension caseInsensitiveCompare:@"md"] == NSOrderedSame);
 }
 
+- (BOOL)_shouldHideYAMLFrontMatter {
+	return currentNote && ![textView isShowingMarkdownPreview] && [prefsController hidesYAMLFrontMatter] &&
+		[notationController currentNoteStorageFormat] == PlainTextFormat;
+}
+
+- (void)_applyYAMLFrontMatterVisibility {
+	[textView setHidesYAMLFrontMatter:[self _shouldHideYAMLFrontMatter]];
+}
+
 - (NSAttributedString *)_markdownPreviewForNote:(NoteObject *)note {
 	NSAttributedStringMarkdownParsingOptions *options =
 		[[[NSAttributedStringMarkdownParsingOptions alloc] init] autorelease];
@@ -1580,12 +1598,15 @@ terminateApp:
 	NSString *path = [note noteFilePath];
 	NSURL *baseURL = path ? [NSURL fileURLWithPath:[path stringByDeletingLastPathComponent] isDirectory:YES] : nil;
 	NSError *error = nil;
+	NSString *markdown = [[note contentString] string];
+	if ([prefsController hidesYAMLFrontMatter]) markdown = [markdown stringByHidingYAMLFrontMatter];
 	NSMutableAttributedString *preview = [[[NSMutableAttributedString alloc]
-		initWithMarkdownString:[[note contentString] string]
+		initWithMarkdownString:markdown
 		options:options baseURL:baseURL error:&error] autorelease];
 	if (!preview) {
 		NSLog(@"Could not render Markdown preview for %@: %@", filenameOfNote(note), error);
-		return [note contentString];
+		return [[[NSAttributedString alloc] initWithString:markdown
+			attributes:[prefsController noteBodyAttributes]] autorelease];
 	}
 	[self _styleMarkdownPreview:preview];
 	return preview;
@@ -1674,6 +1695,7 @@ terminateApp:
 }
 
 - (void)_showMarkdownPreviewForCurrentNote {
+	[textView setHidesYAMLFrontMatter:NO];
 	[textView setMarkdownPreviewMode:YES];
 	[[textView textStorage] setAttributedString:[self _markdownPreviewForNote:currentNote]];
 	[textView setAutomaticallySelectedRange:NSMakeRange(0, 0)];
@@ -1687,6 +1709,7 @@ terminateApp:
 	[[textView textStorage] setAttributedString:[currentNote contentString]];
 	[[textView textStorage] addAttributesForMarkdownHeadingLinesInRange:
 		NSMakeRange(0, [[textView textStorage] length])];
+	[self _applyYAMLFrontMatterVisibility];
 
 	NSRange selection = [currentNote lastSelectedRange];
 	if (selection.location == NSNotFound || NSMaxRange(selection) > [[currentNote contentString] length])
@@ -1737,6 +1760,7 @@ terminateApp:
 		
 		//restore string
 		[[textView textStorage] setAttributedString:[note contentString]];
+		[self _applyYAMLFrontMatterVisibility];
 		
 		//[textView setAutomaticallySelectedRange:NSMakeRange(0,0)];
 		
@@ -2184,7 +2208,10 @@ terminateApp:
 		if ([textView isShowingMarkdownPreview])
 			[self _showMarkdownPreviewForCurrentNote];
 		else
+		{
 			[[textView textStorage] setAttributedString:[aNoteObject contentString]];
+			[self _applyYAMLFrontMatterVisibility];
+		}
 	}
 }
 

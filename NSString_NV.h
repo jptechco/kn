@@ -54,6 +54,8 @@ void resetCurrentDayTime();
 - (NSString *)stringByReplacingPercentEscapes;
 - (BOOL)superficiallyResemblesAnHTTPURL;
 - (BOOL)locationIsInsideMarkdownCodeBlock:(NSUInteger)location;
+- (NSRange)yamlFrontMatterRange;
+- (NSString *)stringByHidingYAMLFrontMatter;
 + (NSString*)reasonStringFromCarbonFSError:(OSStatus)err;
 
 - (NSArray*)labelCompatibleWords;

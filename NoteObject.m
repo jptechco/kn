@@ -714,14 +714,21 @@ force_inline id unifiedCellForNote(NotesTableView *tv, NoteObject *note, NSInteg
 	GlobalPrefs *prefs = [GlobalPrefs defaultPrefs];
 
 	if ([prefs tableColumnsShowPreview]) {
+		NSAttributedString *previewContents = contentString;
+		if ([prefs hidesYAMLFrontMatter] && currentFormatID == PlainTextFormat) {
+			NSRange hiddenRange = [[contentString string] yamlFrontMatterRange];
+			if (hiddenRange.location != NSNotFound)
+				previewContents = [contentString attributedSubstringFromRange:
+					NSMakeRange(NSMaxRange(hiddenRange), [contentString length] - NSMaxRange(hiddenRange))];
+		}
 		if ([prefs horizontalLayout]) {
 			//is called for visible notes at launch and resize only, generation of images for invisible notes is delayed until after launch
 			
 			NSSize labelBlockSize = ColumnIsSet(NoteLabelsColumn, [prefs tableColumnsBitmap]) ? [self sizeOfLabelBlocks] : NSZeroSize;
-			tableTitleString = [[titleString attributedMultiLinePreviewFromBodyText:contentString upToWidth:[delegate titleColumnWidth] 
+			tableTitleString = [[titleString attributedMultiLinePreviewFromBodyText:previewContents upToWidth:[delegate titleColumnWidth]
 																	 intrusionWidth:labelBlockSize.width] retain];
 		} else {
-			tableTitleString = [[titleString attributedSingleLinePreviewFromBodyText:contentString upToWidth:[delegate titleColumnWidth]] retain];
+			tableTitleString = [[titleString attributedSingleLinePreviewFromBodyText:previewContents upToWidth:[delegate titleColumnWidth]] retain];
 		}
 	} else {
 		if ([prefs horizontalLayout]) {

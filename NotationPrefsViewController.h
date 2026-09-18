@@ -52,7 +52,7 @@
     IBOutlet NSButton *removeTypeButton;
     IBOutlet NSButton *confirmFileDeletionButton;
 	//Built in code because the seven localized Interface Builder 3 nibs must not be re-saved.
-	NSButton *markdownPreviewButton;
+	NSButton *markdownPreviewButton, *hideYAMLFrontMatterButton;
 	IBOutlet NSButton *secureTextEntryButton;
 	IBOutlet NSButton *removeFromKeychainButton;
     IBOutlet NSPopUpButton *storageFormatPopupButton;
@@ -93,6 +93,7 @@
 - (IBAction)changedFileDeletionWarningSettings:(id)sender;
 - (IBAction)changedFileStorageFormat:(id)sender;
 - (IBAction)changedMarkdownPreview:(id)sender;
+- (IBAction)changedHideYAMLFrontMatter:(id)sender;
 - (IBAction)changePassphrase:(id)sender;
 - (IBAction)changedSecureTextEntry:(id)sender;
 - (IBAction)removeFromKeychain:(id)sender;

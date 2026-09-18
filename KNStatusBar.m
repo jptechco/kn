@@ -24,6 +24,7 @@
 #import "KNStatusBar.h"
 #import "KNTextStatistics.h"
 #import "GlobalPrefs.h"
+#import "LinkingEditor.h"
 
 const CGFloat KNStatusBarHeight = 22.0f;
 
@@ -147,7 +148,9 @@ static NSString *KNCountLabel(NSUInteger count, KNTextCountUnit unit) {
 	NSString *title = @"";
 	if (textView && ![textView isHidden]) {
 		KNTextCountUnit unit = [[GlobalPrefs defaultPrefs] wordCountUnit];
-		title = KNCountLabel(KNCountTextUnits([textView string], unit), unit);
+		NSString *visibleString = [textView respondsToSelector:@selector(visibleString)] ?
+			[(LinkingEditor *)textView visibleString] : [textView string];
+		title = KNCountLabel(KNCountTextUnits(visibleString, unit), unit);
 	}
 
 	NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:

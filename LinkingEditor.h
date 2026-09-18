@@ -46,6 +46,8 @@ enum {LAST_FIND_UNKNOWN, LAST_FIND_NO, LAST_FIND_YES};
 	
 	BOOL backgroundIsDark, mouseInside;
 	BOOL markdownPreviewMode;
+	BOOL hidesYAMLFrontMatter;
+	NSRange hiddenYAMLFrontMatterRange;
 	
     IMP defaultIBeamCursorIMP;
     IMP whiteIBeamCursorIMP;
@@ -59,6 +61,9 @@ enum {LAST_FIND_UNKNOWN, LAST_FIND_NO, LAST_FIND_YES};
 - (void)updateLineNumberGutter;
 - (void)setMarkdownPreviewMode:(BOOL)enabled;
 - (BOOL)isShowingMarkdownPreview;
+- (void)setHidesYAMLFrontMatter:(BOOL)enabled;
+- (NSRange)hiddenYAMLFrontMatterRange;
+- (NSString *)visibleString;
 - (NSRange)selectedRangeWasAutomatic:(BOOL*)automatic;
 - (void)setAutomaticallySelectedRange:(NSRange)newRange;
 - (void)removeHighlightedTerms;

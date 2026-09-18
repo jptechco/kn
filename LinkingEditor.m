@@ -95,6 +95,7 @@ CGFloat _perceptualDarkness(NSColor*a);
 	whiteIBeamCursorIMP = method_getImplementation(class_getClassMethod([NSCursor class], @selector(whiteIBeamCursor)));
 
 	didRenderFully = NO;
+	hiddenYAMLFrontMatterRange = NSMakeRange(NSNotFound, 0);
 	[[self layoutManager] setDelegate:self];
 	
 	NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
@@ -237,6 +238,29 @@ CGFloat _perceptualDarkness(NSColor*a);
 
 - (BOOL)isShowingMarkdownPreview {
 	return markdownPreviewMode;
+}
+
+- (void)setHidesYAMLFrontMatter:(BOOL)enabled {
+	NSRange oldRange = hiddenYAMLFrontMatterRange;
+	hidesYAMLFrontMatter = enabled;
+	hiddenYAMLFrontMatterRange = enabled ? [[self string] yamlFrontMatterRange] : NSMakeRange(NSNotFound, 0);
+
+	if (!NSEqualRanges(oldRange, hiddenYAMLFrontMatterRange)) {
+		NSRange invalidRange = NSMakeRange(0, [[self string] length]);
+		if (invalidRange.length)
+			[[self layoutManager] invalidateGlyphsForCharacterRange:invalidRange changeInLength:0 actualCharacterRange:NULL];
+		[self setNeedsDisplay:YES];
+		id ruler = [[self enclosingScrollView] verticalRulerView];
+		if ([ruler respondsToSelector:@selector(noteAppearanceChanged)]) [ruler noteAppearanceChanged];
+	}
+}
+
+- (NSRange)hiddenYAMLFrontMatterRange {
+	return hiddenYAMLFrontMatterRange;
+}
+
+- (NSString *)visibleString {
+	return hidesYAMLFrontMatter ? [[self string] stringByHidingYAMLFrontMatter] : [self string];
 }
 
 //Let preview gestures finish against the rendered text first, so dragging and multi-clicking can
@@ -434,6 +458,33 @@ CGFloat _perceptualColorDifference(NSColor*a, NSColor*b) {
 
 - (void)layoutManager:(NSLayoutManager *)aLayoutManager didCompleteLayoutForTextContainer:(NSTextContainer *)aTextContainer atEnd:(BOOL)flag {
 	didRenderFully = YES;
+}
+
+- (NSUInteger)layoutManager:(NSLayoutManager *)layoutManager
+	shouldGenerateGlyphs:(const CGGlyph *)glyphs
+	properties:(const NSGlyphProperty *)properties
+	characterIndexes:(const NSUInteger *)characterIndexes
+	font:(NSFont *)font
+	forGlyphRange:(NSRange)glyphRange {
+	if (!hidesYAMLFrontMatter || hiddenYAMLFrontMatterRange.location == NSNotFound) return 0;
+
+	NSGlyphProperty *hiddenProperties = malloc(sizeof(NSGlyphProperty) * glyphRange.length);
+	BOOL changed = NO;
+	for (NSUInteger index = 0; index < glyphRange.length; index++) {
+		hiddenProperties[index] = properties[index];
+		if (NSLocationInRange(characterIndexes[index], hiddenYAMLFrontMatterRange)) {
+			hiddenProperties[index] |= NSGlyphPropertyNull;
+			changed = YES;
+		}
+	}
+	if (!changed) {
+		free(hiddenProperties);
+		return 0;
+	}
+	[layoutManager setGlyphs:glyphs properties:hiddenProperties characterIndexes:characterIndexes
+		font:font forGlyphRange:glyphRange];
+	free(hiddenProperties);
+	return glyphRange.length;
 }
 - (void)layoutManagerDidInvalidateLayout:(NSLayoutManager *)aLayoutManager {
 	didRenderFully = NO;	
@@ -1276,6 +1327,7 @@ cancelCompetion:
 		markdownRange.length = [[self textStorage] length] - markdownRange.location;
 	[[self textStorage] addAttributesForMarkdownHeadingLinesInRange:markdownRange];
 	markdownFenceMayHaveChanged = NO;
+	if (hidesYAMLFrontMatter) [self setHidesYAMLFrontMatter:YES];
 	
 	if (!isAutocompleting && !wasDeleting && [prefsController linksAutoSuggested] && 
 		![[self undoManager] isUndoing] && ![[self undoManager] isRedoing]) {

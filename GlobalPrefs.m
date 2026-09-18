@@ -68,6 +68,7 @@ static NSString *UseSoftTabsKey = @"UseSoftTabs";
 static NSString *ShowsLineNumbersKey = @"ShowsLineNumbers";
 static NSString *ShowsWordCountKey = @"ShowsWordCount";
 static NSString *MarkdownPreviewEnabledKey = @"MarkdownPreviewEnabled";
+static NSString *HidesYAMLFrontMatterKey = @"HidesYAMLFrontMatter";
 static NSString *WordCountUnitKey = @"WordCountUnit";
 static NSString *NumberOfSpacesInTabKey = @"NumberOfSpacesInTab";
 static NSString *MakeURLsClickableKey = @"MakeURLsClickable";
@@ -156,6 +157,7 @@ static void sendCallbacksForGlobalPrefs(GlobalPrefs* self, SEL selector, id orig
 			[NSNumber numberWithBool:NO], ShowsLineNumbersKey,
 			[NSNumber numberWithBool:NO], ShowsWordCountKey,
 			[NSNumber numberWithBool:NO], MarkdownPreviewEnabledKey,
+			[NSNumber numberWithBool:NO], HidesYAMLFrontMatterKey,
 			[NSNumber numberWithInteger:KNTextCountWords], WordCountUnitKey,
 			[NSNumber numberWithInt:4], NumberOfSpacesInTabKey,
 			[NSNumber numberWithBool:YES], PastePreservesStyleKey,
@@ -524,6 +526,18 @@ static void sendCallbacksForGlobalPrefs(GlobalPrefs* self, SEL selector, id orig
 
 - (BOOL)markdownPreviewEnabled {
 	return [defaults boolForKey:MarkdownPreviewEnabledKey];
+}
+
+- (void)setHidesYAMLFrontMatter:(BOOL)value sender:(id)sender {
+	if ([self hidesYAMLFrontMatter] != value) {
+		[defaults setBool:value forKey:HidesYAMLFrontMatterKey];
+
+		SEND_CALLBACKS();
+	}
+}
+
+- (BOOL)hidesYAMLFrontMatter {
+	return [defaults boolForKey:HidesYAMLFrontMatterKey];
 }
 
 - (void)setWordCountUnit:(KNTextCountUnit)unit sender:(id)sender {

@@ -95,6 +95,41 @@ unsigned int hoursFromAbsoluteTime(CFAbsoluteTime absTime) {
 	return insideFence;
 }
 
+//Front matter is recognized only at the start of a note. Its closing delimiter must occupy a line
+//by itself; incomplete metadata remains visible so users can repair it instead of silently losing
+//access to the beginning of their note.
+- (NSRange)yamlFrontMatterRange {
+	NSUInteger length = [self length];
+	if (!length) return NSMakeRange(NSNotFound, 0);
+
+	NSUInteger start = ([self characterAtIndex:0] == 0xFEFF) ? 1 : 0;
+	if (start >= length) return NSMakeRange(NSNotFound, 0);
+
+	NSUInteger lineEnd = 0, contentsEnd = 0;
+	[self getLineStart:NULL end:&lineEnd contentsEnd:&contentsEnd forRange:NSMakeRange(start, 0)];
+	if (![[self substringWithRange:NSMakeRange(start, contentsEnd - start)] isEqualToString:@"---"])
+		return NSMakeRange(NSNotFound, 0);
+
+	NSUInteger cursor = lineEnd;
+	while (cursor < length) {
+		NSUInteger nextLine = 0;
+		[self getLineStart:NULL end:&nextLine contentsEnd:&contentsEnd forRange:NSMakeRange(cursor, 0)];
+		NSString *line = [self substringWithRange:NSMakeRange(cursor, contentsEnd - cursor)];
+		if ([line isEqualToString:@"---"] || [line isEqualToString:@"..."]) {
+			NSUInteger hiddenEnd = nextLine;
+			return NSMakeRange(0, hiddenEnd);
+		}
+		if (nextLine <= cursor) break;
+		cursor = nextLine;
+	}
+	return NSMakeRange(NSNotFound, 0);
+}
+
+- (NSString *)stringByHidingYAMLFrontMatter {
+	NSRange range = [self yamlFrontMatterRange];
+	return range.location == NSNotFound ? self : [self substringFromIndex:NSMaxRange(range)];
+}
+
 //should be called after midnight, and then all the notes should have their date-strings recomputed
 void resetCurrentDayTime() {
     CFAbsoluteTime current = CFAbsoluteTimeGetCurrent();

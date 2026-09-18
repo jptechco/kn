@@ -71,6 +71,7 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
 }
 - (void)dealloc {
 	[markdownPreviewButton release];
+	[hideYAMLFrontMatterButton release];
 	[passphrasePicker release];
 	[changer release];
 	[notationPrefs release];
@@ -123,6 +124,20 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
 		[markdownPreviewButton setAction:@selector(changedMarkdownPreview:)];
 		[markdownPreviewButton setAutoresizingMask:[storageFormatPopupButton autoresizingMask]];
 		[storageView addSubview:markdownPreviewButton];
+
+		hideYAMLFrontMatterButton = [[NSButton alloc] initWithFrame:NSMakeRect(NSMinX(popupFrame),
+			NSMinY(popupFrame) - 22.0f, NSWidth(popupFrame), 18.0f)];
+		[hideYAMLFrontMatterButton setButtonType:NSButtonTypeSwitch];
+		[hideYAMLFrontMatterButton setTitle:NSLocalizedString(@"Hide YAML front matter",
+			@"Notes storage preference: hide leading YAML metadata without removing it")];
+		[hideYAMLFrontMatterButton setToolTip:NSLocalizedString(
+			@"Hides valid leading YAML metadata in Kinetic Notes without changing the text saved in the file.",
+			@"Tooltip for the hide YAML front matter preference")];
+		[hideYAMLFrontMatterButton setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
+		[hideYAMLFrontMatterButton setTarget:self];
+		[hideYAMLFrontMatterButton setAction:@selector(changedHideYAMLFrontMatter:)];
+		[hideYAMLFrontMatterButton setAutoresizingMask:[storageFormatPopupButton autoresizingMask]];
+		[storageView addSubview:hideYAMLFrontMatterButton];
 	}
 
 	
@@ -260,6 +275,10 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
 	[markdownPreviewButton setEnabled:usesPlainText];
 	[markdownPreviewButton setState:[[GlobalPrefs defaultPrefs] markdownPreviewEnabled] ?
 		NSControlStateValueOn : NSControlStateValueOff];
+	[hideYAMLFrontMatterButton setHidden:!usesPlainText];
+	[hideYAMLFrontMatterButton setEnabled:usesPlainText];
+	[hideYAMLFrontMatterButton setState:[[GlobalPrefs defaultPrefs] hidesYAMLFrontMatter] ?
+		NSControlStateValueOn : NSControlStateValueOff];
 	
 	[fileAttributesHelpText setTextColor: separateFileControlsState ? [NSColor controlTextColor] : [NSColor grayColor]];	
 }
@@ -272,6 +291,11 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
 	}
 	[[GlobalPrefs defaultPrefs] setMarkdownPreviewEnabled:([markdownPreviewButton state] == NSControlStateValueOn)
 		sender:self];
+}
+
+- (IBAction)changedHideYAMLFrontMatter:(id)sender {
+	[[GlobalPrefs defaultPrefs] setHidesYAMLFrontMatter:
+		([hideYAMLFrontMatterButton state] == NSControlStateValueOn) sender:self];
 }
 
 - (void)updateRemoveKeychainItemStatus {

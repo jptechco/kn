@@ -23,6 +23,7 @@
 #import "KNLineNumberRulerView.h"
 #import "KNTextStatistics.h"
 #import "GlobalPrefs.h"
+#import "LinkingEditor.h"
 
 //space either side of the widest number
 #define KNGutterLeadingPadding 10.0f
@@ -119,10 +120,19 @@
 
 - (void)updateThickness {
 	[self validateLineStarts];
+	NSRange hiddenRange = [textView respondsToSelector:@selector(hiddenYAMLFrontMatterRange)] ?
+		[(LinkingEditor *)textView hiddenYAMLFrontMatterRange] : NSMakeRange(NSNotFound, 0);
+	NSUInteger visibleLineCount = lineCount;
+	if (hiddenRange.location != NSNotFound) {
+		const NSUInteger *starts = [lineStarts bytes];
+		NSUInteger hiddenLines = 0;
+		while (hiddenLines < lineCount && starts[hiddenLines] < NSMaxRange(hiddenRange)) hiddenLines++;
+		visibleLineCount -= hiddenLines;
+	}
 
 	//room for at least three digits, so the gutter does not change width while a note grows to 100 lines
 	NSUInteger digits = 3;
-	for (NSUInteger n = lineCount; n >= 1000; n /= 10) digits++;
+	for (NSUInteger n = visibleLineCount; n >= 1000; n /= 10) digits++;
 
 	NSDictionary *attributes = [NSDictionary dictionaryWithObject:[self numberFont] forKey:NSFontAttributeName];
 	CGFloat digitWidth = [@"8" sizeWithAttributes:attributes].width;
@@ -166,6 +176,11 @@
 
 	[self validateLineStarts];
 	const NSUInteger *starts = [lineStarts bytes];
+	NSRange hiddenRange = [textView respondsToSelector:@selector(hiddenYAMLFrontMatterRange)] ?
+		[(LinkingEditor *)textView hiddenYAMLFrontMatterRange] : NSMakeRange(NSNotFound, 0);
+	NSUInteger firstVisibleLine = 0;
+	if (hiddenRange.location != NSNotFound)
+		while (firstVisibleLine < lineCount && starts[firstVisibleLine] < NSMaxRange(hiddenRange)) firstVisibleLine++;
 
 	NSPoint containerOrigin = [textView textContainerOrigin];
 	NSRect visibleInContainer = NSOffsetRect([textView visibleRect], -containerOrigin.x, -containerOrigin.y);
@@ -189,7 +204,8 @@
 
 	CGFloat rightEdge = NSWidth([self bounds]) - KNGutterTrailingPadding;
 
-	for (NSUInteger line = [self lineIndexForCharacterIndex:charRange.location]; line < lineCount; line++) {
+	NSUInteger firstLine = MAX([self lineIndexForCharacterIndex:charRange.location], firstVisibleLine);
+	for (NSUInteger line = firstLine; line < lineCount; line++) {
 		NSUInteger lineStart = starts[line];
 		if (lineStart > NSMaxRange(charRange)) break;
 
@@ -235,7 +251,7 @@
 		}
 
 		[attributes setObject:active ? activeColor : mutedColor forKey:NSForegroundColorAttributeName];
-		NSString *label = [NSString stringWithFormat:@"%lu", (unsigned long)(line + 1)];
+		NSString *label = [NSString stringWithFormat:@"%lu", (unsigned long)(line - firstVisibleLine + 1)];
 		NSSize size = [label sizeWithAttributes:attributes];
 
 		//the gutter is flipped, like the text view, so a string's origin is its top: lift it off the baseline by the ascender
