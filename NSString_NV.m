@@ -53,6 +53,48 @@ unsigned int hoursFromAbsoluteTime(CFAbsoluteTime absTime) {
 	return (unsigned int)floor(absTime / 3600.0);
 }
 
+- (BOOL)locationIsInsideMarkdownCodeBlock:(NSUInteger)location {
+	NSUInteger insertionPoint = MIN(location, [self length]);
+	NSUInteger lineStart = 0;
+	BOOL insideFence = NO;
+	unichar fenceCharacter = 0;
+	NSUInteger fenceLength = 0;
+
+	while (lineStart < insertionPoint) {
+		NSUInteger lineEnd = [self rangeOfCharacterFromSet:[NSCharacterSet newlineCharacterSet]
+			options:0 range:NSMakeRange(lineStart, insertionPoint - lineStart)].location;
+		if (lineEnd == NSNotFound) lineEnd = insertionPoint;
+
+		NSUInteger cursor = lineStart;
+		NSUInteger indentation = 0;
+		while (cursor < lineEnd && [self characterAtIndex:cursor] == ' ' && indentation < 4) {
+			cursor++;
+			indentation++;
+		}
+		if (indentation <= 3 && cursor < lineEnd) {
+			unichar candidate = [self characterAtIndex:cursor];
+			if (candidate == '`' || candidate == '~') {
+				NSUInteger runStart = cursor;
+				while (cursor < lineEnd && [self characterAtIndex:cursor] == candidate) cursor++;
+				NSUInteger runLength = cursor - runStart;
+				if (!insideFence && runLength >= 3) {
+					insideFence = YES;
+					fenceCharacter = candidate;
+					fenceLength = runLength;
+				} else if (insideFence && candidate == fenceCharacter && runLength >= fenceLength) {
+					NSString *remainder = [self substringWithRange:NSMakeRange(cursor, lineEnd - cursor)];
+					if ([[remainder stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]] length] == 0)
+						insideFence = NO;
+				}
+			}
+		}
+
+		if (lineEnd == insertionPoint) break;
+		lineStart = lineEnd + 1;
+	}
+	return insideFence;
+}
+
 //should be called after midnight, and then all the notes should have their date-strings recomputed
 void resetCurrentDayTime() {
     CFAbsoluteTime current = CFAbsoluteTimeGetCurrent();

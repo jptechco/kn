@@ -213,7 +213,7 @@ CGFloat _perceptualDarkness(NSColor*a);
 	NSScrollView *scrollView = [self enclosingScrollView];
 	if (!scrollView) return;
 
-	if ([prefsController showsLineNumbers]) {
+	if ([prefsController showsLineNumbers] && !markdownPreviewMode) {
 		if (![[scrollView verticalRulerView] isKindOfClass:[KNLineNumberRulerView class]]) {
 			KNLineNumberRulerView *gutter = [[KNLineNumberRulerView alloc] initWithTextView:self];
 			[scrollView setVerticalRulerView:gutter];
@@ -226,6 +226,42 @@ CGFloat _perceptualDarkness(NSColor*a);
 		[scrollView setRulersVisible:NO];
 		[scrollView setHasVerticalRuler:NO];
 	}
+}
+
+- (void)setMarkdownPreviewMode:(BOOL)enabled {
+	markdownPreviewMode = enabled;
+	[self setEditable:!enabled];
+	[self setSelectable:YES];
+	[self updateLineNumberGutter];
+}
+
+- (BOOL)isShowingMarkdownPreview {
+	return markdownPreviewMode;
+}
+
+//Let preview gestures finish against the rendered text first, so dragging and multi-clicking can
+//select text for copying. Only a short, stationary single click enters source editing.
+- (void)mouseDown:(NSEvent *)event {
+	if (markdownPreviewMode) {
+		NSPoint clickPoint = [self convertPoint:[event locationInWindow] fromView:nil];
+		NSPoint windowClickPoint = [event locationInWindow];
+		NSTimeInterval clickTime = [event timestamp];
+		NSInteger clickCount = [event clickCount];
+		[super mouseDown:event];
+
+		NSEvent *endingEvent = [NSApp currentEvent];
+		NSPoint endingPoint = [endingEvent locationInWindow];
+		CGFloat distance = hypot(endingPoint.x - windowClickPoint.x, endingPoint.y - windowClickPoint.y);
+		BOOL wasQuickClick = clickCount == 1 && distance <= 3.0 &&
+			([endingEvent timestamp] - clickTime) <= 0.35 && [self selectedRange].length == 0;
+		if (wasQuickClick && [[self delegate] respondsToSelector:@selector(markdownPreviewWasClicked:)]) {
+			[[self delegate] performSelector:@selector(markdownPreviewWasClicked:) withObject:self];
+			NSUInteger insertionIndex = [self characterIndexForInsertionAtPoint:clickPoint];
+			[self setSelectedRange:NSMakeRange(MIN(insertionIndex, [[self string] length]), 0)];
+		}
+		return;
+	}
+	[super mouseDown:event];
 }
 
 //the gutter numbers nothing while the editor is hidden (no note selected), so it redraws when that changes
@@ -373,6 +409,23 @@ CGFloat _perceptualColorDifference(NSColor*a, NSColor*b) {
     NSView *responder = (NSView*)[[self window] firstResponder];
     
     return (responder == self && [super isContinuousSpellCheckingEnabled]);
+}
+
+//Automatic correction is useful in prose, but changes identifiers and language keywords inside
+//fenced Markdown code blocks. Determine the fence state at the insertion point without parsing the
+//whole document into a second representation on every keystroke.
+- (BOOL)_selectionIsInsideMarkdownCodeBlock {
+	NSRange selection = [self selectedRange];
+	if (selection.location == NSNotFound) return NO;
+	return [[self string] locationIsInsideMarkdownCodeBlock:selection.location];
+}
+
+- (BOOL)isAutomaticSpellingCorrectionEnabled {
+	return ![self _selectionIsInsideMarkdownCodeBlock] && [super isAutomaticSpellingCorrectionEnabled];
+}
+
+- (BOOL)isAutomaticQuoteSubstitutionEnabled {
+	return ![self _selectionIsInsideMarkdownCodeBlock] && [super isAutomaticQuoteSubstitutionEnabled];
 }
 
 - (BOOL)didRenderFully {
@@ -1218,7 +1271,11 @@ cancelCompetion:
 	[[self textStorage] addLinkAttributesForRange:changedRange];
 	
 	[[self textStorage] addStrikethroughNearDoneTagsForRange:changedRange];
-	[[self textStorage] addAttributesForMarkdownHeadingLinesInRange:changedRange];
+	NSRange markdownRange = changedRange;
+	if (markdownFenceMayHaveChanged)
+		markdownRange.length = [[self textStorage] length] - markdownRange.location;
+	[[self textStorage] addAttributesForMarkdownHeadingLinesInRange:markdownRange];
+	markdownFenceMayHaveChanged = NO;
 	
 	if (!isAutocompleting && !wasDeleting && [prefsController linksAutoSuggested] && 
 		![[self undoManager] isUndoing] && ![[self undoManager] isRedoing]) {
@@ -1257,6 +1314,13 @@ cancelCompetion:
 	if (end == NSNotFound) {
 		end = [string length];
 	}
+	//Changing a fence alters the Markdown context of every following line. Remember both the old
+	//line and the replacement so deleting the last fence character also triggers downstream restyling.
+	NSCharacterSet *fenceCharacterSet = [NSCharacterSet characterSetWithCharactersInString:@"`~"];
+	NSRange oldLineRange = NSMakeRange(begin, end - begin);
+	markdownFenceMayHaveChanged =
+		[string rangeOfCharacterFromSet:fenceCharacterSet options:0 range:oldLineRange].location != NSNotFound ||
+		[replacementString rangeOfCharacterFromSet:fenceCharacterSet].location != NSNotFound;
 	changedRange = NSMakeRange(begin, (end - begin) + [replacementString length]);
 		
 	if (affectedCharRange.length > 0 && replacementString != nil) { // Deleting something

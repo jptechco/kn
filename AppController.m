@@ -57,6 +57,14 @@ static NSString *KNProductSiteURLString = @"https://www.kineticnotes.org";
 //where its "Development Web Site" item points; update alongside the repository if it moves
 static NSString *KNProjectURLString = @"https://github.com/jptechco/kn";
 
+@interface AppController ()
+- (BOOL)_shouldPreviewMarkdownNote:(NoteObject *)note;
+- (NSAttributedString *)_markdownPreviewForNote:(NoteObject *)note;
+- (void)_styleMarkdownPreview:(NSMutableAttributedString *)preview;
+- (void)_showMarkdownPreviewForCurrentNote;
+- (void)_restoreMarkdownSourceForCurrentNote;
+@end
+
 
 @implementation AppController
 
@@ -514,6 +522,7 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	 @selector(setSideBySideTitleBar:sender:),  //whether the search field shares the title's row
 	 @selector(setAppearanceMode:sender:),  //when to force the app light/dark or follow the system
 	 @selector(setShowsWordCount:sender:),  //whether the word-count bar runs along the bottom of the window
+	 @selector(setMarkdownPreviewEnabled:sender:),  //whether .md notes open as rendered previews
 	 @selector(setAutoCompleteSearches:sender:), nil];   //when to tell notationcontroller to build its title-prefix connections
 	
 	[self performSelector:@selector(runDelayedUIActionsAfterLaunch) withObject:nil afterDelay:0.0];
@@ -1054,6 +1063,11 @@ terminateApp:
 		[self applyAppearanceMode];
 	} else if ([selectorString isEqualToString:SEL_STR(setShowsWordCount:sender:)]) {
 		[self _applyStatusBarVisibility];
+	} else if ([selectorString isEqualToString:SEL_STR(setMarkdownPreviewEnabled:sender:)]) {
+		if ([self _shouldPreviewMarkdownNote:currentNote])
+			[self _showMarkdownPreviewForCurrentNote];
+		else if ([textView isShowingMarkdownPreview])
+			[self _restoreMarkdownSourceForCurrentNote];
 	} else if ([selectorString isEqualToString:SEL_STR(setAutoCompleteSearches:sender:)]) {
 		if ([prefsController autoCompleteSearches])
 			[notationController updateTitlePrefixConnections];
@@ -1150,6 +1164,17 @@ terminateApp:
 }
 
 - (void)cancelOperation:(id)sender {
+	//For preview-enabled Markdown notes, Escape first leaves editing and returns to the rendered
+	//view. Because the preview remains the first responder, a subsequent Escape reaches this method
+	//again and follows the normal note-deselection path below.
+	if ([[window firstResponder] isEqual:textView] &&
+		![textView isShowingMarkdownPreview] && [self _shouldPreviewMarkdownNote:currentNote]) {
+		[currentNote setSelectedRange:[textView selectedRange]];
+		[currentNote updateContentCacheCStringIfNecessary];
+		[self _showMarkdownPreviewForCurrentNote];
+		return;
+	}
+
 	//simulate a search for nothing
 	
 	[field setStringValue:@""];
@@ -1275,7 +1300,9 @@ terminateApp:
 	//how do we test that?
 	BOOL wasAutomatic = NO;
 	NSRange currentRange = [textView selectedRangeWasAutomatic:&wasAutomatic];
-	if (!wasAutomatic) [currentNote setSelectedRange:currentRange];
+	//A preview has different character positions from its Markdown source, so its selection must
+	//never replace the source selection saved on the note.
+	if (!wasAutomatic && ![textView isShowingMarkdownPreview]) [currentNote setSelectedRange:currentRange];
 	
 	//regenerate content cache before switching to new note
 	[currentNote updateContentCacheCStringIfNecessary];
@@ -1283,6 +1310,7 @@ terminateApp:
 	
 	[currentNote release];
 	currentNote = [aNote retain];
+	if (!currentNote) [textView setMarkdownPreviewMode:NO];
 }
 
 - (NoteObject*)selectedNoteObject {
@@ -1535,6 +1563,144 @@ terminateApp:
 	}
 }
 
+- (BOOL)_shouldPreviewMarkdownNote:(NoteObject *)note {
+	if (!note || ![prefsController markdownPreviewEnabled]) return NO;
+	if ([notationController currentNoteStorageFormat] != PlainTextFormat) return NO;
+
+	NSString *extension = [filenameOfNote(note) pathExtension];
+	return ([extension length] && [extension caseInsensitiveCompare:@"md"] == NSOrderedSame);
+}
+
+- (NSAttributedString *)_markdownPreviewForNote:(NoteObject *)note {
+	NSAttributedStringMarkdownParsingOptions *options =
+		[[[NSAttributedStringMarkdownParsingOptions alloc] init] autorelease];
+	[options setInterpretedSyntax:NSAttributedStringMarkdownInterpretedSyntaxFull];
+	[options setFailurePolicy:NSAttributedStringMarkdownParsingFailureReturnPartiallyParsedIfPossible];
+
+	NSString *path = [note noteFilePath];
+	NSURL *baseURL = path ? [NSURL fileURLWithPath:[path stringByDeletingLastPathComponent] isDirectory:YES] : nil;
+	NSError *error = nil;
+	NSMutableAttributedString *preview = [[[NSMutableAttributedString alloc]
+		initWithMarkdownString:[[note contentString] string]
+		options:options baseURL:baseURL error:&error] autorelease];
+	if (!preview) {
+		NSLog(@"Could not render Markdown preview for %@: %@", filenameOfNote(note), error);
+		return [note contentString];
+	}
+	[self _styleMarkdownPreview:preview];
+	return preview;
+}
+
+//Foundation's Markdown parser preserves block and inline semantics as attributes, but NSTextView
+//does not give those attributes a useful AppKit presentation on its own. In particular, adjacent
+//paragraph and fenced-code intents have no separating character. Keep Foundation as the parser and
+//supply the small display layer that its attributed-string API expects clients to provide.
+- (void)_styleMarkdownPreview:(NSMutableAttributedString *)preview {
+	if (![preview length]) return;
+
+	NSMutableDictionary *separatorLengths = [NSMutableDictionary dictionary];
+	NSMutableArray *codeBlockRanges = [NSMutableArray array];
+	NSMutableArray *inlineCodeRanges = [NSMutableArray array];
+	NSFont *codeFont = [NSFont monospacedSystemFontOfSize:[NSFont systemFontSize]
+		weight:NSFontWeightRegular];
+	NSColor *codeBackground = [NSColor controlBackgroundColor];
+	NSRange fullRange = NSMakeRange(0, [preview length]);
+
+	[preview enumerateAttribute:NSPresentationIntentAttributeName inRange:fullRange options:0
+		usingBlock:^(id value, NSRange range, BOOL *stop) {
+			NSPresentationIntent *intent = value;
+			while (intent && [intent intentKind] != NSPresentationIntentKindCodeBlock)
+				intent = [intent parentIntent];
+			if (!intent) return;
+
+			[codeBlockRanges addObject:[NSValue valueWithRange:range]];
+			if (range.location > 0) {
+				NSUInteger existingNewlines = 0;
+				NSUInteger index = range.location;
+				while (index > 0 && [[preview string] characterAtIndex:index - 1] == '\n') {
+					existingNewlines++;
+					index--;
+				}
+				if (existingNewlines < 2)
+					[separatorLengths setObject:[NSNumber numberWithUnsignedInteger:2 - existingNewlines]
+						forKey:[NSNumber numberWithUnsignedInteger:range.location]];
+			}
+			NSUInteger end = NSMaxRange(range);
+			if (end < [preview length]) {
+				NSUInteger existingNewlines = 0;
+				NSUInteger index = end;
+				while (index > range.location && [[preview string] characterAtIndex:index - 1] == '\n') {
+					existingNewlines++;
+					index--;
+				}
+				NSUInteger followingNewlines = 0;
+				while (end + followingNewlines < [preview length] &&
+					[[preview string] characterAtIndex:end + followingNewlines] == '\n')
+					followingNewlines++;
+				existingNewlines += followingNewlines;
+				if (existingNewlines < 2)
+					[separatorLengths setObject:[NSNumber numberWithUnsignedInteger:2 - existingNewlines]
+						forKey:[NSNumber numberWithUnsignedInteger:end]];
+			}
+		}];
+
+	[preview enumerateAttribute:NSInlinePresentationIntentAttributeName inRange:fullRange options:0
+		usingBlock:^(NSNumber *value, NSRange range, BOOL *stop) {
+			if ([value unsignedIntegerValue] & NSInlinePresentationIntentCode)
+				[inlineCodeRanges addObject:[NSValue valueWithRange:range]];
+		}];
+	for (NSValue *value in codeBlockRanges) {
+		NSRange range = [value rangeValue];
+		[preview addAttribute:NSFontAttributeName value:codeFont range:range];
+		[preview addAttribute:NSBackgroundColorAttributeName value:codeBackground range:range];
+	}
+	for (NSValue *value in inlineCodeRanges) {
+		NSRange range = [value rangeValue];
+		[preview addAttribute:NSFontAttributeName value:codeFont range:range];
+		[preview addAttribute:NSBackgroundColorAttributeName value:codeBackground range:range];
+	}
+
+	//Foundation discards Markdown's blank lines between block elements. Restore two newline
+	//characters at each code boundary so the preview retains paragraph spacing. Insert from the end
+	//so the parser's original ranges remain valid while applying each change.
+	NSArray *separatorIndexes = [[separatorLengths allKeys]
+		sortedArrayUsingSelector:@selector(compare:)];
+	for (NSNumber *indexValue in [separatorIndexes reverseObjectEnumerator]) {
+		NSUInteger count = [[separatorLengths objectForKey:indexValue] unsignedIntegerValue];
+		NSString *separator = count == 2 ? @"\n\n" : @"\n";
+		[preview insertAttributedString:[[[NSAttributedString alloc] initWithString:separator] autorelease]
+			atIndex:[indexValue unsignedIntegerValue]];
+	}
+}
+
+- (void)_showMarkdownPreviewForCurrentNote {
+	[textView setMarkdownPreviewMode:YES];
+	[[textView textStorage] setAttributedString:[self _markdownPreviewForNote:currentNote]];
+	[textView setAutomaticallySelectedRange:NSMakeRange(0, 0)];
+	[textView scrollRangeToVisible:NSMakeRange(0, 0)];
+	[textView clearFindPanel];
+}
+
+- (void)_restoreMarkdownSourceForCurrentNote {
+	if (!currentNote) return;
+	[textView setMarkdownPreviewMode:NO];
+	[[textView textStorage] setAttributedString:[currentNote contentString]];
+	[[textView textStorage] addAttributesForMarkdownHeadingLinesInRange:
+		NSMakeRange(0, [[textView textStorage] length])];
+
+	NSRange selection = [currentNote lastSelectedRange];
+	if (selection.location == NSNotFound || NSMaxRange(selection) > [[currentNote contentString] length])
+		selection = NSMakeRange(0, 0);
+	[textView setAutomaticallySelectedRange:selection];
+	[textView scrollRangeToVisible:selection];
+}
+
+- (void)markdownPreviewWasClicked:(id)sender {
+	if (![textView isShowingMarkdownPreview]) return;
+	[self _restoreMarkdownSourceForCurrentNote];
+	[window makeFirstResponder:textView];
+}
+
 - (BOOL)displayContentsForNoteAtIndex:(int)noteIndex {
 	NoteObject *note = [notationController noteObjectAtFilteredIndex:noteIndex];
 	if (note != currentNote) {
@@ -1562,6 +1728,12 @@ terminateApp:
 			//NSLog(@"redisplay because last note was too long to finish before we switched");
 			[textView setNeedsDisplayInRect:[textView visibleRect] avoidAdditionalLayout:YES];
 		}
+
+		if ([self _shouldPreviewMarkdownNote:note]) {
+			[self _showMarkdownPreviewForCurrentNote];
+			return YES;
+		}
+		[textView setMarkdownPreviewMode:NO];
 		
 		//restore string
 		[[textView textStorage] setAttributedString:[note contentString]];
@@ -2009,8 +2181,10 @@ terminateApp:
 
 - (void)contentsUpdatedForNote:(NoteObject*)aNoteObject {
 	if (aNoteObject == currentNote) {
-		
-		[[textView textStorage] setAttributedString:[aNoteObject contentString]];
+		if ([textView isShowingMarkdownPreview])
+			[self _showMarkdownPreviewForCurrentNote];
+		else
+			[[textView textStorage] setAttributedString:[aNoteObject contentString]];
 	}
 }
 
@@ -2089,7 +2263,7 @@ terminateApp:
 		//only save the state if the notation instance has actually loaded; i.e., don't save last-selected-note if we quit from a PW dialog
 		BOOL wasAutomatic = NO;
 		NSRange currentRange = [textView selectedRangeWasAutomatic:&wasAutomatic];
-		if (!wasAutomatic) [currentNote setSelectedRange:currentRange];
+		if (!wasAutomatic && ![textView isShowingMarkdownPreview]) [currentNote setSelectedRange:currentRange];
 		
 		[currentNote updateContentCacheCStringIfNecessary];
 		
