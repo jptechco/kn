@@ -213,7 +213,7 @@ CGFloat _perceptualDarkness(NSColor*a);
 	NSScrollView *scrollView = [self enclosingScrollView];
 	if (!scrollView) return;
 
-	if ([prefsController showsLineNumbers]) {
+	if ([prefsController showsLineNumbers] && !markdownPreviewMode) {
 		if (![[scrollView verticalRulerView] isKindOfClass:[KNLineNumberRulerView class]]) {
 			KNLineNumberRulerView *gutter = [[KNLineNumberRulerView alloc] initWithTextView:self];
 			[scrollView setVerticalRulerView:gutter];
@@ -226,6 +226,26 @@ CGFloat _perceptualDarkness(NSColor*a);
 		[scrollView setRulersVisible:NO];
 		[scrollView setHasVerticalRuler:NO];
 	}
+}
+
+- (void)setMarkdownPreviewMode:(BOOL)enabled {
+	markdownPreviewMode = enabled;
+	[self setEditable:!enabled];
+	[self setSelectable:YES];
+	[self updateLineNumberGutter];
+}
+
+- (BOOL)isShowingMarkdownPreview {
+	return markdownPreviewMode;
+}
+
+//A Markdown preview deliberately uses the same text view as the editor. On its first click the
+//delegate restores the note's untouched source; forwarding that same event then places the caret
+//where the user clicked, so entering edit mode feels like one action rather than two.
+- (void)mouseDown:(NSEvent *)event {
+	if (markdownPreviewMode && [[self delegate] respondsToSelector:@selector(markdownPreviewWasClicked:)])
+		[[self delegate] performSelector:@selector(markdownPreviewWasClicked:) withObject:self];
+	[super mouseDown:event];
 }
 
 //the gutter numbers nothing while the editor is hidden (no note selected), so it redraws when that changes

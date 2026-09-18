@@ -45,6 +45,7 @@ enum {LAST_FIND_UNKNOWN, LAST_FIND_NO, LAST_FIND_YES};
 	BOOL isAutocompleting, wasDeleting;
 	
 	BOOL backgroundIsDark, mouseInside;
+	BOOL markdownPreviewMode;
 	
     IMP defaultIBeamCursorIMP;
     IMP whiteIBeamCursorIMP;
@@ -56,6 +57,8 @@ enum {LAST_FIND_UNKNOWN, LAST_FIND_NO, LAST_FIND_YES};
 - (NSDictionary*)preferredLinkAttributes;
 - (void)updateTextColors;
 - (void)updateLineNumberGutter;
+- (void)setMarkdownPreviewMode:(BOOL)enabled;
+- (BOOL)isShowingMarkdownPreview;
 - (NSRange)selectedRangeWasAutomatic:(BOOL*)automatic;
 - (void)setAutomaticallySelectedRange:(NSRange)newRange;
 - (void)removeHighlightedTerms;

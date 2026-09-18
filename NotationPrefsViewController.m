@@ -70,6 +70,7 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
     return self;
 }
 - (void)dealloc {
+	[markdownPreviewButton release];
 	[passphrasePicker release];
 	[changer release];
 	[notationPrefs release];
@@ -93,6 +94,33 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
 	for (NSTableView *table in @[allowedExtensionsTable, allowedTypesTable]) {
 		[table setBackgroundColor:[NSColor controlBackgroundColor]];
 		[[table enclosingScrollView] setBackgroundColor:[NSColor controlBackgroundColor]];
+	}
+
+	//There is a narrow row between the format popup and its explanatory text. Move the popup and
+	//its label into the unused top margin and put the Markdown option in that row. Building it here
+	//keeps the old localized nibs untouched.
+	if (!markdownPreviewButton && storageFormatPopupButton) {
+		NSView *storageView = [storageFormatPopupButton superview];
+		NSRect popupFrame = [storageFormatPopupButton frame];
+		const CGFloat rowPitch = 18.0f;
+		for (NSView *sibling in [storageView subviews]) {
+			if (NSMinY([sibling frame]) >= NSMinY(popupFrame)) {
+				NSPoint origin = [sibling frame].origin;
+				origin.y += rowPitch;
+				[sibling setFrameOrigin:origin];
+			}
+		}
+
+		markdownPreviewButton = [[NSButton alloc] initWithFrame:NSMakeRect(NSMinX(popupFrame),
+			NSMinY(popupFrame), NSWidth(popupFrame), 18.0f)];
+		[markdownPreviewButton setButtonType:NSButtonTypeSwitch];
+		[markdownPreviewButton setTitle:NSLocalizedString(@"Enabled Markdown Preview Mode",
+			@"Notes storage preference: preview Markdown files before editing")];
+		[markdownPreviewButton setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
+		[markdownPreviewButton setTarget:self];
+		[markdownPreviewButton setAction:@selector(changedMarkdownPreview:)];
+		[markdownPreviewButton setAutoresizingMask:[storageFormatPopupButton autoresizingMask]];
+		[storageView addSubview:markdownPreviewButton];
 	}
 
 	
@@ -225,8 +253,23 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
 	[confirmFileDeletionButton setEnabled:separateFileControlsState];
 	
 	[storageFormatPopupButton selectItemWithTag:[notationPrefs notesStorageFormat]];
+	BOOL usesPlainText = ([notationPrefs notesStorageFormat] == PlainTextFormat);
+	[markdownPreviewButton setHidden:!usesPlainText];
+	[markdownPreviewButton setEnabled:usesPlainText];
+	[markdownPreviewButton setState:[[GlobalPrefs defaultPrefs] markdownPreviewEnabled] ?
+		NSControlStateValueOn : NSControlStateValueOff];
 	
 	[fileAttributesHelpText setTextColor: separateFileControlsState ? [NSColor controlTextColor] : [NSColor grayColor]];	
+}
+
+- (IBAction)changedMarkdownPreview:(id)sender {
+	if ([markdownPreviewButton state] == NSControlStateValueOn &&
+		![notationPrefs pathExtensionAllowed:@"md" forFormat:PlainTextFormat]) {
+		[notationPrefs addAllowedPathExtension:@"md"];
+		[allowedExtensionsTable reloadData];
+	}
+	[[GlobalPrefs defaultPrefs] setMarkdownPreviewEnabled:([markdownPreviewButton state] == NSControlStateValueOn)
+		sender:self];
 }
 
 - (void)updateRemoveKeychainItemStatus {

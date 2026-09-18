@@ -57,6 +57,13 @@ static NSString *KNProductSiteURLString = @"https://www.kineticnotes.org";
 //where its "Development Web Site" item points; update alongside the repository if it moves
 static NSString *KNProjectURLString = @"https://github.com/jptechco/kn";
 
+@interface AppController ()
+- (BOOL)_shouldPreviewMarkdownNote:(NoteObject *)note;
+- (NSAttributedString *)_markdownPreviewForNote:(NoteObject *)note;
+- (void)_showMarkdownPreviewForCurrentNote;
+- (void)_restoreMarkdownSourceForCurrentNote;
+@end
+
 
 @implementation AppController
 
@@ -514,6 +521,7 @@ static void RenameMenuTreeFromOldNameToNew(NSMenu *menu, NSString *oldName, NSSt
 	 @selector(setSideBySideTitleBar:sender:),  //whether the search field shares the title's row
 	 @selector(setAppearanceMode:sender:),  //when to force the app light/dark or follow the system
 	 @selector(setShowsWordCount:sender:),  //whether the word-count bar runs along the bottom of the window
+	 @selector(setMarkdownPreviewEnabled:sender:),  //whether .md notes open as rendered previews
 	 @selector(setAutoCompleteSearches:sender:), nil];   //when to tell notationcontroller to build its title-prefix connections
 	
 	[self performSelector:@selector(runDelayedUIActionsAfterLaunch) withObject:nil afterDelay:0.0];
@@ -1054,6 +1062,11 @@ terminateApp:
 		[self applyAppearanceMode];
 	} else if ([selectorString isEqualToString:SEL_STR(setShowsWordCount:sender:)]) {
 		[self _applyStatusBarVisibility];
+	} else if ([selectorString isEqualToString:SEL_STR(setMarkdownPreviewEnabled:sender:)]) {
+		if ([self _shouldPreviewMarkdownNote:currentNote])
+			[self _showMarkdownPreviewForCurrentNote];
+		else if ([textView isShowingMarkdownPreview])
+			[self _restoreMarkdownSourceForCurrentNote];
 	} else if ([selectorString isEqualToString:SEL_STR(setAutoCompleteSearches:sender:)]) {
 		if ([prefsController autoCompleteSearches])
 			[notationController updateTitlePrefixConnections];
@@ -1275,7 +1288,9 @@ terminateApp:
 	//how do we test that?
 	BOOL wasAutomatic = NO;
 	NSRange currentRange = [textView selectedRangeWasAutomatic:&wasAutomatic];
-	if (!wasAutomatic) [currentNote setSelectedRange:currentRange];
+	//A preview has different character positions from its Markdown source, so its selection must
+	//never replace the source selection saved on the note.
+	if (!wasAutomatic && ![textView isShowingMarkdownPreview]) [currentNote setSelectedRange:currentRange];
 	
 	//regenerate content cache before switching to new note
 	[currentNote updateContentCacheCStringIfNecessary];
@@ -1283,6 +1298,7 @@ terminateApp:
 	
 	[currentNote release];
 	currentNote = [aNote retain];
+	if (!currentNote) [textView setMarkdownPreviewMode:NO];
 }
 
 - (NoteObject*)selectedNoteObject {
@@ -1535,6 +1551,59 @@ terminateApp:
 	}
 }
 
+- (BOOL)_shouldPreviewMarkdownNote:(NoteObject *)note {
+	if (!note || ![prefsController markdownPreviewEnabled]) return NO;
+	if ([notationController currentNoteStorageFormat] != PlainTextFormat) return NO;
+
+	NSString *extension = [filenameOfNote(note) pathExtension];
+	return ([extension length] && [extension caseInsensitiveCompare:@"md"] == NSOrderedSame);
+}
+
+- (NSAttributedString *)_markdownPreviewForNote:(NoteObject *)note {
+	NSAttributedStringMarkdownParsingOptions *options =
+		[[[NSAttributedStringMarkdownParsingOptions alloc] init] autorelease];
+	[options setInterpretedSyntax:NSAttributedStringMarkdownInterpretedSyntaxFull];
+	[options setFailurePolicy:NSAttributedStringMarkdownParsingFailureReturnPartiallyParsedIfPossible];
+
+	NSString *path = [note noteFilePath];
+	NSURL *baseURL = path ? [NSURL fileURLWithPath:[path stringByDeletingLastPathComponent] isDirectory:YES] : nil;
+	NSError *error = nil;
+	NSAttributedString *preview = [[[NSAttributedString alloc]
+		initWithMarkdownString:[[note contentString] string]
+		options:options baseURL:baseURL error:&error] autorelease];
+	if (!preview) {
+		NSLog(@"Could not render Markdown preview for %@: %@", filenameOfNote(note), error);
+		return [note contentString];
+	}
+	return preview;
+}
+
+- (void)_showMarkdownPreviewForCurrentNote {
+	[textView setMarkdownPreviewMode:YES];
+	[[textView textStorage] setAttributedString:[self _markdownPreviewForNote:currentNote]];
+	[textView setAutomaticallySelectedRange:NSMakeRange(0, 0)];
+	[textView scrollRangeToVisible:NSMakeRange(0, 0)];
+	[textView clearFindPanel];
+}
+
+- (void)_restoreMarkdownSourceForCurrentNote {
+	if (!currentNote) return;
+	[textView setMarkdownPreviewMode:NO];
+	[[textView textStorage] setAttributedString:[currentNote contentString]];
+
+	NSRange selection = [currentNote lastSelectedRange];
+	if (selection.location == NSNotFound || NSMaxRange(selection) > [[currentNote contentString] length])
+		selection = NSMakeRange(0, 0);
+	[textView setAutomaticallySelectedRange:selection];
+	[textView scrollRangeToVisible:selection];
+}
+
+- (void)markdownPreviewWasClicked:(id)sender {
+	if (![textView isShowingMarkdownPreview]) return;
+	[self _restoreMarkdownSourceForCurrentNote];
+	[window makeFirstResponder:textView];
+}
+
 - (BOOL)displayContentsForNoteAtIndex:(int)noteIndex {
 	NoteObject *note = [notationController noteObjectAtFilteredIndex:noteIndex];
 	if (note != currentNote) {
@@ -1562,6 +1631,12 @@ terminateApp:
 			//NSLog(@"redisplay because last note was too long to finish before we switched");
 			[textView setNeedsDisplayInRect:[textView visibleRect] avoidAdditionalLayout:YES];
 		}
+
+		if ([self _shouldPreviewMarkdownNote:note]) {
+			[self _showMarkdownPreviewForCurrentNote];
+			return YES;
+		}
+		[textView setMarkdownPreviewMode:NO];
 		
 		//restore string
 		[[textView textStorage] setAttributedString:[note contentString]];
@@ -2009,8 +2084,10 @@ terminateApp:
 
 - (void)contentsUpdatedForNote:(NoteObject*)aNoteObject {
 	if (aNoteObject == currentNote) {
-		
-		[[textView textStorage] setAttributedString:[aNoteObject contentString]];
+		if ([textView isShowingMarkdownPreview])
+			[self _showMarkdownPreviewForCurrentNote];
+		else
+			[[textView textStorage] setAttributedString:[aNoteObject contentString]];
 	}
 }
 
@@ -2089,7 +2166,7 @@ terminateApp:
 		//only save the state if the notation instance has actually loaded; i.e., don't save last-selected-note if we quit from a PW dialog
 		BOOL wasAutomatic = NO;
 		NSRange currentRange = [textView selectedRangeWasAutomatic:&wasAutomatic];
-		if (!wasAutomatic) [currentNote setSelectedRange:currentRange];
+		if (!wasAutomatic && ![textView isShowingMarkdownPreview]) [currentNote setSelectedRange:currentRange];
 		
 		[currentNote updateContentCacheCStringIfNecessary];
 		

@@ -173,6 +173,8 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2);
 
 - (void)setShowsWordCount:(BOOL)value sender:(id)sender;
 - (BOOL)showsWordCount;
+- (void)setMarkdownPreviewEnabled:(BOOL)value sender:(id)sender;
+- (BOOL)markdownPreviewEnabled;
 - (void)setWordCountUnit:(KNTextCountUnit)unit sender:(id)sender;
 - (KNTextCountUnit)wordCountUnit;
 
@@ -221,5 +223,4 @@ BOOL ColorsEqualWith8BitChannels(NSColor *c1, NSColor *c2);
 @interface NSObject (GlobalPrefsDelegate)
 	- (void)settingChangedForSelectorString:(NSString*)selectorString;
 @end
-
 
