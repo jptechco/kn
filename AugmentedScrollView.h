@@ -19,21 +19,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface  DragSquareView : NSView
-{
-	NSImage *dragImage;
-}
-
-@end
-
-
+// MainMenu.nib archives this class name, so retain the subclass even though the
+// scroll view no longer needs custom behavior.
 @interface AugmentedScrollView : NSScrollView
-{
-	BOOL showDragSquare;
-	DragSquareView *dragSquare;
-}
-
-- (BOOL)shouldDragWithPoint:(NSPoint)point sender:(id)sender;
-- (void)_positionDragSquare;
-
 @end
