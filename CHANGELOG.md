@@ -19,6 +19,14 @@ version heading when that release is cut.
 
 ## Releases
 
+## Unreleased
+
+- **The side-by-side layout loses its drag square.** The small grip at the foot of the note list's
+  scroll bar was left over from Notational Velocity; the line between the list and the note is
+  already dragged by a band either side of it, in both layouts, so the square is gone and the scroll
+  bar runs the full height of the list. Build 46, contributed by
+  [@tkambler](https://github.com/tkambler). ([#46](https://github.com/jptechco/kn/pull/46))
+
 ## 1.8 — 2026-09-16
 
 - **An update that installs itself now says what changed.** With *Auto-Update* on, updates download
