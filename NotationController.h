@@ -85,6 +85,8 @@
     NSMutableSet *unwrittenNotes;
 	BOOL notesChanged;
 	NSTimer *changeWritingTimer;
+	NSTimer *gitPullTimer;
+	BOOL registeredForGitPreferenceChanges;
 	NSUndoManager *undoManager;
 }
 
@@ -115,6 +117,7 @@
 
 - (int)currentNoteStorageFormat;
 - (void)synchronizeNoteChanges:(NSTimer*)timer;
+- (void)updateAutomaticGitPullSchedule;
 
 - (void)updateDateStringsIfNecessary;
 - (void)makeForegroundTextColorMatchGlobalPrefs;

@@ -43,6 +43,7 @@
 #import "SyncSessionController.h"
 #import "BookmarksController.h"
 #import "DeletionManager.h"
+#import "KNGitHookRunner.h"
 
 @implementation NotationController
 
@@ -172,6 +173,11 @@
 		//the database is loaded and no save is in flight yet, so this is a safe moment to clear out
 		//scratch files left behind by earlier interrupted or failed atomic saves
 		[self removeOrphanedTemporaryFiles];
+
+		[prefsController registerWithTarget:self forChangesInSettings:
+			@selector(setAutomaticallyCommitAndPushNotes:sender:), nil];
+		registeredForGitPreferenceChanges = YES;
+		[self updateAutomaticGitPullSchedule];
     }
 
     return self;
@@ -657,9 +663,10 @@ bail:
 
 - (void)synchronizeNoteChanges:(NSTimer*)timer {
     
-    if ([unwrittenNotes count] > 0) {
+	if ([unwrittenNotes count] > 0) {
 		lastWriteError = noErr;
-		if ([notationPrefs notesStorageFormat] != SingleDatabaseFormat) {
+		BOOL writesSeparateFiles = ([notationPrefs notesStorageFormat] != SingleDatabaseFormat);
+		if (writesSeparateFiles) {
 			//to avoid mutation enumeration if writing this file triggers a filename change which then triggers another makeNoteDirty which then triggers another scheduleWriteForNote:
 			//loose-coupling? what?
 			[[[unwrittenNotes copy] autorelease] makeObjectsPerformSelector:@selector(writeUsingCurrentFileFormatIfNecessary)];
@@ -677,6 +684,9 @@ bail:
 		[unwrittenNotes removeAllObjects];
 		
 		[self scheduleUpdateListForAttribute:NoteDateModifiedColumnString];
+		if (writesSeparateFiles && lastWriteError == noErr &&
+			[prefsController automaticallyCommitAndPushNotes])
+			[KNGitHookRunner scheduleCommitAndPushForNotesDirectory:[self noteDirectoryPath]];
 
     }
     
@@ -685,6 +695,28 @@ bail:
 		[changeWritingTimer release];
 		changeWritingTimer = nil;
     }
+}
+
+- (void)performAutomaticGitPull:(NSTimer *)timer {
+	if (![prefsController automaticallyCommitAndPushNotes]) return;
+	[self synchronizeNoteChanges:nil];
+	[KNGitHookRunner schedulePullForNotesDirectory:[self noteDirectoryPath]];
+}
+
+- (void)updateAutomaticGitPullSchedule {
+	[gitPullTimer invalidate];
+	[gitPullTimer release];
+	gitPullTimer = nil;
+
+	if (![prefsController automaticallyCommitAndPushNotes]) return;
+	[self performAutomaticGitPull:nil];
+	gitPullTimer = [[NSTimer scheduledTimerWithTimeInterval:300.0 target:self
+		selector:@selector(performAutomaticGitPull:) userInfo:nil repeats:YES] retain];
+}
+
+- (void)settingChangedForSelectorString:(NSString *)selectorString {
+	if ([selectorString isEqualToString:SEL_STR(setAutomaticallyCommitAndPushNotes:sender:)])
+		[self updateAutomaticGitPullSchedule];
 }
 
 - (NSData*)bookmarkDataForNoteDirectory {
@@ -700,6 +732,7 @@ bail:
 }
 
 - (void)closeAllResources {
+	[gitPullTimer invalidate];
 	[allNotes makeObjectsPerformSelector:@selector(abortEditingInExternalEditor)];
 	
 	[deletionManager cancelPanelReturningCode:NSRunStoppedResponse];
@@ -1051,6 +1084,8 @@ bail:
     //we do this after removing it from the array to avoid re-discovering a removed file
     if ([notationPrefs notesStorageFormat] != SingleDatabaseFormat) {
 		[aNoteObject removeFileFromDirectory];
+		if ([prefsController automaticallyCommitAndPushNotes])
+			[KNGitHookRunner scheduleCommitAndPushForNotesDirectory:[self noteDirectoryPath]];
     }
 	//add journal removal event
 	if (walWriter && ![walWriter writeRemovalForNote:aNoteObject]) {
@@ -1539,6 +1574,11 @@ bail:
 }
 
 - (void)dealloc {
+	if (registeredForGitPreferenceChanges)
+		[prefsController unregisterForNotificationsFromSelector:
+			@selector(setAutomaticallyCommitAndPushNotes:sender:) sender:self];
+	[gitPullTimer invalidate];
+	[gitPullTimer release];
  
 	[walWriter setDelegate:nil];
 	[notationPrefs setDelegate:nil];
@@ -1566,5 +1606,3 @@ bail:
 }
 
 @end
-
-
