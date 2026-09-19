@@ -51,6 +51,8 @@
     IBOutlet NSButton *removeExtensionButton;
     IBOutlet NSButton *removeTypeButton;
     IBOutlet NSButton *confirmFileDeletionButton;
+	//Built in code because the seven localized Interface Builder 3 nibs must not be re-saved.
+	NSButton *markdownPreviewButton;
 	IBOutlet NSButton *secureTextEntryButton;
 	IBOutlet NSButton *removeFromKeychainButton;
     IBOutlet NSPopUpButton *storageFormatPopupButton;
@@ -90,6 +92,7 @@
 - (IBAction)changedKeychainSettings:(id)sender;
 - (IBAction)changedFileDeletionWarningSettings:(id)sender;
 - (IBAction)changedFileStorageFormat:(id)sender;
+- (IBAction)changedMarkdownPreview:(id)sender;
 - (IBAction)changePassphrase:(id)sender;
 - (IBAction)changedSecureTextEntry:(id)sender;
 - (IBAction)removeFromKeychain:(id)sender;

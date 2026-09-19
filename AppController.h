@@ -111,6 +111,7 @@ void outletObjectAwoke(id sender);
 - (void)searchForString:(NSString*)string;
 - (NSUInteger)revealNote:(NoteObject*)note options:(NSUInteger)opts;
 - (BOOL)displayContentsForNoteAtIndex:(int)noteIndex;
+- (void)markdownPreviewWasClicked:(id)sender;
 - (void)processChangedSelectionForTable:(NSTableView*)table;
 - (void)setEmptyViewState:(BOOL)state;
 - (void)cancelOperation:(id)sender;
