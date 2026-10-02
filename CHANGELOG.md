@@ -21,6 +21,14 @@ version heading when that release is cut.
 
 ## Unreleased
 
+- **Spanish and German fixes.** In Spanish, the menu bar still read *Format* and *Window*, and the
+  Format menu *Bold*, *Italic* and *Strikethrough*: the menus kept English titles of their own, and
+  the three style items English titles of the kind the menu actually draws. They now read *Formato*,
+  *Ventana*, *Negrita*, *Cursiva* and *Tachado*. In German, the new Settings window put *Layout* on
+  top of *List Text Size* and was too narrow for its toolbar, which hid two panes behind a `>>`
+  menu; the window now widens to fit every pane's name in any language. German's date columns read
+  *Geändert am* and *Hinzugefügt am*. Build 49. ([#49](https://github.com/jptechco/kn/pull/49))
+
 - **A redesigned Settings window.** The checkboxes on General, Editing, Notes and Fonts & Colors
   are now switches beside their titles. General gains a *Layout* choice — Horizontal or Vertical —
   the same switch as the View menu's. Updates shows the app's icon and version over *Check for

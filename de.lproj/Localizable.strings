@@ -606,10 +606,10 @@
 "Tags" = "Etikett";
 
 /* date modified column name */
-"Date Modified" = "geändert am";
+"Date Modified" = "Geändert am";
 
 /* date added/created column name */
-"Date Added" = "zugefügt am";
+"Date Added" = "Hinzugefügt am";
 
 /* date added/created column name */
 "Go back to search; press %@-D to deselect" = "Zurück zur Suche, Auswahl verwerfen mit %@-D";
