@@ -754,3 +754,54 @@
 
 /* shown in the release notes window when the page cannot be loaded, e.g. offline */
 "The release notes could not be loaded. You can read them online:" = "无法载入更新说明。你可以在线阅读：";
+
+/* name of the Updates pane in Settings, in its toolbar and window title */
+"Updates" = "更新";
+
+/* General preference: label for the horizontal/vertical layout popup */
+"Layout:" = "排版：";
+
+/* General preference: Layout popup, note list beside the note */
+"Horizontal" = "横向";
+
+/* General preference: Layout popup, note list above the note */
+"Vertical" = "竖向";
+
+/* Updates preference: the version and, in parentheses, the build number */
+"Version %@ (%@)" = "版本 %@ (%@)";
+
+/* Updates preference: button that checks for a new version immediately */
+"Check for Updates" = "检查更新";
+
+/* Updates preference: link to the project's page */
+"GitHub Project" = "GitHub 项目";
+
+/* Updates preference: toggle Sparkle's scheduled update checks */
+"Automatically check for updates" = "自动检查更新";
+
+/* Updates preference: toggle automatic download and install of updates */
+"Automatically download updates" = "自动下载更新";
+
+/* Updates preference: label for the date of the most recent update check */
+"Last checked" = "上次检查";
+
+/* Updates preference: Last checked, before any check has run */
+"Never" = "从未";
+
+/* Updates preference: footnote; the app's name is substituted */
+"Downloaded updates install the next time you quit %@." = "下载的更新将在下次退出 %@ 时安装。";
+
+/* Fonts & Colors preference: label for the light/dark appearance picker */
+"Appearance:" = "外观：";
+
+/* Fonts & Colors preference: the appearance picker's name for VoiceOver */
+"Appearance" = "外观";
+
+/* Appearance preference: track the macOS light/dark setting */
+"Automatic" = "自动";
+
+/* Appearance preference: always use the light appearance */
+"Light" = "浅色";
+
+/* Appearance preference: always use the dark appearance */
+"Dark" = "深色";

@@ -50,8 +50,8 @@
 	IBOutlet NSButton *makeDefaultExtensionButton;
     IBOutlet NSButton *removeExtensionButton;
     IBOutlet NSButton *removeTypeButton;
-    IBOutlet NSButton *confirmFileDeletionButton;
-	IBOutlet NSButton *secureTextEntryButton;
+    IBOutlet id confirmFileDeletionButton;	//this and the next are checkboxes in the nib, NSSwitches from awakeFromNib
+	IBOutlet id secureTextEntryButton;
 	IBOutlet NSButton *removeFromKeychainButton;
     IBOutlet NSPopUpButton *storageFormatPopupButton;
     IBOutlet NSMatrix *passwordSettingsMatrix;

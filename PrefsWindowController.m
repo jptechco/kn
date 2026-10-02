@@ -27,6 +27,7 @@
 #import "NotationPrefs.h"
 #import "GlobalPrefs.h"
 #import "KNUpdateController.h"
+#import "AppController.h"
 #include <sys/stat.h>
 
 #define SYSTEM_LIST_FONT_SIZE 12.0f
@@ -37,6 +38,317 @@
 //extra width. 590 is the smallest that fits: the overflow point was measured at 583pt against the
 //longest title ("Fonts & Colors", the worst case), with a few points of margin added.
 #define PREFS_MIN_CONTENT_WIDTH 590.0f
+
+/*
+ A rounded, lightly filled panel for the Updates pane, in the manner of System Settings' grouped
+ forms. Flipped, so its rows are laid out top-down; it draws in -drawRect: rather than through a layer
+ so its fill follows the window's light or dark appearance without being told.
+ */
+@interface KNPrefsCardView : NSView
+@end
+
+@implementation KNPrefsCardView
+
+- (BOOL)isFlipped {
+	return YES;
+}
+
+- (void)drawRect:(NSRect)dirtyRect {
+	BOOL dark = [[[self effectiveAppearance] bestMatchFromAppearancesWithNames:
+				  [NSArray arrayWithObjects:NSAppearanceNameAqua, NSAppearanceNameDarkAqua, nil]]
+				 isEqualToString:NSAppearanceNameDarkAqua];
+	NSBezierPath *path = [NSBezierPath bezierPathWithRoundedRect:NSInsetRect([self bounds], 0.5f, 0.5f) xRadius:10.0f yRadius:10.0f];
+	[[NSColor colorWithWhite:1.0f alpha:dark ? 0.05f : 0.6f] setFill];
+	[path fill];
+	[[NSColor colorWithWhite:dark ? 1.0f : 0.0f alpha:dark ? 0.08f : 0.07f] setStroke];
+	[path stroke];
+}
+
+@end
+
+/*
+ The title beside a preference switch. Clicking it flips the switch, as clicking a checkbox's title did,
+ and it dims whenever the switch is disabled, through a binding to the switch's enabled state.
+ */
+@interface KNSwitchLabel : NSTextField {
+	NSSwitch *toggle;	//weak: both live in the same pane for as long as it does
+}
+- (id)initWithTitle:(NSString *)title font:(NSFont *)font toggle:(NSSwitch *)aToggle;
+- (NSSwitch *)toggle;
+@end
+
+@implementation KNSwitchLabel
+
+- (id)initWithTitle:(NSString *)title font:(NSFont *)font toggle:(NSSwitch *)aToggle {
+	if ((self = [super initWithFrame:NSZeroRect])) {
+		toggle = aToggle;
+		[self setStringValue:title];
+		[self setFont:font];
+		[self setEditable:NO];
+		[self setSelectable:NO];
+		[self setBordered:NO];
+		[self setBezeled:NO];
+		[self setDrawsBackground:NO];
+		[self sizeToFit];
+		[self bind:NSEnabledBinding toObject:toggle withKeyPath:@"enabled" options:nil];
+	}
+	return self;
+}
+
+- (void)dealloc {
+	[self unbind:NSEnabledBinding];
+	[super dealloc];
+}
+
+- (NSSwitch *)toggle {
+	return toggle;
+}
+
+//a non-editable text field draws no differently when disabled, so the colour changes here
+- (void)setEnabled:(BOOL)flag {
+	[super setEnabled:flag];
+	[self setTextColor:flag ? [NSColor labelColor] : [NSColor disabledControlTextColor]];
+}
+
+- (void)mouseDown:(NSEvent *)event {
+	if ([toggle isEnabled]) [toggle performClick:self];
+}
+
+@end
+
+//the Updates pane itself is flipped too, so the cards stack from the top
+@interface KNFlippedView : NSView
+@end
+
+@implementation KNFlippedView
+- (BOOL)isFlipped {
+	return YES;
+}
+@end
+
+/*
+ The Appearance control on the Fonts & Colors pane: three miniature windows -- Automatic, Light and
+ Dark -- after System Settings' own. The thumbnails are drawn rather than loaded, and in fixed colours,
+ since each shows one appearance whatever the window's; Automatic is the light one with its right half
+ dark. The selected one is ringed in the accent colour. Clicking a thumbnail or its caption selects it
+ and sends the action; with focus, the arrow keys move the selection.
+ */
+#define KN_THUMB_WIDTH 72.0f
+#define KN_THUMB_HEIGHT 46.0f
+#define KN_THUMB_GAP 12.0f
+#define KN_THUMB_PAD 5.0f		//room for the selection ring around a thumbnail
+#define KN_CAPTION_HEIGHT 16.0f
+
+@interface KNAppearancePicker : NSControl {
+	KNAppearanceMode selectedMode;
+}
+- (KNAppearanceMode)selectedMode;
+- (void)setSelectedMode:(KNAppearanceMode)mode;
++ (NSSize)pickerSize;
+//where the thumbnails' vertical centre falls, in the picker's own (flipped) coordinates
++ (CGFloat)thumbnailCenterY;
+@end
+
+@implementation KNAppearancePicker
+
+//left to right
+static const KNAppearanceMode KNPickerModes[3] = { KNAppearanceFollowSystem, KNAppearanceForceLight, KNAppearanceForceDark };
+
+static NSColor *KNRGB(CGFloat r, CGFloat g, CGFloat b) {
+	return [NSColor colorWithSRGBRed:r / 255.0f green:g / 255.0f blue:b / 255.0f alpha:1.0f];
+}
+
++ (NSSize)pickerSize {
+	return NSMakeSize(3.0f * KN_THUMB_WIDTH + 2.0f * KN_THUMB_GAP + 2.0f * KN_THUMB_PAD,
+					  KN_THUMB_PAD + KN_THUMB_HEIGHT + KN_THUMB_PAD + KN_CAPTION_HEIGHT);
+}
+
++ (CGFloat)thumbnailCenterY {
+	return KN_THUMB_PAD + KN_THUMB_HEIGHT / 2.0f;
+}
+
+- (id)initWithFrame:(NSRect)frame {
+	if ((self = [super initWithFrame:frame])) selectedMode = KNAppearanceFollowSystem;
+	return self;
+}
+
+- (BOOL)isFlipped {
+	return YES;
+}
+
+- (NSSize)intrinsicContentSize {
+	return [KNAppearancePicker pickerSize];
+}
+
+- (NSRect)thumbnailRectAtIndex:(NSUInteger)i {
+	return NSMakeRect(KN_THUMB_PAD + i * (KN_THUMB_WIDTH + KN_THUMB_GAP), KN_THUMB_PAD, KN_THUMB_WIDTH, KN_THUMB_HEIGHT);
+}
+
+- (NSString *)captionAtIndex:(NSUInteger)i {
+	switch (KNPickerModes[i]) {
+		case KNAppearanceForceLight: return NSLocalizedString(@"Light", @"Appearance preference: always use the light appearance");
+		case KNAppearanceForceDark: return NSLocalizedString(@"Dark", @"Appearance preference: always use the dark appearance");
+		default: return NSLocalizedString(@"Automatic", @"Appearance preference: track the macOS light/dark setting");
+	}
+}
+
+- (NSUInteger)selectedIndex {
+	for (NSUInteger i = 0; i < 3; i++) if (KNPickerModes[i] == selectedMode) return i;
+	return 0;
+}
+
+- (KNAppearanceMode)selectedMode {
+	return selectedMode;
+}
+
+- (void)setSelectedMode:(KNAppearanceMode)mode {
+	selectedMode = mode;
+	[self setNeedsDisplay:YES];
+}
+
+//one miniature window: a sidebar with a few rows, traffic lights, and a content panel with a heading
+//and lines of text
+- (void)drawMiniatureWindowInRect:(NSRect)rect dark:(BOOL)dark {
+	NSColor *chrome = dark ? KNRGB(43, 43, 43) : KNRGB(230, 230, 230);
+	NSColor *panel = dark ? KNRGB(28, 28, 28) : KNRGB(255, 255, 255);
+	NSColor *sidebarRow = dark ? KNRGB(85, 85, 85) : KNRGB(196, 196, 196);
+	NSColor *heading = dark ? KNRGB(80, 80, 80) : KNRGB(189, 189, 189);
+	NSColor *textLine = dark ? KNRGB(66, 66, 66) : KNRGB(214, 214, 214);
+
+	[chrome setFill];
+	NSRectFill(rect);
+
+	NSColor *lights[3] = { KNRGB(255, 95, 87), KNRGB(254, 188, 46), KNRGB(40, 200, 64) };
+	for (NSUInteger k = 0; k < 3; k++) {
+		[lights[k] setFill];
+		[[NSBezierPath bezierPathWithOvalInRect:NSMakeRect(NSMinX(rect) + 4.0f + k * 5.5f, NSMinY(rect) + 4.0f, 4.0f, 4.0f)] fill];
+	}
+
+	[sidebarRow setFill];
+	for (NSUInteger k = 0; k < 4; k++)
+		NSRectFill(NSMakeRect(NSMinX(rect) + 4.0f, NSMinY(rect) + 13.0f + k * 6.0f, 11.0f, 2.5f));
+
+	NSRect content = NSMakeRect(NSMinX(rect) + 20.0f, NSMinY(rect) + 9.0f, NSWidth(rect) - 23.0f, NSHeight(rect) - 12.0f);
+	[panel setFill];
+	[[NSBezierPath bezierPathWithRoundedRect:content xRadius:3.0f yRadius:3.0f] fill];
+
+	[heading setFill];
+	NSRectFill(NSMakeRect(NSMinX(content) + 5.0f, NSMinY(content) + 5.0f, 20.0f, 4.0f));
+	[textLine setFill];
+	for (NSUInteger k = 0; k < 3; k++)
+		NSRectFill(NSMakeRect(NSMinX(content) + 5.0f, NSMinY(content) + 14.0f + k * 5.0f, NSWidth(content) - 10.0f, 1.5f));
+}
+
+- (void)drawRect:(NSRect)dirtyRect {
+	NSUInteger selected = [self selectedIndex];
+	NSMutableParagraphStyle *centered = [[[NSMutableParagraphStyle alloc] init] autorelease];
+	[centered setAlignment:NSTextAlignmentCenter];
+
+	for (NSUInteger i = 0; i < 3; i++) {
+		NSRect thumb = [self thumbnailRectAtIndex:i];
+		NSBezierPath *outline = [NSBezierPath bezierPathWithRoundedRect:thumb xRadius:5.0f yRadius:5.0f];
+
+		[NSGraphicsContext saveGraphicsState];
+		[outline addClip];
+		if (KNPickerModes[i] == KNAppearanceFollowSystem) {
+			[self drawMiniatureWindowInRect:thumb dark:NO];
+			NSRect rightHalf = thumb;
+			rightHalf.origin.x += floor(NSWidth(thumb) / 2.0f);
+			rightHalf.size.width -= floor(NSWidth(thumb) / 2.0f);
+			NSRectClip(rightHalf);
+			[self drawMiniatureWindowInRect:thumb dark:YES];
+		} else {
+			[self drawMiniatureWindowInRect:thumb dark:(KNPickerModes[i] == KNAppearanceForceDark)];
+		}
+		[NSGraphicsContext restoreGraphicsState];
+
+		if (i == selected) {
+			NSBezierPath *ring = [NSBezierPath bezierPathWithRoundedRect:NSInsetRect(thumb, -2.5f, -2.5f) xRadius:7.0f yRadius:7.0f];
+			[ring setLineWidth:3.0f];
+			[[NSColor controlAccentColor] setStroke];
+			[ring stroke];
+		} else {
+			[[NSColor separatorColor] setStroke];
+			[outline setLineWidth:1.0f];
+			[outline stroke];
+		}
+
+		NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
+			[NSFont systemFontOfSize:[NSFont smallSystemFontSize]], NSFontAttributeName,
+			(i == selected) ? [NSColor labelColor] : [NSColor secondaryLabelColor], NSForegroundColorAttributeName,
+			centered, NSParagraphStyleAttributeName, nil];
+		[[self captionAtIndex:i] drawInRect:NSMakeRect(NSMinX(thumb) - KN_THUMB_GAP / 2.0f, NSMaxY(thumb) + KN_THUMB_PAD + 1.0f,
+													   NSWidth(thumb) + KN_THUMB_GAP, KN_CAPTION_HEIGHT) withAttributes:attributes];
+	}
+
+	if ([[self window] firstResponder] == self && [[self window] isKeyWindow]) {
+		NSSetFocusRingStyle(NSFocusRingOnly);
+		[[NSBezierPath bezierPathWithRoundedRect:NSInsetRect([self thumbnailRectAtIndex:selected], -2.5f, -2.5f) xRadius:7.0f yRadius:7.0f] fill];
+	}
+}
+
+- (void)selectIndex:(NSUInteger)i {
+	if (KNPickerModes[i] == selectedMode) return;
+	[self setSelectedMode:KNPickerModes[i]];
+	[self sendAction:[self action] to:[self target]];
+}
+
+- (BOOL)acceptsFirstMouse:(NSEvent *)event {
+	return YES;
+}
+
+- (void)mouseDown:(NSEvent *)event {
+	NSPoint point = [self convertPoint:[event locationInWindow] fromView:nil];
+	for (NSUInteger i = 0; i < 3; i++) {
+		NSRect hit = [self thumbnailRectAtIndex:i];
+		hit.size.height += KN_THUMB_PAD + KN_CAPTION_HEIGHT;	//the caption too
+		if (NSPointInRect(point, NSInsetRect(hit, -KN_THUMB_PAD, -KN_THUMB_PAD))) {
+			[self selectIndex:i];
+			return;
+		}
+	}
+}
+
+- (BOOL)acceptsFirstResponder {
+	return YES;
+}
+
+- (BOOL)becomeFirstResponder {
+	[self setNeedsDisplay:YES];
+	return YES;
+}
+
+- (BOOL)resignFirstResponder {
+	[self setNeedsDisplay:YES];
+	return YES;
+}
+
+- (void)keyDown:(NSEvent *)event {
+	NSString *chars = [event charactersIgnoringModifiers];
+	unichar c = [chars length] ? [chars characterAtIndex:0] : 0;
+	NSUInteger i = [self selectedIndex];
+	if (c == NSLeftArrowFunctionKey && i > 0) [self selectIndex:i - 1];
+	else if (c == NSRightArrowFunctionKey && i < 2) [self selectIndex:i + 1];
+	else [super keyDown:event];
+}
+
+- (BOOL)isAccessibilityElement {
+	return YES;
+}
+
+- (NSAccessibilityRole)accessibilityRole {
+	return NSAccessibilityRadioGroupRole;
+}
+
+- (NSString *)accessibilityLabel {
+	return NSLocalizedString(@"Appearance", @"Fonts & Colors preference: label for the light/dark appearance picker");
+}
+
+- (id)accessibilityValue {
+	return [self captionAtIndex:[self selectedIndex]];
+}
+
+@end
 
 @implementation PrefsWindowController
 
@@ -49,7 +361,8 @@
 		 @selector(resolveNoteBodyFontFromNotationPrefsFromSender:), 
 		 @selector(setCheckSpellingAsYouType:sender:), 
 		 @selector(setConfirmNoteDeletion:sender:),
-		 @selector(setSideBySideTitleBar:sender:), nil];
+		 @selector(setSideBySideTitleBar:sender:),
+		 @selector(setHorizontalLayout:sender:), nil];
     }
     return self;
 }
@@ -206,7 +519,35 @@
 }
 
 - (IBAction)changedAppearanceMode:(id)sender {
-	[prefsController setAppearanceMode:(KNAppearanceMode)[appearanceModeButton indexOfSelectedItem] sender:self];
+	[prefsController setAppearanceMode:[appearancePicker selectedMode] sender:self];
+}
+
+//The View menu's layout switch does more than flip the preference -- it turns the split view and keeps
+//each layout's divider position -- so the popup goes through that same action rather than the setter.
+- (IBAction)changedLayout:(id)sender {
+	BOOL wantsHorizontal = ([layoutButton indexOfSelectedItem] == 0);
+	if (wantsHorizontal != [prefsController horizontalLayout])
+		[(AppController *)[NSApp delegate] switchViewLayout:self];
+}
+
+- (IBAction)openProjectPage:(id)sender {
+	[[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:KNProjectURLString]];
+}
+
+- (void)refreshLastChecked {
+	NSDate *date = [[KNUpdateController sharedInstance] lastUpdateCheckDate];
+	if (date) {
+		NSDateFormatter *formatter = [[[NSDateFormatter alloc] init] autorelease];
+		[formatter setDateStyle:NSDateFormatterMediumStyle];
+		[formatter setTimeStyle:NSDateFormatterShortStyle];
+		[lastCheckedField setStringValue:[formatter stringFromDate:date]];
+	} else {
+		[lastCheckedField setStringValue:NSLocalizedString(@"Never", @"Updates preference: Last checked, before any check has run")];
+	}
+}
+
+- (void)updateCheckDidFinish:(NSNotification *)aNotification {
+	[self refreshLastChecked];
 }
 
 - (IBAction)checkForUpdatesNow:(id)sender {
@@ -217,7 +558,7 @@
 	BOOL on = ([automaticallyChecksButton state] == NSControlStateValueOn);
 	[[KNUpdateController sharedInstance] setAutomaticallyChecksForUpdates:on];
 
-	//Sparkle only auto-downloads if it is also auto-checking, so Auto-Update follows this toggle:
+	//Sparkle only auto-downloads if it is also auto-checking, so automatic downloads follow this toggle:
 	//disable it when checks are off, and clear it so the UI never claims a state Sparkle won't honour
 	[automaticallyDownloadsButton setEnabled:on];
 	if (!on) {
@@ -298,6 +639,8 @@
 		[confirmDeletionButton setState:[prefsController confirmNoteDeletion]];
 	} else if ([selectorString isEqualToString:SEL_STR(setSideBySideTitleBar:sender:)]) {
 		[sideBySideTitleBarButton setState:[prefsController sideBySideTitleBar]];
+	} else if ([selectorString isEqualToString:SEL_STR(setHorizontalLayout:sender:)]) {
+		[layoutButton selectItemAtIndex:[prefsController horizontalLayout] ? 0 : 1];
 	}
 }
 
@@ -533,6 +876,189 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 	[generalView addSubview:sideBySideTitleBarButton];
 }
 
+//a right-aligned, non-editable label for a pane's labels' column
+- (NSTextField *)newColumnLabelWithString:(NSString *)string {
+	NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
+	[label setStringValue:string];
+	[label setAlignment:NSTextAlignmentRight];
+	[label setEditable:NO];
+	[label setSelectable:NO];
+	[label setBordered:NO];
+	[label setBezeled:NO];
+	[label setDrawsBackground:NO];
+	[label setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
+	[label sizeToFit];
+	return label;
+}
+
+/*
+ Layout -- Horizontal or Vertical, the same switch as the View menu's -- goes directly under List Text
+ Size. That row and everything above it move up by one row's pitch, measured as the distance from
+ List Text Size down to the row beneath it, and the new row takes the space that opens.
+ */
+- (void)addLayoutControl {
+
+	if (layoutButton || !generalView || !tableTextMenuButton) return;
+
+	NSRect sizeRow = [tableTextMenuButton frame];
+	CGFloat sizeCenter = NSMidY(sizeRow);
+
+	//List Text Size's label: the non-editable field on its row, ending left of the popup. The row
+	//beneath is whichever control's centre is nearest below; its distance is the pitch.
+	NSTextField *sizeLabel = nil;
+	CGFloat nextCenter = -CGFLOAT_MAX;
+	for (NSView *subview in [generalView subviews]) {
+		CGFloat center = NSMidY([subview frame]);
+		if (fabs(center - sizeCenter) < 8.0f) {
+			if ([subview isKindOfClass:[NSTextField class]] && ![(NSTextField *)subview isEditable] &&
+				NSMaxX([subview frame]) <= NSMinX(sizeRow)) sizeLabel = (NSTextField *)subview;
+		} else if (center < sizeCenter && center > nextCenter) {
+			nextCenter = center;
+		}
+	}
+	CGFloat pitch = (nextCenter == -CGFLOAT_MAX) ? 40.0f : sizeCenter - nextCenter;
+
+	[self liftControlsInPane:generalView above:sizeCenter - pitch / 2.0f by:pitch];
+
+	layoutButton = [[NSPopUpButton alloc] initWithFrame:sizeRow pullsDown:NO];
+	[layoutButton addItemWithTitle:NSLocalizedString(@"Horizontal", @"General preference: Layout popup, note list beside the note")];
+	[layoutButton addItemWithTitle:NSLocalizedString(@"Vertical", @"General preference: Layout popup, note list above the note")];
+	[layoutButton setFont:[tableTextMenuButton font]];
+	[layoutButton setTarget:self];
+	[layoutButton setAction:@selector(changedLayout:)];
+	[layoutButton sizeToFit];
+	NSRect popFrame = [layoutButton frame];
+	popFrame.size.width = MAX(NSWidth(popFrame), NSWidth(sizeRow));
+	popFrame.size.height = NSHeight(sizeRow);
+	popFrame.origin = NSMakePoint(NSMinX(sizeRow), floor(sizeCenter - NSHeight(popFrame) / 2.0f));
+	[layoutButton setFrame:popFrame];
+	[layoutButton setAutoresizingMask:[tableTextMenuButton autoresizingMask]];
+
+	layoutLabel = [self newColumnLabelWithString:NSLocalizedString(@"Layout:", @"General preference: label for the horizontal/vertical layout popup")];
+	NSRect labelFrame = [layoutLabel frame];
+	if (sizeLabel) {
+		[layoutLabel setFont:[sizeLabel font]];
+		labelFrame.size.height = NSHeight([sizeLabel frame]);
+	}
+	CGFloat labelRight = sizeLabel ? NSMaxX([sizeLabel frame]) : NSMinX(sizeRow) - 2.0f;
+	labelFrame.origin.x = MAX(0.0f, labelRight - NSWidth(labelFrame));
+	labelFrame.size.width = labelRight - NSMinX(labelFrame);
+	labelFrame.origin.y = floor(sizeCenter - NSHeight(labelFrame) / 2.0f);
+	[layoutLabel setFrame:labelFrame];
+	[layoutLabel setAutoresizingMask:sizeLabel ? [sizeLabel autoresizingMask] : [tableTextMenuButton autoresizingMask]];
+
+	[self widenPane:generalView toFitControl:layoutButton leftInset:NSMinX(labelFrame)];
+
+	[generalView addSubview:layoutLabel];
+	[generalView addSubview:layoutButton];
+}
+
+/*
+ The General and Editing panes' toggles are switches rather than checkboxes. Their nib cannot be
+ re-saved, so each checkbox is swapped at load for its title, left where the checkbox stood, and an
+ NSSwitch to the right of it; -alignSwitchesInPane: then lines a pane's switches up in one column past
+ its longest title. The switch takes over the checkbox's target, action, state and autoresizing, and its
+ ivar.
+ */
++ (NSSwitch *)switchReplacingCheckbox:(NSButton *)checkbox {
+	//the title is a KNSwitchLabel, which dims with the switch and flips it when clicked
+
+	NSView *pane = [checkbox superview];
+	NSRect row = [checkbox frame];
+
+	NSSwitch *toggle = [[[NSSwitch alloc] initWithFrame:NSZeroRect] autorelease];
+	[toggle setControlSize:NSControlSizeMini];
+	[pane addSubview:toggle];	//before measuring; see -addRowToCard:…
+	[toggle setFrameSize:[toggle intrinsicContentSize]];
+	[toggle setFrameOrigin:NSMakePoint(0.0f, floor(NSMidY(row) - NSHeight([toggle frame]) / 2.0f))];
+	[toggle setTarget:[checkbox target]];
+	[toggle setAction:[checkbox action]];
+	[toggle setState:[checkbox state]];
+	[toggle setEnabled:[checkbox isEnabled]];
+	[toggle setAutoresizingMask:[checkbox autoresizingMask]];
+
+	KNSwitchLabel *label = [[[KNSwitchLabel alloc] initWithTitle:[checkbox title] font:[checkbox font] toggle:toggle] autorelease];
+	[label setFrameOrigin:NSMakePoint(NSMinX(row), floor(NSMidY(row) - NSHeight([label frame]) / 2.0f))];
+	[label setAutoresizingMask:[checkbox autoresizingMask]];
+	[toggle setFrameOrigin:NSMakePoint(NSMaxX([label frame]) + 8.0f, NSMinY([toggle frame]))];
+
+	[pane addSubview:label];
+	[checkbox removeFromSuperview];
+	return toggle;
+}
+
+//one column for all of a view's switches, 8pt past the end of its longest title
++ (void)alignSwitchesInView:(NSView *)view {
+	CGFloat column = 0.0f;
+	for (NSView *subview in [view subviews]) {
+		if ([subview isKindOfClass:[KNSwitchLabel class]])
+			column = MAX(column, NSMaxX([subview frame]) + 8.0f);
+	}
+	for (NSView *subview in [view subviews]) {
+		if ([subview isKindOfClass:[NSSwitch class]])
+			[subview setFrameOrigin:NSMakePoint(column, NSMinY([subview frame]))];
+	}
+}
+
+//aligned, then the pane widened if the column runs past its right edge
+- (void)alignSwitchesInPane:(NSView *)pane {
+	[PrefsWindowController alignSwitchesInView:pane];
+	CGFloat leftInset = CGFLOAT_MAX;
+	for (NSView *subview in [pane subviews]) leftInset = MIN(leftInset, NSMinX([subview frame]));
+	for (NSView *subview in [pane subviews]) {
+		if ([subview isKindOfClass:[NSSwitch class]]) [self widenPane:pane toFitControl:subview leftInset:leftInset];
+	}
+}
+
+/*
+ Search Highlight differs: its checkbox sits in the labels' column, its title doubling as the row's
+ label, with the highlight colour's well beside it. Its title stays a right-aligned label there, the
+ well keeps its place in the controls' column alongside the other two, and the switch follows it.
+ */
+- (void)convertSearchHighlightCheckbox {
+	if (![highlightSearchTermsButton isKindOfClass:[NSButton class]] || !searchHighlightColorWell) return;
+
+	NSRect row = [highlightSearchTermsButton frame];
+	NSSwitch *toggle = [PrefsWindowController switchReplacingCheckbox:highlightSearchTermsButton];
+	highlightSearchTermsButton = toggle;
+	KNSwitchLabel *label = nil;
+	for (NSView *subview in [fontsColorsView subviews]) {
+		if ([subview isKindOfClass:[KNSwitchLabel class]] && [(KNSwitchLabel *)subview toggle] == toggle) label = (KNSwitchLabel *)subview;
+	}
+
+	NSRect wellFrame = [searchHighlightColorWell frame];
+	CGFloat center = NSMidY(wellFrame);
+	[label setFrameOrigin:NSMakePoint(NSMaxX(row) - NSWidth([label frame]), floor(center - NSHeight([label frame]) / 2.0f))];
+	[toggle setFrameOrigin:NSMakePoint(NSMaxX(wellFrame) + 6.0f, floor(center - NSHeight([toggle frame]) / 2.0f))];
+}
+
+- (void)convertCheckboxesToSwitches {
+	if (!generalView || [completeNoteTitlesButton isKindOfClass:[NSSwitch class]]) return;
+
+	completeNoteTitlesButton = [PrefsWindowController switchReplacingCheckbox:completeNoteTitlesButton];
+	confirmDeletionButton = [PrefsWindowController switchReplacingCheckbox:confirmDeletionButton];
+	quitWhenClosingButton = [PrefsWindowController switchReplacingCheckbox:quitWhenClosingButton];
+
+	styledTextButton = [PrefsWindowController switchReplacingCheckbox:styledTextButton];
+	checkSpellingButton = [PrefsWindowController switchReplacingCheckbox:checkSpellingButton];
+	softTabsButton = [PrefsWindowController switchReplacingCheckbox:softTabsButton];
+	makeURLsClickable = [PrefsWindowController switchReplacingCheckbox:makeURLsClickable];
+	autoSuggestLinksButton = [PrefsWindowController switchReplacingCheckbox:autoSuggestLinksButton];
+
+	//these three were built in code and are owned here, unlike the nib's
+	id *owned[] = { &sideBySideTitleBarButton, &showsLineNumbersButton, &showsWordCountButton };
+	for (NSUInteger i = 0; i < sizeof(owned) / sizeof(owned[0]); i++) {
+		NSButton *checkbox = *owned[i];
+		if (!checkbox) continue;
+		*owned[i] = [[PrefsWindowController switchReplacingCheckbox:checkbox] retain];
+		[checkbox release];
+	}
+
+	[self alignSwitchesInPane:generalView];
+	[self alignSwitchesInPane:editingView];
+	[self convertSearchHighlightCheckbox];
+}
+
 /*
  The Editing pane gains a Display group at its foot -- "Show line numbers" and "Show word count" --
  laid out like the pane's Links group above it: a right-aligned label in the labels' column, the
@@ -602,20 +1128,20 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 }
 
 /*
- The Color Scheme control -- a label + popup letting the user follow the system appearance or pin the
- app dark/light -- is built in code, the nib being un-editable. Unlike the General pane's checkbox,
- this pane cannot lean on -widenPane:: the Body Font field is width-sizable, so growing the pane
- *width* stretches that field until it runs under the fixed "Set…" button. So this lays out by hand instead. It leaves the pane width alone, grows only
- the *height* to make room, gives the Body Font row a generous gap above and below, and drops the
- Color Scheme row below it. Everything is measured off existing controls, since the shipped nib's
- frames differ from designable.nib's and vary by localization.
+ The Appearance control -- a label and a KNAppearancePicker letting the user follow the system appearance
+ or pin the app dark or light -- is built in code, the nib being un-editable. Unlike the General pane's
+ checkbox, this pane cannot lean on -widenPane:: the Body Font field is width-sizable, so growing the pane
+ *width* stretches that field until it runs under the fixed "Set…" button. So this lays out by hand
+ instead. It leaves the pane width alone, grows only the *height* to make room, gives the Body Font row
+ a generous gap above, and puts the picker below it. Everything is measured off existing controls, since
+ the shipped nib's frames differ from designable.nib's and vary by localization.
  */
 - (void)addAppearanceControl {
 
-	if (appearanceModeButton || !fontsColorsView || !bodyTextFontField) return;
+	if (appearancePicker || !fontsColorsView || !bodyTextFontField) return;
 
 	const CGFloat gap = 48.0f;			//breathing room above and below the Body Font row
-	const CGFloat bottomMargin = 16.0f;	//space beneath the Color Scheme popup
+	const CGFloat bottomMargin = 12.0f;	//space beneath the Appearance picker's captions
 
 	NSRect fieldFrame = [bodyTextFontField frame];
 	CGFloat fieldY = NSMinY(fieldFrame);
@@ -638,12 +1164,11 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 		}
 	}
 
-	//target row centres, bottom-up: the Color Scheme popup a bottom margin off the floor, the Body
-	//Font row `gap` above it, and the colour rows `gap` above that. Grow the pane's height (and lift
+	//target row centres, bottom-up: the Appearance picker a bottom margin off the floor, the Body Font
+	//row a little above its top, and the colour rows `gap` above that. Grow the pane's height (and lift
 	//the colour rows with it) by whatever the top row has to rise; the top margin is preserved.
-	const CGFloat popupHeight = 24.0f;
-	CGFloat rowCenterY = bottomMargin + popupHeight / 2.0f;
-	CGFloat bodyCenterTarget = rowCenterY + gap;
+	NSSize pickerSize = [KNAppearancePicker pickerSize];
+	CGFloat bodyCenterTarget = bottomMargin + pickerSize.height + 30.0f;
 	CGFloat upperCenterTarget = bodyCenterTarget + gap;
 	CGFloat shift = (lowestUpperCenter == CGFLOAT_MAX) ? 0.0f : (upperCenterTarget - lowestUpperCenter);
 	if (shift < 0.0f) shift = 0.0f;
@@ -671,29 +1196,20 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 		[sv setFrameOrigin:o];
 	}
 
-	appearanceModeButton = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(NSMinX(fieldFrame), 0.0f, 100.0f, 24.0f) pullsDown:NO];
-	[appearanceModeButton addItemWithTitle:NSLocalizedString(@"Follow System",
-		@"Color Scheme preference: track the macOS light/dark setting")];
-	[appearanceModeButton addItemWithTitle:NSLocalizedString(@"Force Dark",
-		@"Color Scheme preference: always use the dark appearance")];
-	[appearanceModeButton addItemWithTitle:NSLocalizedString(@"Force Light",
-		@"Color Scheme preference: always use the light appearance")];
-	[appearanceModeButton setTarget:self];
-	[appearanceModeButton setAction:@selector(changedAppearanceMode:)];
-	[appearanceModeButton sizeToFit];
+	//the thumbnails' left edges line up with the Body Font field's
+	appearancePicker = [[KNAppearancePicker alloc] initWithFrame:NSMakeRect(NSMinX(fieldFrame) - KN_THUMB_PAD, bottomMargin,
+																			pickerSize.width, pickerSize.height)];
+	[appearancePicker setTarget:self];
+	[appearancePicker setAction:@selector(changedAppearanceMode:)];
+	[appearancePicker setAutoresizingMask:NSViewMinYMargin];
+	//the picker is flipped; this is the thumbnails' centre in the pane's own coordinates
+	CGFloat thumbCenterY = bottomMargin + pickerSize.height - [KNAppearancePicker thumbnailCenterY];
 
-	//align under the Body Font field, vertically centred on the row
-	NSRect popFrame = [appearanceModeButton frame];
-	popFrame.origin.x = NSMinX(fieldFrame);
-	popFrame.origin.y = rowCenterY - NSHeight(popFrame) / 2.0f;
-	[appearanceModeButton setFrame:popFrame];
-	[appearanceModeButton setAutoresizingMask:NSViewMinYMargin];
-
-	//right-aligned label, its right edge matching the Body Font label's column
+	//right-aligned label, its right edge matching the Body Font label's column, centred on the thumbnails
 	CGFloat labelRight = bodyFontLabel ? NSMaxX([bodyFontLabel frame]) : (NSMinX(fieldFrame) - 8.0f);
-	appearanceLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0f, rowCenterY - 9.0f, labelRight, 18.0f)];
-	[appearanceLabel setStringValue:NSLocalizedString(@"Color Scheme:",
-		@"Fonts & Colors preference: label for the light/dark appearance popup")];
+	appearanceLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(0.0f, floor(thumbCenterY - 9.0f), labelRight, 18.0f)];
+	[appearanceLabel setStringValue:NSLocalizedString(@"Appearance:",
+		@"Fonts & Colors preference: label for the light/dark appearance picker")];
 	[appearanceLabel setAlignment:NSTextAlignmentRight];
 	[appearanceLabel setEditable:NO];
 	[appearanceLabel setSelectable:NO];
@@ -704,87 +1220,181 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 	[appearanceLabel setAutoresizingMask:NSViewMinYMargin];
 
 	[fontsColorsView addSubview:appearanceLabel];
-	[fontsColorsView addSubview:appearanceModeButton];
+	[fontsColorsView addSubview:appearancePicker];
 }
 
 /*
- The Updates pane is a whole new pane rather than a control added to an existing one, so unlike the
- two above there is no nib view to grow: it is built from nothing here. It holds a "Check Now" button
- and two toggles -- "Check for Updates Automatically" and, indented beneath it as its sub-option,
- "Auto-Update" -- which drive the Sparkle updater through KNUpdateController. Coordinates are
- un-flipped (y = 0 at the bottom); the pane is narrower than PREFS_MIN_CONTENT_WIDTH, so -switchViews:
- centres it in the window. Its own frame height is what sizes the pane, so it is set generously.
+ The Updates pane is a whole new pane rather than a control added to an existing one, so there is no
+ nib view to grow: it is built from nothing here, in the manner of System Settings' grouped forms.
+ Three cards stack top-down: the app's icon, name and version over a Check for Updates button; a link
+ to the project page; and the two toggles -- automatic checks and, dependent on them, automatic
+ downloads -- above the date of the last check. They drive the Sparkle updater through
+ KNUpdateController. The pane is flipped; its own frame height is what sizes the window.
  */
+
+//a plain, non-editable label
+- (NSTextField *)newUpdatesLabelWithString:(NSString *)string font:(NSFont *)font color:(NSColor *)color {
+	NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
+	[label setStringValue:string];
+	[label setEditable:NO];
+	[label setSelectable:NO];
+	[label setBordered:NO];
+	[label setBezeled:NO];
+	[label setDrawsBackground:NO];
+	[label setFont:font];
+	[label setTextColor:color];
+	[label sizeToFit];
+	return label;
+}
+
+//a hairline across a card, inset by the card's padding
+- (void)addSeparatorToCard:(NSView *)card atY:(CGFloat)y inset:(CGFloat)inset {
+	NSBox *line = [[[NSBox alloc] initWithFrame:NSMakeRect(inset, y, NSWidth([card frame]) - 2.0f * inset, 1.0f)] autorelease];
+	[line setBoxType:NSBoxSeparator];
+	[card addSubview:line];
+}
+
+//one row of the settings card: a title on the left, `control` right-aligned, both centred on the row
+- (void)addRowToCard:(NSView *)card title:(NSString *)title control:(NSView *)control
+			   atY:(CGFloat)y height:(CGFloat)height inset:(CGFloat)inset {
+	NSTextField *label = [[self newUpdatesLabelWithString:title font:[NSFont systemFontOfSize:[NSFont systemFontSize]]
+													color:[NSColor labelColor]] autorelease];
+	NSRect lf = [label frame];
+	lf.origin = NSMakePoint(inset, floor(y + (height - NSHeight(lf)) / 2.0f));
+	[label setFrame:lf];
+	[card addSubview:label];
+
+	//added before it is measured: an NSSwitch reports its control size's dimensions only once it is
+	//in a view, and the regular size until then
+	[card addSubview:control];
+	if ([control isKindOfClass:[NSSwitch class]]) [control setFrameSize:[control intrinsicContentSize]];
+	NSRect cf = [control frame];
+	cf.origin = NSMakePoint(NSWidth([card frame]) - inset - NSWidth(cf), floor(y + (height - NSHeight(cf)) / 2.0f));
+	[control setFrame:cf];
+}
+
+- (NSSwitch *)newUpdatesSwitchWithAction:(SEL)action {
+	NSSwitch *toggle = [[NSSwitch alloc] initWithFrame:NSZeroRect];
+	[toggle setControlSize:NSControlSizeMini];
+	[toggle setTarget:self];
+	[toggle setAction:action];
+	return toggle;
+}
+
 - (void)buildUpdatesView {
 
 	if (updatesView) return;
 
-	const CGFloat leftInset = 20.0f;
+	const CGFloat width = 480.0f;		//the pane
+	const CGFloat margin = 20.0f;		//around the cards
+	const CGFloat cardGap = 12.0f;		//between them
+	const CGFloat pad = 16.0f;			//inside them
+	const CGFloat rowHeight = 40.0f;	//a settings row
+	const CGFloat cardWidth = width - 2.0f * margin;
 
-	updatesView = [[NSView alloc] initWithFrame:NSMakeRect(0.0f, 0.0f, 420.0f, 150.0f)];
+	NSString *appName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleName"];
+	if (![appName length]) appName = [[NSProcessInfo processInfo] processName];
+	CGFloat y = margin;
 
-	//"Check Now" -- a momentary push button, top of the pane
-	NSButton *checkNowButton = [[[NSButton alloc] initWithFrame:NSMakeRect(leftInset, 104.0f, 120.0f, 32.0f)] autorelease];
+	updatesView = [[KNFlippedView alloc] initWithFrame:NSMakeRect(0.0f, 0.0f, width, 0.0f)];
+
+	//--- the app: icon, name and version, then Check for Updates beneath a separator
+	const CGFloat iconSize = 64.0f;
+	KNPrefsCardView *appCard = [[[KNPrefsCardView alloc] initWithFrame:NSMakeRect(margin, y, cardWidth, 0.0f)] autorelease];
+
+	NSImageView *icon = [[[NSImageView alloc] initWithFrame:NSMakeRect(pad, pad, iconSize, iconSize)] autorelease];
+	[icon setImage:[NSApp applicationIconImage]];
+	[icon setImageScaling:NSImageScaleProportionallyUpOrDown];
+	[appCard addSubview:icon];
+
+	NSTextField *nameLabel = [[self newUpdatesLabelWithString:appName font:[NSFont systemFontOfSize:22.0f weight:NSFontWeightSemibold]
+														color:[NSColor labelColor]] autorelease];
+	NSString *version = [NSString stringWithFormat:NSLocalizedString(@"Version %@ (%@)", @"Updates preference: the version and, in parentheses, the build number"),
+						 [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"],
+						 [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"]];
+	NSTextField *versionLabel = [[self newUpdatesLabelWithString:version font:[NSFont systemFontOfSize:[NSFont systemFontSize]]
+														   color:[NSColor secondaryLabelColor]] autorelease];
+	//the two lines centred as a block on the icon
+	CGFloat textHeight = NSHeight([nameLabel frame]) + 2.0f + NSHeight([versionLabel frame]);
+	CGFloat textX = pad + iconSize + 16.0f;
+	CGFloat textY = floor(pad + (iconSize - textHeight) / 2.0f);
+	[nameLabel setFrameOrigin:NSMakePoint(textX, textY)];
+	[versionLabel setFrameOrigin:NSMakePoint(textX, textY + NSHeight([nameLabel frame]) + 2.0f)];
+	[appCard addSubview:nameLabel];
+	[appCard addSubview:versionLabel];
+
+	CGFloat cardY = pad + iconSize + 14.0f;
+	[self addSeparatorToCard:appCard atY:cardY inset:pad];
+	cardY += 1.0f + 12.0f;
+
+	NSButton *checkNowButton = [[[NSButton alloc] initWithFrame:NSZeroRect] autorelease];
 	[checkNowButton setBezelStyle:NSBezelStyleRounded];
-	[checkNowButton setButtonType:NSButtonTypeMomentaryPushIn];
-	[checkNowButton setTitle:NSLocalizedString(@"Check Now",
-		@"Updates preference: button that checks for a new version immediately")];
-	[checkNowButton setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
+	[checkNowButton setControlSize:NSControlSizeLarge];
+	[checkNowButton setTitle:NSLocalizedString(@"Check for Updates", @"Updates preference: button that checks for a new version immediately")];
+	[checkNowButton setFont:[NSFont systemFontOfSize:[NSFont systemFontSizeForControlSize:NSControlSizeLarge]]];
 	[checkNowButton setTarget:self];
 	[checkNowButton setAction:@selector(checkForUpdatesNow:)];
 	[checkNowButton sizeToFit];
-	NSRect cnFrame = [checkNowButton frame];
-	if (cnFrame.size.width < 100.0f) cnFrame.size.width = 100.0f;	//keep a comfortable minimum
-	cnFrame.origin = NSMakePoint(leftInset, 104.0f);
-	[checkNowButton setFrame:cnFrame];
-	[checkNowButton setAutoresizingMask:NSViewMinYMargin];
-	[updatesView addSubview:checkNowButton];
+	[checkNowButton setFrameOrigin:NSMakePoint(pad - 2.0f, cardY)];
+	[appCard addSubview:checkNowButton];
+	cardY += NSHeight([checkNowButton frame]) + pad - 2.0f;
 
-	//caption beside the button, so it reads "Check Now  for the most recent version". A plain label:
-	//no custom text colour, so it uses the adaptive labelColor and stays legible in Dark Mode.
-	NSTextField *checkNowCaption = [[[NSTextField alloc] initWithFrame:NSMakeRect(0.0f, 0.0f, 260.0f, 18.0f)] autorelease];
-	[checkNowCaption setStringValue:NSLocalizedString(@"for the most recent version",
-		@"Updates preference: caption beside the Check Now button")];
-	[checkNowCaption setEditable:NO];
-	[checkNowCaption setSelectable:NO];
-	[checkNowCaption setBordered:NO];
-	[checkNowCaption setBezeled:NO];
-	[checkNowCaption setDrawsBackground:NO];
-	[checkNowCaption setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
-	[checkNowCaption sizeToFit];
-	NSRect capFrame = [checkNowCaption frame];
-	capFrame.origin = NSMakePoint(NSMaxX(cnFrame) + 8.0f, NSMidY(cnFrame) - NSHeight(capFrame) / 2.0f);
-	[checkNowCaption setFrame:capFrame];
-	[checkNowCaption setAutoresizingMask:NSViewMinYMargin];
-	[updatesView addSubview:checkNowCaption];
-	//grow the pane if the button+caption run past its right edge, so nothing is clipped
-	[self widenPane:updatesView toFitControl:checkNowCaption leftInset:leftInset];
+	[appCard setFrameSize:NSMakeSize(cardWidth, cardY)];
+	[updatesView addSubview:appCard];
+	y += cardY + cardGap;
 
-	//"Check for Updates Automatically" -- Sparkle's scheduled checks
-	automaticallyChecksButton = [[NSButton alloc] initWithFrame:NSMakeRect(leftInset, 64.0f, 320.0f, 18.0f)];
-	[automaticallyChecksButton setButtonType:NSButtonTypeSwitch];
-	[automaticallyChecksButton setTitle:NSLocalizedString(@"Check for Updates Automatically",
-		@"Updates preference: toggle Sparkle's scheduled update checks")];
-	[automaticallyChecksButton setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
-	[automaticallyChecksButton setTarget:self];
-	[automaticallyChecksButton setAction:@selector(changedAutomaticallyChecksForUpdates:)];
-	[automaticallyChecksButton sizeToFit];
-	[automaticallyChecksButton setFrameOrigin:NSMakePoint(leftInset, 64.0f)];
-	[automaticallyChecksButton setAutoresizingMask:NSViewMinYMargin];
-	[updatesView addSubview:automaticallyChecksButton];
+	//--- the project page
+	KNPrefsCardView *linkCard = [[[KNPrefsCardView alloc] initWithFrame:NSMakeRect(margin, y, cardWidth, rowHeight)] autorelease];
+	NSButton *projectLink = [[[NSButton alloc] initWithFrame:NSZeroRect] autorelease];
+	[projectLink setBordered:NO];
+	[projectLink setButtonType:NSButtonTypeMomentaryChange];
+	[projectLink setAttributedTitle:[[[NSAttributedString alloc] initWithString:NSLocalizedString(@"GitHub Project", @"Updates preference: link to the project's page")
+		attributes:[NSDictionary dictionaryWithObjectsAndKeys:[NSColor linkColor], NSForegroundColorAttributeName,
+					[NSFont systemFontOfSize:[NSFont systemFontSize]], NSFontAttributeName, nil]] autorelease]];
+	[projectLink setToolTip:KNProjectURLString];
+	[projectLink setTarget:self];
+	[projectLink setAction:@selector(openProjectPage:)];
+	[projectLink sizeToFit];
+	[projectLink setFrameOrigin:NSMakePoint(pad, floor((rowHeight - NSHeight([projectLink frame])) / 2.0f))];
+	[linkCard addSubview:projectLink];
+	[updatesView addSubview:linkCard];
+	y += rowHeight + cardGap;
 
-	//"Auto-Update" -- automatic download+install; indented to read as a sub-option of the toggle above
-	automaticallyDownloadsButton = [[NSButton alloc] initWithFrame:NSMakeRect(leftInset + 18.0f, 36.0f, 320.0f, 18.0f)];
-	[automaticallyDownloadsButton setButtonType:NSButtonTypeSwitch];
-	[automaticallyDownloadsButton setTitle:NSLocalizedString(@"Auto-Update",
-		@"Updates preference: toggle automatic download and install of updates")];
-	[automaticallyDownloadsButton setFont:[NSFont systemFontOfSize:[NSFont systemFontSize]]];
-	[automaticallyDownloadsButton setTarget:self];
-	[automaticallyDownloadsButton setAction:@selector(changedAutomaticallyDownloadsUpdates:)];
-	[automaticallyDownloadsButton sizeToFit];
-	[automaticallyDownloadsButton setFrameOrigin:NSMakePoint(leftInset + 18.0f, 36.0f)];
-	[automaticallyDownloadsButton setAutoresizingMask:NSViewMinYMargin];
-	[updatesView addSubview:automaticallyDownloadsButton];
+	//--- the toggles and the last check
+	KNPrefsCardView *settingsCard = [[[KNPrefsCardView alloc] initWithFrame:NSMakeRect(margin, y, cardWidth, 3.0f * rowHeight)] autorelease];
+
+	automaticallyChecksButton = [self newUpdatesSwitchWithAction:@selector(changedAutomaticallyChecksForUpdates:)];
+	[self addRowToCard:settingsCard title:NSLocalizedString(@"Automatically check for updates", @"Updates preference: toggle Sparkle's scheduled update checks")
+			   control:automaticallyChecksButton atY:0.0f height:rowHeight inset:pad];
+	[self addSeparatorToCard:settingsCard atY:rowHeight inset:pad];
+
+	automaticallyDownloadsButton = [self newUpdatesSwitchWithAction:@selector(changedAutomaticallyDownloadsUpdates:)];
+	[self addRowToCard:settingsCard title:NSLocalizedString(@"Automatically download updates", @"Updates preference: toggle automatic download and install of updates")
+			   control:automaticallyDownloadsButton atY:rowHeight height:rowHeight inset:pad];
+	[self addSeparatorToCard:settingsCard atY:2.0f * rowHeight inset:pad];
+
+	lastCheckedField = [self newUpdatesLabelWithString:@"" font:[NSFont systemFontOfSize:[NSFont systemFontSize]]
+												 color:[NSColor secondaryLabelColor]];
+	[lastCheckedField setAlignment:NSTextAlignmentRight];
+	[lastCheckedField setFrameSize:NSMakeSize(cardWidth / 2.0f, NSHeight([lastCheckedField frame]))];
+	[self addRowToCard:settingsCard title:NSLocalizedString(@"Last checked", @"Updates preference: label for the date of the most recent update check")
+			   control:lastCheckedField atY:2.0f * rowHeight height:rowHeight inset:pad];
+	[updatesView addSubview:settingsCard];
+	y += 3.0f * rowHeight + 8.0f;
+
+	//--- a footnote on when a downloaded update takes effect
+	NSString *note = [NSString stringWithFormat:NSLocalizedString(@"Downloaded updates install the next time you quit %@.",
+		@"Updates preference: footnote; the app's name is substituted"), appName];
+	NSTextField *footnote = [[self newUpdatesLabelWithString:note font:[NSFont systemFontOfSize:[NSFont smallSystemFontSize]]
+													   color:[NSColor secondaryLabelColor]] autorelease];
+	[footnote setFrameOrigin:NSMakePoint(margin + 4.0f, y)];
+	[updatesView addSubview:footnote];
+	y += NSHeight([footnote frame]) + margin;
+
+	[updatesView setFrameSize:NSMakeSize(width, y)];
+
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(updateCheckDidFinish:)
+												 name:KNUpdateCheckDidFinishNotification object:nil];
 }
 
 - (void)awakeFromNib {
@@ -816,11 +1426,14 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
     [quitWhenClosingButton setState:[prefsController quitWhenClosingWindow]];
 	[self addTitleBarLayoutCheckbox];
 	[sideBySideTitleBarButton setState:[prefsController sideBySideTitleBar]];
+
+	[self addLayoutControl];
+	[layoutButton selectItemAtIndex:[prefsController horizontalLayout] ? 0 : 1];
 	[self addDisplayCheckboxes];
 	[showsLineNumbersButton setState:[prefsController showsLineNumbers]];
 	[showsWordCountButton setState:[prefsController showsWordCount]];
 	[self addAppearanceControl];
-	[appearanceModeButton selectItemAtIndex:[prefsController appearanceMode]];
+	[appearancePicker setSelectedMode:[prefsController appearanceMode]];
     [styledTextButton setState:[prefsController pastePreservesStyle]];
     [autoSuggestLinksButton setState:[prefsController linksAutoSuggested]];
 	[softTabsButton setState:[prefsController softTabs]];
@@ -829,6 +1442,7 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 	[appShortcutField setStringValue:[[prefsController appActivationKeyCombo] description]];
 	[searchHighlightColorWell setColor:[prefsController searchTermHighlightColorRaw:YES]];
 	[highlightSearchTermsButton setState:[prefsController highlightSearchTerms]];
+	[self convertCheckboxesToSwitches];
 	[foregroundColorWell setColor:[prefsController foregroundTextColor]];
 	[backgroundColorWell setColor:[prefsController backgroundTextColor]];
     
@@ -842,12 +1456,13 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 	[self buildUpdatesView];
 	[self addToolbarItemWithName:@"Updates"];
 
-	//reflect Sparkle's current state; Auto-Update is meaningful only while auto-checking is on
+	//reflect Sparkle's current state; automatic downloads are meaningful only while auto-checking is on
 	KNUpdateController *updateController = [KNUpdateController sharedInstance];
 	BOOL autoChecks = [updateController automaticallyChecksForUpdates];
 	[automaticallyChecksButton setState:autoChecks ? NSControlStateValueOn : NSControlStateValueOff];
 	[automaticallyDownloadsButton setState:[updateController automaticallyDownloadsUpdates] ? NSControlStateValueOn : NSControlStateValueOff];
 	[automaticallyDownloadsButton setEnabled:autoChecks];
+	[self refreshLastChecked];
 		
     toolbar = [[NSToolbar alloc] initWithIdentifier:@"preferencePanes"];
     [toolbar setDelegate:self];
@@ -905,6 +1520,7 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
         prefsView = fontsColorsView;
 	} else if([sender isEqualToString:@"Updates"]) {
 		prefsView = updatesView;
+		[self refreshLastChecked];
 	} else {
 		NSLog(@"unknown sender: %@", sender);
 	}

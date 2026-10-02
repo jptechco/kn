@@ -25,6 +25,7 @@
 #import "KNReleaseNotesWindowController.h"
 
 NSString *KNUpdateToolbarItemIdentifier = @"UpdateAvailable";
+NSString *KNUpdateCheckDidFinishNotification = @"KNUpdateCheckDidFinishNotification";
 
 //the indicator sits immediately after the search field, which is the toolbar's only other item
 #define KNUpdateToolbarItemIndex 1
@@ -171,6 +172,9 @@ KNSilentUpdateAction KNSilentUpdateActionForBuilds(NSInteger recordedBuild, NSIn
 - (void)setAutomaticallyDownloadsUpdates:(BOOL)value {
 	[[self updater] setAutomaticallyDownloadsUpdates:value];
 }
+- (NSDate*)lastUpdateCheckDate {
+	return [[self updater] lastUpdateCheckDate];
+}
 
 #pragma mark Release notes for updates that installed themselves
 
@@ -203,6 +207,10 @@ KNSilentUpdateAction KNSilentUpdateActionForBuilds(NSInteger recordedBuild, NSIn
 
 	//NO: Sparkle keeps charge of the install, exactly as it would with no delegate
 	return NO;
+}
+
+- (void)updater:(SPUUpdater *)updater didFinishUpdateCycleForUpdateCheck:(SPUUpdateCheck)updateCheck error:(NSError *)error {
+	[[NSNotificationCenter defaultCenter] postNotificationName:KNUpdateCheckDidFinishNotification object:self];
 }
 
 - (void)forgetSilentUpdate {

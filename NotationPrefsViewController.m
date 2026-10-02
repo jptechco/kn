@@ -24,6 +24,7 @@
 #import "GlobalPrefs.h"
 #import "KNAlert.h"
 #import "NotationPrefsViewController.h"
+#import "PrefsWindowController.h"
 #import "InvocationRecorder.h"
 #import "NotationPrefs.h"
 #import "NSString_NV.h"
@@ -104,6 +105,16 @@ enum {VERIFY_NOT_ATTEMPTED, VERIFY_FAILED, VERIFY_IN_PROGRESS, VERIFY_SUCCESS};
 		[center addObserver:self selector:@selector(syncEditingDidEnd:) name:NSControlTextDidEndEditingNotification object:syncPasswordField];
 	}
 	[center addObserver:self selector:@selector(initializeControls) name:NotationPrefsDidChangeNotification object:nil];
+
+	//switches rather than checkboxes, as in the other panes; each lines up within its own tab
+	if ([confirmFileDeletionButton isKindOfClass:[NSButton class]]) {
+		confirmFileDeletionButton = [PrefsWindowController switchReplacingCheckbox:confirmFileDeletionButton];
+		[PrefsWindowController alignSwitchesInView:[confirmFileDeletionButton superview]];
+	}
+	if ([secureTextEntryButton isKindOfClass:[NSButton class]]) {
+		secureTextEntryButton = [PrefsWindowController switchReplacingCheckbox:secureTextEntryButton];
+		[PrefsWindowController alignSwitchesInView:[secureTextEntryButton superview]];
+	}
 
     [self initializeControls];
 }

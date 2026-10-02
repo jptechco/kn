@@ -71,6 +71,10 @@ KNSilentUpdateAction KNSilentUpdateActionForBuilds(NSInteger recordedBuild, NSIn
 //the toolbar item the indicator lives in. AppController's toolbar delegate vends it by this name.
 extern NSString *KNUpdateToolbarItemIdentifier;
 
+//posted on the main thread whenever Sparkle finishes an update cycle, scheduled or asked for, so the
+//Updates pane can refresh its "Last checked" date
+extern NSString *KNUpdateCheckDidFinishNotification;
+
 @interface KNUpdateController : NSObject
 {
 	//SPUStandardUpdaterController. Typed as id so this header needs no Sparkle import, which keeps
@@ -111,5 +115,7 @@ extern NSString *KNUpdateToolbarItemIdentifier;
 - (void)setAutomaticallyChecksForUpdates:(BOOL)value;
 - (BOOL)automaticallyDownloadsUpdates;
 - (void)setAutomaticallyDownloadsUpdates:(BOOL)value;
+//nil until the first check has ever run
+- (NSDate*)lastUpdateCheckDate;
 
 @end

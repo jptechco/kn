@@ -54,7 +54,7 @@
 static NSString *KNProductSiteURLString = @"https://www.kineticnotes.org";
 
 //where its "Development Web Site" item points; update alongside the repository if it moves
-static NSString *KNProjectURLString = @"https://github.com/jptechco/kn";
+NSString *KNProjectURLString = @"https://github.com/jptechco/kn";
 
 
 @implementation AppController
