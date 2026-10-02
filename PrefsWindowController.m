@@ -1556,7 +1556,8 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 		[window setFrame:frame display:NO];
 		[frameView layoutSubtreeIfNeeded];
 		if ([[toolbar visibleItems] count] >= [[toolbar items] count]) {
-			minContentWidth = MAX(PREFS_MIN_CONTENT_WIDTH, width + 10.0f);
+			//the floor already carries its own margin; a width found above it gets the same
+			minContentWidth = (width > PREFS_MIN_CONTENT_WIDTH) ? width + 10.0f : PREFS_MIN_CONTENT_WIDTH;
 			break;
 		}
 	}
