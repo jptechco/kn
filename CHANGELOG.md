@@ -21,6 +21,12 @@ version heading when that release is cut.
 
 ## Unreleased
 
+- **Spanish menus are Spanish throughout.** The menu bar still read *Format* and *Window*, and the
+  Format menu *Bold*, *Italic* and *Strikethrough*: the menus kept English titles of their own, and
+  the three style items English titles of the kind the menu actually draws. They now read *Formato*,
+  *Ventana*, *Negrita*, *Cursiva* and *Tachado*. Build 49.
+  ([#49](https://github.com/jptechco/kn/pull/49))
+
 - **Kinetic Notes opens again on macOS 27.** 1.8 quit the moment it was launched on macOS 27: the
   system now tells the note editor about Light and Dark Mode while the window is still being loaded,
   before the editor has its colors, and the editor failed on the missing color. It now waits until it
