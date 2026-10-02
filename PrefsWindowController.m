@@ -35,8 +35,10 @@
 //the preference panes are only ~368pt wide, which is too narrow to display all the toolbar items on
 //modern macOS (they collapse into a ">>" overflow menu, hiding panes). Keep the window at least this
 //wide so all five items stay visible beside the window title; narrower panes are centered in the
-//extra width. 590 is the smallest that fits: the overflow point was measured at 583pt against the
-//longest title ("Fonts & Colors", the worst case), with a few points of margin added.
+//extra width. 590 is the smallest that fits in English: the overflow point was measured at 583pt
+//against the longest title ("Fonts & Colors", the worst case), with a few points of margin added.
+//Other languages' names are longer -- German needs about 700 -- so this is only the floor:
+//-measureToolbarWidth finds the real minimum at load.
 #define PREFS_MIN_CONTENT_WIDTH 590.0f
 
 /*
@@ -893,8 +895,13 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 
 /*
  Layout -- Horizontal or Vertical, the same switch as the View menu's -- goes directly under List Text
- Size. That row and everything above it move up by one row's pitch, measured as the distance from
- List Text Size down to the row beneath it, and the new row takes the space that opens.
+ Size. That row and everything above it move up by one row's pitch, and the new row takes the space
+ that opens, its popup and label in exactly the frames List Text Size's had.
+
+ The row is found by membership rather than by a cutoff, because its label's frame varies by language:
+ English's is one line tall and centred on the popup, but German's is two lines tall with its text at
+ the top, so it hangs well below the popup's centre. The pitch is measured between controls only --
+ popups, fields and buttons -- for the same reason.
  */
 - (void)addLayoutControl {
 
@@ -903,22 +910,37 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 	NSRect sizeRow = [tableTextMenuButton frame];
 	CGFloat sizeCenter = NSMidY(sizeRow);
 
-	//List Text Size's label: the non-editable field on its row, ending left of the popup. The row
-	//beneath is whichever control's centre is nearest below; its distance is the pitch.
+	//List Text Size's label: a non-editable field ending left of the popup whose frame spans the popup's
+	//centre. Any such field is on the row; so is anything else spanning that centre.
 	NSTextField *sizeLabel = nil;
+	NSMutableArray *rowAndAbove = [NSMutableArray array];
 	CGFloat nextCenter = -CGFLOAT_MAX;
 	for (NSView *subview in [generalView subviews]) {
-		CGFloat center = NSMidY([subview frame]);
-		if (fabs(center - sizeCenter) < 8.0f) {
-			if ([subview isKindOfClass:[NSTextField class]] && ![(NSTextField *)subview isEditable] &&
-				NSMaxX([subview frame]) <= NSMinX(sizeRow)) sizeLabel = (NSTextField *)subview;
-		} else if (center < sizeCenter && center > nextCenter) {
-			nextCenter = center;
+		NSRect f = [subview frame];
+		BOOL isLabel = [subview isKindOfClass:[NSTextField class]] && ![(NSTextField *)subview isEditable];
+		BOOL onRow = NSMinY(f) <= sizeCenter && NSMaxY(f) >= sizeCenter;
+		if (onRow && isLabel && NSMaxX(f) <= NSMinX(sizeRow) + 2.0f) sizeLabel = (NSTextField *)subview;
+		if (onRow || NSMinY(f) > sizeCenter) {
+			[rowAndAbove addObject:subview];
+		} else if (!isLabel && NSMidY(f) > nextCenter) {
+			nextCenter = NSMidY(f);
 		}
 	}
 	CGFloat pitch = (nextCenter == -CGFLOAT_MAX) ? 40.0f : sizeCenter - nextCenter;
+	NSRect sizeLabelFrame = sizeLabel ? [sizeLabel frame] : NSZeroRect;
 
-	[self liftControlsInPane:generalView above:sizeCenter - pitch / 2.0f by:pitch];
+	//as -liftControlsInPane:above:by:, but moving the row by membership
+	BOOL wasAutoresizing = [generalView autoresizesSubviews];
+	[generalView setAutoresizesSubviews:NO];
+	NSRect paneFrame = [generalView frame];
+	paneFrame.size.height += pitch;
+	[generalView setFrame:paneFrame];
+	for (NSView *subview in rowAndAbove) {
+		NSPoint origin = [subview frame].origin;
+		origin.y += pitch;
+		[subview setFrameOrigin:origin];
+	}
+	[generalView setAutoresizesSubviews:wasAutoresizing];
 
 	layoutButton = [[NSPopUpButton alloc] initWithFrame:sizeRow pullsDown:NO];
 	[layoutButton addItemWithTitle:NSLocalizedString(@"Horizontal", @"General preference: Layout popup, note list beside the note")];
@@ -927,25 +949,31 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 	[layoutButton setTarget:self];
 	[layoutButton setAction:@selector(changedLayout:)];
 	[layoutButton sizeToFit];
-	NSRect popFrame = [layoutButton frame];
-	popFrame.size.width = MAX(NSWidth(popFrame), NSWidth(sizeRow));
-	popFrame.size.height = NSHeight(sizeRow);
-	popFrame.origin = NSMakePoint(NSMinX(sizeRow), floor(sizeCenter - NSHeight(popFrame) / 2.0f));
+	NSRect popFrame = sizeRow;
+	popFrame.size.width = MAX(NSWidth([layoutButton frame]), NSWidth(sizeRow));
 	[layoutButton setFrame:popFrame];
 	[layoutButton setAutoresizingMask:[tableTextMenuButton autoresizingMask]];
 
 	layoutLabel = [self newColumnLabelWithString:NSLocalizedString(@"Layout:", @"General preference: label for the horizontal/vertical layout popup")];
 	NSRect labelFrame = [layoutLabel frame];
 	if (sizeLabel) {
+		//List Text Size's label's own frame, so the text sits on the popup the same way in every language;
+		//widened leftwards only if this title needs more room
 		[layoutLabel setFont:[sizeLabel font]];
-		labelFrame.size.height = NSHeight([sizeLabel frame]);
+		[layoutLabel setAlignment:[sizeLabel alignment]];
+		[layoutLabel sizeToFit];
+		CGFloat needed = NSWidth([layoutLabel frame]);
+		labelFrame = sizeLabelFrame;
+		if (needed > NSWidth(labelFrame)) {
+			labelFrame.origin.x = MAX(0.0f, NSMaxX(labelFrame) - needed);
+			labelFrame.size.width = NSMaxX(sizeLabelFrame) - NSMinX(labelFrame);
+		}
+		[layoutLabel setAutoresizingMask:[sizeLabel autoresizingMask]];
+	} else {
+		labelFrame.origin = NSMakePoint(MAX(0.0f, NSMinX(sizeRow) - 2.0f - NSWidth(labelFrame)), floor(sizeCenter - NSHeight(labelFrame) / 2.0f));
+		[layoutLabel setAutoresizingMask:[tableTextMenuButton autoresizingMask]];
 	}
-	CGFloat labelRight = sizeLabel ? NSMaxX([sizeLabel frame]) : NSMinX(sizeRow) - 2.0f;
-	labelFrame.origin.x = MAX(0.0f, labelRight - NSWidth(labelFrame));
-	labelFrame.size.width = labelRight - NSMinX(labelFrame);
-	labelFrame.origin.y = floor(sizeCenter - NSHeight(labelFrame) / 2.0f);
 	[layoutLabel setFrame:labelFrame];
-	[layoutLabel setAutoresizingMask:sizeLabel ? [sizeLabel autoresizingMask] : [tableTextMenuButton autoresizingMask]];
 
 	[self widenPane:generalView toFitControl:layoutButton leftInset:NSMinX(labelFrame)];
 
@@ -1472,6 +1500,7 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
     [toolbar release];  //setToolbar retains the toolbar we pass, so release the one we used.
 	
 	[window setShowsToolbarButton:NO];
+	[self measureToolbarWidth];
 
     [self switchViews:nil];  //select last selected pane by default
     
@@ -1493,6 +1522,47 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
 - (NSArray *)toolbarSelectableItemIdentifiers: (NSToolbar *)toolbar {
     //make all of them selectable. This puts that little grey outline thing around an item when you select it.
     return [items allKeys];
+}
+
+/*
+ The narrowest window at which every toolbar item shows, in the language running. The toolbar collapses
+ items it cannot fit into a ">>" menu, and how much room it needs depends on the translated pane names,
+ both as item labels and as the window title beside them. So rather than a figure per language, this
+ widens the (not yet visible) window in steps until the toolbar reports every item visible, with the
+ longest pane name as the title, and keeps that width plus a margin.
+ */
+- (void)measureToolbarWidth {
+
+	minContentWidth = PREFS_MIN_CONTENT_WIDTH;
+	if (!toolbar || ![[toolbar items] count]) return;
+
+	NSString *savedTitle = [window title];
+	NSRect savedFrame = [window frame];
+
+	NSString *longestTitle = savedTitle;
+	CGFloat longestWidth = 0.0f;
+	NSDictionary *titleAttributes = [NSDictionary dictionaryWithObject:[NSFont titleBarFontOfSize:0.0f] forKey:NSFontAttributeName];
+	for (NSString *name in [self toolbarDefaultItemIdentifiers:toolbar]) {
+		NSString *title = [[NSBundle mainBundle] localizedStringForKey:name value:@"" table:nil];
+		CGFloat width = [title sizeWithAttributes:titleAttributes].width;
+		if (width > longestWidth) { longestWidth = width; longestTitle = title; }
+	}
+	[window setTitle:longestTitle];
+
+	NSView *frameView = [[window contentView] superview];
+	for (CGFloat width = PREFS_MIN_CONTENT_WIDTH; width <= 1400.0f; width += 10.0f) {
+		NSRect frame = savedFrame;
+		frame.size.width = width;
+		[window setFrame:frame display:NO];
+		[frameView layoutSubtreeIfNeeded];
+		if ([[toolbar visibleItems] count] >= [[toolbar items] count]) {
+			minContentWidth = MAX(PREFS_MIN_CONTENT_WIDTH, width + 10.0f);
+			break;
+		}
+	}
+
+	[window setTitle:savedTitle];
+	[window setFrame:savedFrame display:NO];
 }
 
 - (void)switchViews:(NSToolbarItem *)item {
@@ -1546,7 +1616,7 @@ static NSString *KNPaneSymbolName(NSString *paneIdentifier) {
     NSRect newFrame = [window frame];
 	NSRect viewFrameForWindow = ScaleRectWithFactor([prefsView frame], userSpaceScaleFactor);
     newFrame.size.height = viewFrameForWindow.size.height + ([window frame].size.height - windowContentFrame.size.height);
-    newFrame.size.width = MAX(viewFrameForWindow.size.width, PREFS_MIN_CONTENT_WIDTH);
+    newFrame.size.width = MAX(viewFrameForWindow.size.width, minContentWidth);
     newFrame.origin.y += (windowContentFrame.size.height - viewFrameForWindow.size.height);
 
     [window setShowsResizeIndicator:YES];
