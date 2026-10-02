@@ -24,7 +24,13 @@ version heading when that release is cut.
 - **Kinetic Notes opens again on macOS 27.** 1.8 quit the moment it was launched on macOS 27: the
   system now tells the note editor about Light and Dark Mode while the window is still being loaded,
   before the editor has its colors, and the editor failed on the missing color. It now waits until it
-  is set up. ([#47](https://github.com/jptechco/kn/pull/47))
+  is set up. Build 47. ([#47](https://github.com/jptechco/kn/pull/47))
+
+- **The side-by-side layout loses its drag square.** The small grip at the foot of the note list's
+  scroll bar was left over from Notational Velocity; the line between the list and the note is
+  already dragged by a band either side of it, in both layouts, so the square is gone and the scroll
+  bar runs the full height of the list. Build 46, contributed by
+  [@tkambler](https://github.com/tkambler). ([#46](https://github.com/jptechco/kn/pull/46))
 
 ## 1.8 — 2026-09-16
 
