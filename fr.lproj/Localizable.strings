@@ -753,3 +753,54 @@
 
 /* shown in the release notes window when the page cannot be loaded, e.g. offline */
 "The release notes could not be loaded. You can read them online:" = "Les notes de version n’ont pas pu être chargées. Vous pouvez les lire en ligne :";
+
+/* name of the Updates pane in Settings, in its toolbar and window title */
+"Updates" = "Mises à jour";
+
+/* General preference: label for the horizontal/vertical layout popup */
+"Layout:" = "Présentation :";
+
+/* General preference: Layout popup, note list beside the note */
+"Horizontal" = "Horizontale";
+
+/* General preference: Layout popup, note list above the note */
+"Vertical" = "Verticale";
+
+/* Updates preference: the version and, in parentheses, the build number */
+"Version %@ (%@)" = "Version %@ (%@)";
+
+/* Updates preference: button that checks for a new version immediately */
+"Check for Updates" = "Vérifier la présence de mises à jour";
+
+/* Updates preference: link to the project's page */
+"GitHub Project" = "Projet GitHub";
+
+/* Updates preference: toggle Sparkle's scheduled update checks */
+"Automatically check for updates" = "Rechercher automatiquement les mises à jour";
+
+/* Updates preference: toggle automatic download and install of updates */
+"Automatically download updates" = "Télécharger automatiquement les mises à jour";
+
+/* Updates preference: label for the date of the most recent update check */
+"Last checked" = "Dernière vérification";
+
+/* Updates preference: Last checked, before any check has run */
+"Never" = "Jamais";
+
+/* Updates preference: footnote; the app's name is substituted */
+"Downloaded updates install the next time you quit %@." = "Les mises à jour téléchargées seront installées la prochaine fois que vous quitterez %@.";
+
+/* Fonts & Colors preference: label for the light/dark appearance picker */
+"Appearance:" = "Apparence :";
+
+/* Fonts & Colors preference: the appearance picker's name for VoiceOver */
+"Appearance" = "Apparence";
+
+/* Appearance preference: track the macOS light/dark setting */
+"Automatic" = "Automatique";
+
+/* Appearance preference: always use the light appearance */
+"Light" = "Clair";
+
+/* Appearance preference: always use the dark appearance */
+"Dark" = "Sombre";

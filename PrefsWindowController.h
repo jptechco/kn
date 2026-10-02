@@ -22,6 +22,8 @@
 @class NotationPrefsViewController;
 @class GlobalPrefs;
 
+@class KNAppearancePicker;
+
 @interface PrefsWindowController : NSObject 
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6
 <NSWindowDelegate, NSToolbarDelegate>
@@ -34,27 +36,30 @@
 	IBOutlet NSPopUpButton *externalEditorMenuButton;
     IBOutlet NSTextField *tableTextSizeField;
     IBOutlet NSTextField *appShortcutField;
-	IBOutlet NSButton *completeNoteTitlesButton;
-	IBOutlet NSButton *checkSpellingButton;
-	IBOutlet NSButton *confirmDeletionButton;
-	IBOutlet NSButton *quitWhenClosingButton;
+	IBOutlet id completeNoteTitlesButton;	//the General and Editing panes' checkboxes are swapped for NSSwitches at load
+	IBOutlet id checkSpellingButton;
+	IBOutlet id confirmDeletionButton;
+	IBOutlet id quitWhenClosingButton;
 	//not outlets: Preferences.nib is Interface Builder 3 format in seven localizations and is
 	//never re-saved, so these controls are built in code (-addTitleBarLayoutCheckbox and
 	//-addAppearanceControl) instead
-	NSButton *sideBySideTitleBarButton;
+	id sideBySideTitleBarButton;
 	NSTextField *appearanceLabel;
-	NSPopUpButton *appearanceModeButton;
+	KNAppearancePicker *appearancePicker;
 	//the Editing pane's Display group, likewise built in code
 	NSTextField *displayLabel;
-	NSButton *showsLineNumbersButton, *showsWordCountButton;
+	id showsLineNumbersButton, showsWordCountButton;
 	//the Updates pane and its two toggles, likewise built in code rather than in the nib
 	NSView *updatesView;
-	NSButton *automaticallyChecksButton, *automaticallyDownloadsButton;
-	IBOutlet NSButton *styledTextButton;
-	IBOutlet NSButton *autoSuggestLinksButton;
-	IBOutlet NSButton *softTabsButton;
-	IBOutlet NSButton *makeURLsClickable;
-	IBOutlet NSButton *highlightSearchTermsButton;
+	NSSwitch *automaticallyChecksButton, *automaticallyDownloadsButton;
+	NSTextField *lastCheckedField;
+	NSTextField *layoutLabel;
+	NSPopUpButton *layoutButton;
+	IBOutlet id styledTextButton;
+	IBOutlet id autoSuggestLinksButton;
+	IBOutlet id softTabsButton;
+	IBOutlet id makeURLsClickable;
+	IBOutlet id highlightSearchTermsButton;
 	IBOutlet NSColorWell *searchHighlightColorWell, *foregroundColorWell, *backgroundColorWell;
     
     IBOutlet NotationPrefsViewController *notationPrefsViewController;
@@ -103,6 +108,13 @@
 - (NSMenu*)directorySelectionMenu;
 - (void)changeDefaultDirectory;
 - (NSString*)newNotesDirectoryFromOpenPanel;
+
+//The preference panes' checkboxes become NSSwitches at load: the checkbox's title stays where the
+//checkbox stood and the switch, which takes over its target, action, state, autoresizing and ivar, goes
+//to the right. +alignSwitchesInView: then lines a view's switches up in one column past its longest
+//title. Shared with NotationPrefsViewController, whose nib is the Notes pane's.
++ (NSSwitch *)switchReplacingCheckbox:(NSButton *)checkbox;
++ (void)alignSwitchesInView:(NSView *)view;
 
 - (NotationPrefsViewController*)notationPrefsViewController;
 - (NSView*)databaseView;

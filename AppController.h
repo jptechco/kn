@@ -34,6 +34,9 @@
 @class TitlebarButton;
 @class KNStatusBar;
 
+//the project's home page, opened from the Help menu and the Updates preference pane
+extern NSString *KNProjectURLString;
+
 @interface AppController : NSObject 
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6
 <NSToolbarDelegate, NSTableViewDelegate, NSWindowDelegate, NSTextFieldDelegate, NSTextViewDelegate>
