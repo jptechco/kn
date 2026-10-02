@@ -19,7 +19,7 @@ version heading when that release is cut.
 
 ## Releases
 
-## Unreleased
+## 1.9 — 2026-10-02
 
 - **Spanish and German fixes.** In Spanish, the menu bar still read *Format* and *Window*, and the
   Format menu *Bold*, *Italic* and *Strikethrough*: the menus kept English titles of their own, and

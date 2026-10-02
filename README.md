@@ -9,12 +9,13 @@ being withdrawn after macOS 26 Tahoe. Kinetic Notes is that application rebuilt 
 with its dead and Intel-only dependencies replaced, and nothing removed that anyone was using.
 
 ### Status
-**Version: 1.8 — current stable release.**
+**Version: 1.9 — current stable release.**
 
-1.8 adds optional line numbers beside the note and a word count along the bottom of the window, shows
-the release notes after an update that installed itself, and makes the divider between the notes and
-the note the same thin line in both layouts, each remembering where it was left. Like 1.6 it is signed
-with an Apple Developer ID and notarized, so it opens normally on first launch and updates itself.
+1.9 redesigns the Settings window, with switches beside each title, a Horizontal or Vertical
+*Layout* choice, a cleaner *Appearance* setting and an Updates pane that shows your version and when
+updates were last checked, and adds new and improved translations for it. It also opens again on
+macOS 27, where 1.8 quit at launch. Like 1.6 it is signed with an Apple Developer ID and notarized,
+so it opens normally on first launch and updates itself.
 
 ### Changelog
 If you're curious, check out the [changelog](CHANGELOG.md) to see what's changed in each version.
