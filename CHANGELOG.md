@@ -21,6 +21,13 @@ version heading when that release is cut.
 
 ## Unreleased
 
+- **A redesigned Settings window.** The checkboxes on General, Editing, Notes and Fonts & Colors
+  are now switches beside their titles. General gains a *Layout* choice — Horizontal or Vertical —
+  the same switch as the View menu's. Updates shows the app's icon and version over *Check for
+  Updates*, a link to the GitHub project, and when updates were last checked. Fonts & Colors replaces
+  the Color Scheme menu with an *Appearance* picker of Automatic, Light and Dark. Every new label is
+  translated into all seven languages. Build 48. ([#48](https://github.com/jptechco/kn/pull/48))
+
 - **Kinetic Notes opens again on macOS 27.** 1.8 quit the moment it was launched on macOS 27: the
   system now tells the note editor about Light and Dark Mode while the window is still being loaded,
   before the editor has its colors, and the editor failed on the missing color. It now waits until it

@@ -756,3 +756,54 @@
 
 /* shown in the release notes window when the page cannot be loaded, e.g. offline */
 "The release notes could not be loaded. You can read them online:" = "No se han podido cargar las notas de la versión. Puede leerlas en línea:";
+
+/* name of the Updates pane in Settings, in its toolbar and window title */
+"Updates" = "Actualizaciones";
+
+/* General preference: label for the horizontal/vertical layout popup */
+"Layout:" = "Disposición:";
+
+/* General preference: Layout popup, note list beside the note */
+"Horizontal" = "Horizontal";
+
+/* General preference: Layout popup, note list above the note */
+"Vertical" = "Vertical";
+
+/* Updates preference: the version and, in parentheses, the build number */
+"Version %@ (%@)" = "Versión %@ (%@)";
+
+/* Updates preference: button that checks for a new version immediately */
+"Check for Updates" = "Buscar actualizaciones";
+
+/* Updates preference: link to the project's page */
+"GitHub Project" = "Proyecto en GitHub";
+
+/* Updates preference: toggle Sparkle's scheduled update checks */
+"Automatically check for updates" = "Buscar actualizaciones automáticamente";
+
+/* Updates preference: toggle automatic download and install of updates */
+"Automatically download updates" = "Descargar actualizaciones automáticamente";
+
+/* Updates preference: label for the date of the most recent update check */
+"Last checked" = "Última comprobación";
+
+/* Updates preference: Last checked, before any check has run */
+"Never" = "Nunca";
+
+/* Updates preference: footnote; the app's name is substituted */
+"Downloaded updates install the next time you quit %@." = "Las actualizaciones descargadas se instalarán la próxima vez que salga de %@.";
+
+/* Fonts & Colors preference: label for the light/dark appearance picker */
+"Appearance:" = "Apariencia:";
+
+/* Fonts & Colors preference: the appearance picker's name for VoiceOver */
+"Appearance" = "Apariencia";
+
+/* Appearance preference: track the macOS light/dark setting */
+"Automatic" = "Automático";
+
+/* Appearance preference: always use the light appearance */
+"Light" = "Claro";
+
+/* Appearance preference: always use the dark appearance */
+"Dark" = "Oscuro";
