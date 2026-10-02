@@ -68,6 +68,7 @@
 	NSMutableDictionary *items;
 	NSToolbar *toolbar;
 	BOOL fontPanelWasOpen;
+	CGFloat minContentWidth;	//see -measureToolbarWidth
 	
 	IBOutlet NSWindow *window;
 	IBOutlet NSView *editingView, *generalView, *fontsColorsView, *databaseView, *notationPrefsView;
