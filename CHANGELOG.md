@@ -19,6 +19,13 @@ version heading when that release is cut.
 
 ## Releases
 
+## Unreleased
+
+- **Kinetic Notes opens again on macOS 27.** 1.8 quit the moment it was launched on macOS 27: the
+  system now tells the note editor about Light and Dark Mode while the window is still being loaded,
+  before the editor has its colors, and the editor failed on the missing color. It now waits until it
+  is set up. ([#47](https://github.com/jptechco/kn/pull/47))
+
 ## 1.8 — 2026-09-16
 
 - **An update that installs itself now says what changed.** With *Auto-Update* on, updates download
