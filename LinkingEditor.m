@@ -236,8 +236,12 @@ CGFloat _perceptualDarkness(NSColor*a);
 
 //AppKit sends this when the system switches between Light and Dark Mode. The editor's own colors are
 //refreshed here; the note content itself is restyled by the app delegate, which owns the notes.
+//macOS 27 also sends it from -initWithCoder:, while MainMenu.nib is still decoding: prefsController is
+//not set until -awakeFromNib, so every color comes back nil and the selected-text attributes dictionary
+//throws. Nothing is on screen yet and -awakeFromNib applies the colors itself, so there is nothing to do.
 - (void)viewDidChangeEffectiveAppearance {
 	[super viewDidChangeEffectiveAppearance];
+	if (!prefsController) return;
 	[self updateTextColors];
 	id appDelegate = [NSApp delegate];
 	if ([appDelegate respondsToSelector:@selector(applyAutomaticTextColorsToNotes)])
